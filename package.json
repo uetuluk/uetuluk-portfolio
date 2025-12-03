@@ -9,13 +9,14 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.0.0",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.5",
-    "class-variance-authority": "^0.7.1",
-    "lucide-react": "^0.468.0"
+    "react-spinners": "^0.17.0",
+    "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.0.0",

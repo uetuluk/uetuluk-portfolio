@@ -3,8 +3,17 @@ import type {
   GenerateRequest,
   GeneratedLayout,
   AIGatewayResponse,
+  CategorizationResult,
+  StoredTag,
 } from "./types";
-import { buildSystemPrompt, buildUserPrompt } from "./prompts";
+import {
+  buildSystemPrompt,
+  buildUserPrompt,
+  buildCategorizationPrompt,
+  buildCategorizationUserPrompt,
+  ALLOWED_VISITOR_TAGS,
+  TAG_GUIDELINES,
+} from "./prompts";
 
 // Extract links from generated layout for validation
 function extractLinks(layout: GeneratedLayout): string[] {
@@ -71,6 +80,204 @@ function sanitizeLayout(
       return section;
     }),
   };
+}
+
+// Simple hash function for cache keys
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+// Get default categorization result (fallback to friend)
+function getDefaultCategorizationResult(): CategorizationResult {
+  return {
+    status: "matched",
+    tagName: "friend",
+    displayName: "Friend",
+    guidelines: TAG_GUIDELINES.friend,
+    confidence: 1,
+    reason: "Default fallback",
+  };
+}
+
+// Validate and sanitize categorization result
+function sanitizeCategorizationResult(
+  result: CategorizationResult
+): CategorizationResult {
+  // Sanitize tag name: lowercase, alphanumeric with hyphens only, max 20 chars
+  let tagName = result.tagName
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 20);
+
+  // If empty after sanitization, use friend
+  if (!tagName) {
+    tagName = "friend";
+  }
+
+  // If matched to existing tag, use canonical name and guidelines
+  if (result.status === "matched" && ALLOWED_VISITOR_TAGS.includes(tagName)) {
+    return {
+      ...result,
+      tagName,
+      guidelines: TAG_GUIDELINES[tagName] || result.guidelines,
+    };
+  }
+
+  // For rejected, always use friend
+  if (result.status === "rejected") {
+    return {
+      ...result,
+      tagName: "friend",
+      guidelines: TAG_GUIDELINES.friend,
+    };
+  }
+
+  return {
+    ...result,
+    tagName,
+    confidence: Math.min(1, Math.max(0, result.confidence)),
+  };
+}
+
+// Store a new tag in KV for future reuse
+async function storeNewTag(
+  result: CategorizationResult,
+  originalIntent: string,
+  env: Env
+): Promise<void> {
+  if (!env.UI_CACHE) return;
+
+  const tagKey = `tag:${result.tagName}`;
+
+  // Check if tag already exists
+  const existing = await env.UI_CACHE.get(tagKey);
+  if (existing) return;
+
+  const storedTag: StoredTag = {
+    tagName: result.tagName,
+    displayName: result.displayName,
+    guidelines: result.guidelines,
+    createdAt: new Date().toISOString(),
+    mappedFrom: originalIntent,
+    isCustom: true,
+  };
+
+  await env.UI_CACHE.put(tagKey, JSON.stringify(storedTag), {
+    expirationTtl: 86400 * 30, // 30 days
+  });
+}
+
+// Categorize a custom intent using LLM
+async function categorizeIntent(
+  customIntent: string,
+  env: Env
+): Promise<CategorizationResult> {
+  // Check intent cache first
+  if (env.UI_CACHE) {
+    const normalizedIntent = customIntent.toLowerCase().trim().slice(0, 50);
+    const intentCacheKey = `intent:${hashString(normalizedIntent)}`;
+
+    const cachedResult = await env.UI_CACHE.get(intentCacheKey, "json");
+    if (cachedResult) {
+      return cachedResult as CategorizationResult;
+    }
+  }
+
+  // Check if AI Gateway is configured
+  if (!env.AI || !env.AI_GATEWAY_ID) {
+    return getDefaultCategorizationResult();
+  }
+
+  try {
+    const gateway = env.AI.gateway(env.AI_GATEWAY_ID);
+
+    const response = await gateway.run({
+      provider: "openrouter",
+      endpoint: "chat/completions",
+      headers: { "Content-Type": "application/json" },
+      query: {
+        model: "qwen/qwen3-coder-flash",
+        messages: [
+          { role: "system", content: buildCategorizationPrompt() },
+          { role: "user", content: buildCategorizationUserPrompt(customIntent) },
+        ],
+        temperature: 0.3, // Lower temperature for consistent categorization
+        max_tokens: 500,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "categorization_result",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                status: {
+                  type: "string",
+                  enum: ["matched", "new_tag", "rejected"],
+                },
+                tagName: { type: "string" },
+                displayName: { type: "string" },
+                guidelines: { type: "string" },
+                confidence: { type: "number" },
+                reason: { type: "string" },
+              },
+              required: [
+                "status",
+                "tagName",
+                "displayName",
+                "guidelines",
+                "confidence",
+              ],
+              additionalProperties: false,
+            },
+          },
+        },
+      },
+    });
+
+    if (!response.ok) {
+      console.error("Categorization API error:", response.status);
+      return getDefaultCategorizationResult();
+    }
+
+    const data = (await response.json()) as AIGatewayResponse;
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return getDefaultCategorizationResult();
+    }
+
+    const result = JSON.parse(content) as CategorizationResult;
+    const sanitizedResult = sanitizeCategorizationResult(result);
+
+    // Cache the result
+    if (env.UI_CACHE) {
+      const normalizedIntent = customIntent.toLowerCase().trim().slice(0, 50);
+      const intentCacheKey = `intent:${hashString(normalizedIntent)}`;
+
+      await env.UI_CACHE.put(intentCacheKey, JSON.stringify(sanitizedResult), {
+        expirationTtl: 86400 * 7, // 7 days
+      });
+    }
+
+    // Store new tag for future reuse
+    if (sanitizedResult.status === "new_tag") {
+      await storeNewTag(sanitizedResult, customIntent, env);
+    }
+
+    return sanitizedResult;
+  } catch (error) {
+    console.error("Categorization error:", error);
+    return getDefaultCategorizationResult();
+  }
 }
 
 export default {
@@ -152,20 +359,77 @@ async function handleGenerate(
     });
   }
 
-  // Check cache first (when KV is configured)
-  // const cacheKey = `ui-${visitorTag}`;
-  // const cached = await env.UI_CACHE?.get(cacheKey);
-  // if (cached) {
-  //   return new Response(cached, {
-  //     headers: { ...corsHeaders, "Content-Type": "application/json" },
-  //   });
-  // }
+  // Step 1: Categorize custom intent if provided
+  let effectiveTag = visitorTag;
+  let customGuidelines: { tagName: string; guidelines: string } | undefined;
+  let categorizationInfo: Partial<CategorizationResult> | undefined;
+
+  if (customIntent && customIntent.trim()) {
+    try {
+      const categorization = await categorizeIntent(customIntent, env);
+
+      effectiveTag = categorization.tagName;
+      categorizationInfo = {
+        status: categorization.status,
+        tagName: categorization.tagName,
+        displayName: categorization.displayName,
+        confidence: categorization.confidence,
+      };
+
+      // For new tags, include the custom guidelines
+      if (
+        categorization.status === "new_tag" ||
+        !ALLOWED_VISITOR_TAGS.includes(categorization.tagName)
+      ) {
+        customGuidelines = {
+          tagName: categorization.tagName,
+          guidelines: categorization.guidelines,
+        };
+      }
+
+      // Log rejected intents for monitoring
+      if (categorization.status === "rejected") {
+        console.warn(
+          "Rejected intent:",
+          customIntent,
+          "Reason:",
+          categorization.reason
+        );
+      }
+    } catch (error) {
+      console.error("Categorization error:", error);
+      // Continue with original visitorTag on error
+    }
+  }
+
+  // Step 2: Check layout cache
+  const cacheKey = `layout:${effectiveTag}:${
+    customGuidelines ? hashString(customGuidelines.guidelines) : "default"
+  }`;
+
+  if (env.UI_CACHE) {
+    const cachedLayout = await env.UI_CACHE.get(cacheKey, "json");
+    if (cachedLayout) {
+      return new Response(
+        JSON.stringify({
+          ...(cachedLayout as GeneratedLayout),
+          _categorization: categorizationInfo,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
 
   // Check if AI Gateway is configured
   if (!env.AI || !env.AI_GATEWAY_ID) {
     console.warn("AI Gateway not configured, returning default layout");
     return new Response(
-      JSON.stringify(getDefaultLayout(visitorTag, portfolioContent)),
+      JSON.stringify({
+        ...getDefaultLayout(effectiveTag, portfolioContent),
+        _categorization: categorizationInfo,
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
@@ -173,7 +437,7 @@ async function handleGenerate(
   }
 
   try {
-    // Call AI Gateway -> OpenRouter (BYOK handles API key automatically)
+    // Step 3: Generate layout with categorized tag and custom guidelines
     const gateway = env.AI.gateway(env.AI_GATEWAY_ID);
 
     const aiResponse = await gateway.run({
@@ -185,10 +449,13 @@ async function handleGenerate(
       query: {
         model: "qwen/qwen3-coder-flash",
         messages: [
-          { role: "system", content: buildSystemPrompt(portfolioContent) },
+          {
+            role: "system",
+            content: buildSystemPrompt(portfolioContent, customGuidelines),
+          },
           {
             role: "user",
-            content: buildUserPrompt(visitorTag, customIntent),
+            content: buildUserPrompt(effectiveTag, customIntent),
           },
         ],
         temperature: 0.7,
@@ -281,12 +548,20 @@ async function handleGenerate(
       }
     }
 
-    // Cache the result (when KV is configured)
-    // await env.UI_CACHE?.put(cacheKey, JSON.stringify(generatedLayout), {
-    //   expirationTtl: 86400, // 24 hours
-    // });
+    // Cache the layout result
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(generatedLayout), {
+        expirationTtl: 86400, // 24 hours
+      });
+    }
 
-    return new Response(JSON.stringify(generatedLayout), {
+    // Include categorization info in response
+    const responsePayload = {
+      ...generatedLayout,
+      _categorization: categorizationInfo,
+    };
+
+    return new Response(JSON.stringify(responsePayload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -294,7 +569,10 @@ async function handleGenerate(
 
     // Fall back to default layout on error
     return new Response(
-      JSON.stringify(getDefaultLayout(visitorTag, portfolioContent)),
+      JSON.stringify({
+        ...getDefaultLayout(effectiveTag, portfolioContent),
+        _categorization: categorizationInfo,
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }

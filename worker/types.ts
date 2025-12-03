@@ -4,8 +4,8 @@ export interface Env {
   // Gateway ID as env var for flexibility
   AI_GATEWAY_ID: string;
 
-  // Storage bindings (uncomment when created)
-  // UI_CACHE: KVNamespace;
+  // Storage bindings
+  UI_CACHE: KVNamespace;
   // ASSETS: R2Bucket;
 }
 
@@ -78,4 +78,22 @@ export interface AIGatewayResponse {
   error?: {
     message: string;
   };
+}
+
+export interface CategorizationResult {
+  status: "matched" | "new_tag" | "rejected";
+  tagName: string;
+  displayName: string;
+  guidelines: string;
+  confidence: number;
+  reason?: string;
+}
+
+export interface StoredTag {
+  tagName: string;
+  displayName: string;
+  guidelines: string;
+  createdAt: string;
+  mappedFrom?: string;
+  isCustom: boolean;
 }

@@ -34,9 +34,7 @@ const visitorOptions = [
 ];
 
 export function WelcomeModal({ onSelect }: WelcomeModalProps) {
-  const [showCustom, setShowCustom] = useState(false);
   const [customIntent, setCustomIntent] = useState("");
-  const [selectedType, setSelectedType] = useState<VisitorType>(null);
 
   const handleSubmitCustom = () => {
     if (customIntent.trim()) {
@@ -59,78 +57,44 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
 
         <div className="bg-card rounded-xl border shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-6 text-center">
-            What brings you here today?
+            Tell me what you're looking for
           </h2>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            {visitorOptions.map((option) => (
-              <button
-                key={option.type}
-                onClick={() => {
-                  setSelectedType(option.type);
-                  onSelect(option.type);
-                }}
-                className={cn(
-                  "flex items-start gap-4 p-4 rounded-lg border-2 text-left transition-all",
-                  "hover:border-primary hover:bg-accent",
-                  selectedType === option.type
-                    ? "border-primary bg-accent"
-                    : "border-border"
-                )}
-              >
-                <span className="text-2xl">{option.icon}</span>
-                <div>
-                  <div className="font-medium">{option.label}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {option.description}
-                  </div>
-                </div>
-              </button>
-            ))}
+          <div className="space-y-4">
+            <textarea
+              value={customIntent}
+              onChange={(e) => setCustomIntent(e.target.value)}
+              placeholder="I'm interested in..."
+              className="w-full px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              rows={3}
+            />
+            <button
+              onClick={handleSubmitCustom}
+              disabled={!customIntent.trim()}
+              className={cn(
+                "w-full px-4 py-2 rounded-lg font-medium transition-colors",
+                customIntent.trim()
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+              )}
+            >
+              Continue
+            </button>
           </div>
 
-          <div className="mt-6 pt-6 border-t">
-            {!showCustom ? (
-              <button
-                onClick={() => setShowCustom(true)}
-                className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Something else? Click here to tell me more →
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <label className="block text-sm font-medium">
-                  Tell me what you're looking for:
-                </label>
-                <textarea
-                  value={customIntent}
-                  onChange={(e) => setCustomIntent(e.target.value)}
-                  placeholder="I'm interested in..."
-                  className="w-full px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  rows={3}
-                />
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowCustom(false)}
-                    className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmitCustom}
-                    disabled={!customIntent.trim()}
-                    className={cn(
-                      "flex-1 px-4 py-2 rounded-lg font-medium transition-colors",
-                      customIntent.trim()
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-muted-foreground cursor-not-allowed"
-                    )}
-                  >
-                    Continue
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
+            <span>Quick options: </span>
+            {visitorOptions.map((option, index) => (
+              <span key={option.type}>
+                <button
+                  onClick={() => onSelect(option.type)}
+                  className="hover:text-foreground hover:underline transition-colors"
+                >
+                  {option.label}
+                </button>
+                {index < visitorOptions.length - 1 && <span> | </span>}
+              </span>
+            ))}
           </div>
         </div>
 

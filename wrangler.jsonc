@@ -6,10 +6,15 @@
     "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
-  // Uncomment and fill in after creating resources:
-  // "kv_namespaces": [
-  //   { "binding": "UI_CACHE", "id": "<your-kv-id>" }
-  // ],
+  // KV namespace for caching intents and layouts
+  // Create with: wrangler kv:namespace create UI_CACHE
+  // Then replace <your-kv-id> with the ID from the output
+  "kv_namespaces": [
+    {
+      "binding": "UI_CACHE",
+      "id": "bf2c226b1a254f92a7980aa1cb1a1e73"
+    }
+  ],
   // "r2_buckets": [
   //   { "binding": "ASSETS", "bucket_name": "portfolio-assets" }
   // ],
