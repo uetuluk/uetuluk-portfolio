@@ -6,6 +6,73 @@ import type {
 } from "./types";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
 
+// Extract links from generated layout for validation
+function extractLinks(layout: GeneratedLayout): string[] {
+  const links: string[] = [];
+  for (const section of layout.sections) {
+    // Hero CTA
+    if (
+      section.type === "Hero" &&
+      section.props.cta &&
+      typeof section.props.cta === "object" &&
+      "href" in section.props.cta
+    ) {
+      links.push(section.props.cta.href as string);
+    }
+  }
+  return links;
+}
+
+// Validate a link by fetching it (3 second timeout)
+async function validateLink(url: string): Promise<boolean> {
+  try {
+    // Skip mailto: links
+    if (url.startsWith("mailto:")) return true;
+
+    // Skip relative paths (internal assets)
+    if (url.startsWith("/")) return true;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch(url, {
+      method: "HEAD",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Remove invalid links from layout
+function sanitizeLayout(
+  layout: GeneratedLayout,
+  invalidLinks: Set<string>
+): GeneratedLayout {
+  return {
+    ...layout,
+    sections: layout.sections.map((section) => {
+      if (
+        section.type === "Hero" &&
+        section.props.cta &&
+        typeof section.props.cta === "object" &&
+        "href" in section.props.cta
+      ) {
+        if (invalidLinks.has(section.props.cta.href as string)) {
+          // Remove invalid CTA
+          const { cta, ...restProps } = section.props;
+          return { ...section, props: restProps };
+        }
+      }
+      return section;
+    }),
+  };
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -194,6 +261,24 @@ async function handleGenerate(
     // Validate the layout structure
     if (!generatedLayout.layout || !generatedLayout.sections) {
       throw new Error("Invalid layout structure");
+    }
+
+    // Validate and sanitize links
+    const links = extractLinks(generatedLayout);
+    if (links.length > 0) {
+      const invalidLinks = new Set<string>();
+
+      await Promise.all(
+        links.map(async (link) => {
+          const isValid = await validateLink(link);
+          if (!isValid) invalidLinks.add(link);
+        })
+      );
+
+      if (invalidLinks.size > 0) {
+        console.warn("Removed invalid links:", [...invalidLinks]);
+        generatedLayout = sanitizeLayout(generatedLayout, invalidLinks);
+      }
     }
 
     // Cache the result (when KV is configured)
