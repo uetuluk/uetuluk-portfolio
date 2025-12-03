@@ -2,6 +2,7 @@ import { useState } from "react";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { GeneratedPage } from "@/components/GeneratedPage";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import portfolioContent from "@/content/portfolio.json";
 
 export type VisitorType =
@@ -73,24 +74,22 @@ function App() {
     setError(null);
   };
 
-  // Show welcome modal if no visitor type selected
-  if (!visitorType) {
-    return <WelcomeModal onSelect={handleVisitorSelect} />;
-  }
-
-  // Show loading screen while generating
-  if (isLoading) {
-    return <LoadingScreen visitorType={visitorType} />;
-  }
-
-  // Show generated page
   return (
-    <GeneratedPage
-      layout={generatedLayout}
-      visitorType={visitorType}
-      onReset={handleReset}
-      error={error}
-    />
+    <>
+      <ThemeToggle />
+      {!visitorType ? (
+        <WelcomeModal onSelect={handleVisitorSelect} />
+      ) : isLoading ? (
+        <LoadingScreen visitorType={visitorType} />
+      ) : (
+        <GeneratedPage
+          layout={generatedLayout}
+          visitorType={visitorType}
+          onReset={handleReset}
+          error={error}
+        />
+      )}
+    </>
   );
 }
 
