@@ -14,8 +14,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
+    "prop-types": "^15.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-responsive-masonry": "^2.7.1",
     "react-router-dom": "^7.0.0",
     "react-spinners": "^0.17.0",
     "tailwind-merge": "^2.5.5"
@@ -25,6 +27,7 @@
     "@cloudflare/workers-types": "^4.20241127.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/react-responsive-masonry": "^2.7.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",

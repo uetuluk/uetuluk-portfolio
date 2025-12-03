@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { VisitorType } from "@/App";
 import { cn } from "@/lib/utils";
+import { MosaicBackground } from "./MosaicBackground";
 
 interface WelcomeModalProps {
   onSelect: (type: VisitorType, customIntent?: string) => void;
@@ -44,8 +45,9 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <div className="max-w-2xl w-full">
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+      <MosaicBackground />
+      <div className="relative z-10 max-w-2xl w-full">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Welcome to My Portfolio
