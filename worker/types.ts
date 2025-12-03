@@ -1,0 +1,81 @@
+export interface Env {
+  // AI Gateway configuration
+  AI_GATEWAY_ACCOUNT_ID: string;
+  AI_GATEWAY_ID: string;
+  OPENROUTER_API_KEY: string;
+
+  // Storage bindings (uncomment when created)
+  // UI_CACHE: KVNamespace;
+  // ASSETS: R2Bucket;
+}
+
+export interface GenerateRequest {
+  visitorTag: string;
+  customIntent?: string;
+  portfolioContent: PortfolioContent;
+}
+
+export interface PortfolioContent {
+  personal: {
+    name: string;
+    title: string;
+    bio: string;
+    contact: {
+      email: string;
+      linkedin: string;
+      github: string;
+    };
+    location?: string;
+    resumeUrl?: string;
+  };
+  projects: Array<{
+    id: string;
+    title: string;
+    description: string;
+    technologies: string[];
+    image: string;
+    links: {
+      demo?: string;
+      github?: string;
+    };
+    tags: string[];
+    featured?: boolean;
+  }>;
+  experience: Array<{
+    id: string;
+    company: string;
+    role: string;
+    period: string;
+    description: string;
+    highlights?: string[];
+  }>;
+  skills: string[];
+  education: Array<{
+    id: string;
+    institution: string;
+    degree: string;
+    period: string;
+    highlights?: string[];
+  }>;
+  hobbies?: string[];
+}
+
+export interface GeneratedLayout {
+  layout: "single-column" | "two-column" | "hero-focused";
+  theme: { accent: string };
+  sections: Array<{
+    type: string;
+    props: Record<string, unknown>;
+  }>;
+}
+
+export interface AIGatewayResponse {
+  choices?: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+  error?: {
+    message: string;
+  };
+}

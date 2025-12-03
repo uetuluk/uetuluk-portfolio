@@ -1,0 +1,111 @@
+{
+  "personal": {
+    "name": "Your Name",
+    "title": "Full Stack Developer",
+    "bio": "Passionate developer with expertise in building modern web applications. I love exploring new technologies and creating solutions that make a difference.",
+    "contact": {
+      "email": "hello@example.com",
+      "linkedin": "https://linkedin.com/in/yourprofile",
+      "github": "https://github.com/yourusername"
+    },
+    "location": "San Francisco, CA",
+    "resumeUrl": "/assets/resume.pdf"
+  },
+  "projects": [
+    {
+      "id": "project-1",
+      "title": "AI-Powered Dashboard",
+      "description": "A real-time analytics dashboard with AI-driven insights and predictive modeling capabilities.",
+      "longDescription": "Built a comprehensive analytics platform that leverages machine learning to provide actionable insights from complex datasets.",
+      "technologies": ["React", "TypeScript", "Python", "TensorFlow"],
+      "image": "/assets/project1.png",
+      "links": {
+        "demo": "https://demo.example.com",
+        "github": "https://github.com/example/project1"
+      },
+      "tags": ["ai", "web", "analytics"],
+      "featured": true
+    },
+    {
+      "id": "project-2",
+      "title": "E-Commerce Platform",
+      "description": "Full-stack e-commerce solution with payment processing and inventory management.",
+      "longDescription": "Developed a scalable e-commerce platform supporting thousands of concurrent users with real-time inventory tracking.",
+      "technologies": ["Next.js", "Node.js", "PostgreSQL", "Stripe"],
+      "image": "/assets/project2.png",
+      "links": {
+        "demo": "https://shop.example.com",
+        "github": "https://github.com/example/project2"
+      },
+      "tags": ["web", "fullstack", "e-commerce"],
+      "featured": true
+    },
+    {
+      "id": "project-3",
+      "title": "Mobile Fitness App",
+      "description": "Cross-platform fitness tracking app with social features and personalized workout plans.",
+      "longDescription": "Created a React Native app that helps users track their fitness goals with AI-generated workout recommendations.",
+      "technologies": ["React Native", "Firebase", "Node.js"],
+      "image": "/assets/project3.png",
+      "links": {
+        "demo": "https://fitness.example.com",
+        "github": "https://github.com/example/project3"
+      },
+      "tags": ["mobile", "health", "ai"],
+      "featured": false
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-1",
+      "company": "Tech Company",
+      "role": "Senior Software Engineer",
+      "period": "2022 - Present",
+      "description": "Leading development of cloud-native applications and mentoring junior developers.",
+      "highlights": [
+        "Architected microservices handling 1M+ requests/day",
+        "Reduced deployment time by 60% through CI/CD improvements",
+        "Led team of 5 engineers on critical projects"
+      ]
+    },
+    {
+      "id": "exp-2",
+      "company": "Startup Inc",
+      "role": "Full Stack Developer",
+      "period": "2020 - 2022",
+      "description": "Built core product features from scratch in a fast-paced startup environment.",
+      "highlights": [
+        "Developed MVP that secured $2M in funding",
+        "Implemented real-time collaboration features",
+        "Optimized database queries, improving response times by 40%"
+      ]
+    }
+  ],
+  "skills": [
+    "JavaScript",
+    "TypeScript",
+    "React",
+    "Node.js",
+    "Python",
+    "PostgreSQL",
+    "AWS",
+    "Docker",
+    "GraphQL",
+    "Git"
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "University of Technology",
+      "degree": "B.S. Computer Science",
+      "period": "2016 - 2020",
+      "highlights": ["Graduated with Honors", "Dean's List"]
+    }
+  ],
+  "hobbies": [
+    "Photography",
+    "Hiking",
+    "Open Source Contributing",
+    "Reading Sci-Fi"
+  ]
+}

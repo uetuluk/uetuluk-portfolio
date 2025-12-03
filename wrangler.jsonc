@@ -1,0 +1,20 @@
+{
+  "name": "uetuluk-portfolio",
+  "compatibility_date": "2024-12-01",
+  "main": "worker/index.ts",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  // Uncomment and fill in after creating resources:
+  // "kv_namespaces": [
+  //   { "binding": "UI_CACHE", "id": "<your-kv-id>" }
+  // ],
+  // "r2_buckets": [
+  //   { "binding": "ASSETS", "bucket_name": "portfolio-assets" }
+  // ],
+  "vars": {
+    "AI_GATEWAY_ACCOUNT_ID": "",
+    "AI_GATEWAY_ID": ""
+  }
+}
