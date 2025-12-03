@@ -126,6 +126,44 @@ async function handleGenerate(
         ],
         temperature: 0.7,
         max_tokens: 2000,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "generated_layout",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                layout: {
+                  type: "string",
+                  enum: ["single-column", "two-column", "hero-focused"],
+                },
+                theme: {
+                  type: "object",
+                  properties: {
+                    accent: { type: "string" },
+                  },
+                  required: ["accent"],
+                  additionalProperties: false,
+                },
+                sections: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string" },
+                      props: { type: "object" },
+                    },
+                    required: ["type", "props"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["layout", "theme", "sections"],
+              additionalProperties: false,
+            },
+          },
+        },
       },
     });
 
@@ -144,15 +182,10 @@ async function handleGenerate(
       throw new Error("No content in AI response");
     }
 
-    // Parse the JSON response
+    // Parse the JSON response (structured output guarantees valid JSON)
     let generatedLayout: GeneratedLayout;
     try {
-      // Remove any potential markdown code fences
-      const cleanContent = content
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-      generatedLayout = JSON.parse(cleanContent);
+      generatedLayout = JSON.parse(content);
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
       throw new Error("Invalid JSON in AI response");
