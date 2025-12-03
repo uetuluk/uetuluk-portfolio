@@ -1,6 +1,27 @@
 import type { PortfolioContent } from "./types";
 
-export const SYSTEM_PROMPT = `You are a UI architect for a portfolio website. Your job is to create a personalized page layout based on the visitor's intent.
+const ALLOWED_VISITOR_TAGS = ["recruiter", "developer", "collaborator", "friend"];
+const MAX_CUSTOM_INTENT_LENGTH = 200;
+
+export function buildSystemPrompt(portfolioContent: PortfolioContent): string {
+  const { personal, projects, experience, skills, education, hobbies } = portfolioContent;
+
+  const projectsList = projects
+    .map(
+      (p) =>
+        `- ${p.id}: "${p.title}" - ${p.description} [${p.tags.join(", ")}]${p.featured ? " (FEATURED)" : ""}`
+    )
+    .join("\n");
+
+  const experienceList = experience
+    .map((e) => `- ${e.id}: ${e.role} at ${e.company} (${e.period})`)
+    .join("\n");
+
+  const educationList = education
+    .map((e) => `- ${e.id}: ${e.degree} from ${e.institution} (${e.period})`)
+    .join("\n");
+
+  return `You are a UI architect for a portfolio website. Your job is to create a personalized page layout based on the visitor's intent.
 
 Output a JSON object with this exact structure:
 {
@@ -20,6 +41,34 @@ Available components and their props:
 - TextBlock: { title: string, content: string, style: "prose" | "highlight" }
 - ImageGallery: { title: string, images: ["/path/to/img", ...] }
 
+=== PORTFOLIO CONTENT (Use these exact IDs and values) ===
+Personal Information:
+- Name: ${personal.name}
+- Title: ${personal.title}
+- Bio: ${personal.bio}
+- Location: ${personal.location || "Not specified"}
+- Resume URL: ${personal.resumeUrl || "Not available"}
+- Profile Image: "/assets/profile.png"
+
+Contact:
+- Email: ${personal.contact.email}
+- LinkedIn: ${personal.contact.linkedin}
+- GitHub: ${personal.contact.github}
+
+Projects (use these IDs in CardGrid items):
+${projectsList}
+
+Experience (use these IDs in Timeline items):
+${experienceList}
+
+Skills: ${JSON.stringify(skills)}
+
+Education:
+${educationList}
+
+Hobbies: ${JSON.stringify(hobbies || [])}
+=== END PORTFOLIO CONTENT ===
+
 Visitor personalization guidelines:
 - RECRUITER: Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Use "hero-focused" or "single-column" layout.
 - DEVELOPER: Technical focus. Lead with CardGrid showing all projects (columns: 3). Include SkillBadges (detailed style). Show Timeline briefly. Link to GitHub. Use "two-column" layout.
@@ -27,33 +76,30 @@ Visitor personalization guidelines:
 - FRIEND/FAMILY: Personal focus. Casual, friendly tone. Lead with Hero. Include TextBlock with bio. Add ImageGallery for photos. Show hobbies. Use "single-column" layout.
 
 Rules:
-1. Use the actual project IDs and experience IDs from the provided content
+1. Use ONLY the project IDs and experience IDs from the portfolio content above
 2. Keep the response focused and relevant to the visitor type
 3. Include 3-5 sections maximum for a clean layout
 4. Output ONLY valid JSON - no markdown, no explanations, no code fences`;
+}
 
 export function buildUserPrompt(
   visitorTag: string,
-  customIntent: string | undefined,
-  portfolioContent: PortfolioContent
+  customIntent: string | undefined
 ): string {
-  const projectIds = portfolioContent.projects.map((p) => p.id);
-  const experienceIds = portfolioContent.experience.map((e) => e.id);
+  // Sanitize visitor tag to only allow known values
+  const sanitizedTag = ALLOWED_VISITOR_TAGS.includes(visitorTag.toLowerCase())
+    ? visitorTag.toUpperCase()
+    : "FRIEND";
 
-  return `Visitor type: ${visitorTag.toUpperCase()}
-${customIntent ? `Additional context: ${customIntent}` : ""}
+  let prompt = `Visitor type: ${sanitizedTag}`;
 
-Available content:
-- Personal: ${portfolioContent.personal.name}, ${
-    portfolioContent.personal.title
+  if (customIntent) {
+    // Truncate custom intent to limit injection surface
+    const truncatedIntent = customIntent.slice(0, MAX_CUSTOM_INTENT_LENGTH);
+    prompt += `\nAdditional context: ${truncatedIntent}`;
   }
-- Bio: ${portfolioContent.personal.bio}
-- Project IDs: ${JSON.stringify(projectIds)}
-- Experience IDs: ${JSON.stringify(experienceIds)}
-- Skills: ${JSON.stringify(portfolioContent.skills)}
-- Hobbies: ${JSON.stringify(portfolioContent.hobbies || [])}
-- Has resume: ${portfolioContent.personal.resumeUrl ? "yes" : "no"}
-- Profile image: "/assets/profile.png"
 
-Generate a personalized layout for this ${visitorTag} visitor.`;
+  prompt += `\n\nGenerate a personalized layout for this visitor.`;
+
+  return prompt;
 }

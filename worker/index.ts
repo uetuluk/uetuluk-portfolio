@@ -4,7 +4,7 @@ import type {
   GeneratedLayout,
   AIGatewayResponse,
 } from "./types";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
+import { buildSystemPrompt, buildUserPrompt } from "./prompts";
 
 // Extract links from generated layout for validation
 function extractLinks(layout: GeneratedLayout): string[] {
@@ -185,10 +185,10 @@ async function handleGenerate(
       query: {
         model: "qwen/qwen3-coder-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: buildSystemPrompt(portfolioContent) },
           {
             role: "user",
-            content: buildUserPrompt(visitorTag, customIntent, portfolioContent),
+            content: buildUserPrompt(visitorTag, customIntent),
           },
         ],
         temperature: 0.7,
