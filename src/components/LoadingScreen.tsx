@@ -1,4 +1,5 @@
 import type { VisitorType } from "@/App";
+import { ClipLoader } from "react-spinners";
 
 interface LoadingScreenProps {
   visitorType: VisitorType;
@@ -34,11 +35,13 @@ export function LoadingScreen({ visitorType }: LoadingScreenProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
       <div className="text-center max-w-md mx-auto px-4">
         {/* Animated logo/spinner */}
-        <div className="relative mb-8">
-          <div className="w-20 h-20 mx-auto">
-            <div className="absolute inset-0 rounded-full border-4 border-muted"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          </div>
+        <div className="mb-8">
+          <ClipLoader
+            color="hsl(var(--primary))"
+            size={80}
+            speedMultiplier={0.5}
+            aria-label="Loading"
+          />
         </div>
 
         {/* Main message */}
