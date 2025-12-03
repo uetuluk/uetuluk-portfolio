@@ -3,6 +3,7 @@ import { WelcomeModal } from "@/components/WelcomeModal";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { GeneratedPage } from "@/components/GeneratedPage";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/hooks/useTheme";
 import portfolioContent from "@/content/portfolio.json";
 
 export type VisitorType =
@@ -19,15 +20,41 @@ export interface GeneratedLayout {
     type: string;
     props: Record<string, unknown>;
   }>;
+  _cacheKey?: string;
+  _visitorContext?: {
+    geo?: { country?: string; city?: string };
+    device?: { type?: "mobile" | "tablet" | "desktop" };
+    time?: { timeOfDay?: string };
+  };
+  _uiHints?: {
+    suggestedTheme?: "light" | "dark" | "system";
+    preferCompactLayout?: boolean;
+  };
 }
 
 function App() {
   const [visitorType, setVisitorType] = useState<VisitorType>(null);
-  const [_customIntent, setCustomIntent] = useState<string>("");
+  const [customIntent, setCustomIntent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [generatedLayout, setGeneratedLayout] =
     useState<GeneratedLayout | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Access theme hook to apply suggested theme based on visitor context
+  const { setTheme, preference } = useTheme();
+
+  // Helper to apply suggested theme on first visit
+  const applyThemeSuggestion = (data: GeneratedLayout) => {
+    if (data._uiHints?.suggestedTheme && preference === "system") {
+      // Only apply suggestion if user hasn't explicitly set a preference
+      // and only on first visit to this site
+      const hasVisited = localStorage.getItem("portfolio-visited");
+      if (!hasVisited && data._uiHints.suggestedTheme !== "system") {
+        setTheme(data._uiHints.suggestedTheme);
+        localStorage.setItem("portfolio-visited", "true");
+      }
+    }
+  };
 
   const handleVisitorSelect = async (
     type: VisitorType,
@@ -55,6 +82,9 @@ function App() {
 
       const data = (await response.json()) as GeneratedLayout;
       setGeneratedLayout(data);
+
+      // Apply theme suggestion based on visitor's local time
+      applyThemeSuggestion(data);
     } catch (err) {
       console.error("Generation error:", err);
       setError(
@@ -74,6 +104,41 @@ function App() {
     setError(null);
   };
 
+  const handleRegenerate = async () => {
+    if (!visitorType) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitorTag: visitorType,
+          customIntent: customIntent || undefined,
+          portfolioContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to regenerate personalized layout");
+      }
+
+      const data = (await response.json()) as GeneratedLayout;
+      setGeneratedLayout(data);
+    } catch (err) {
+      console.error("Regeneration error:", err);
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
+      // Fall back to default layout
+      setGeneratedLayout(getDefaultLayout(visitorType));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <ThemeToggle />
@@ -86,6 +151,7 @@ function App() {
           layout={generatedLayout}
           visitorType={visitorType}
           onReset={handleReset}
+          onRegenerate={handleRegenerate}
           error={error}
         />
       )}

@@ -5,7 +5,144 @@ import type {
   AIGatewayResponse,
   CategorizationResult,
   StoredTag,
+  FeedbackRequest,
+  FeedbackResponse,
+  RateLimitEntry,
+  VisitorContext,
+  UIHints,
 } from "./types";
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_KEY_PREFIX = "ratelimit:";
+
+// ============ Visitor Context Extraction ============
+
+// Parse User-Agent to extract device type, browser, and OS (no external deps)
+function parseUserAgent(ua: string | null): VisitorContext["device"] {
+  if (!ua) {
+    return { type: "desktop" };
+  }
+
+  // Device type detection
+  let type: "mobile" | "tablet" | "desktop" = "desktop";
+  if (/mobile|iphone|ipod|android.*mobile|windows phone|blackberry/i.test(ua)) {
+    type = "mobile";
+  } else if (/tablet|ipad|android(?!.*mobile)|kindle|silk/i.test(ua)) {
+    type = "tablet";
+  }
+
+  // Browser detection (order matters - check specific before generic)
+  let browser: string | undefined;
+  if (/edg\//i.test(ua)) browser = "Edge";
+  else if (/chrome|crios/i.test(ua) && !/edg\//i.test(ua)) browser = "Chrome";
+  else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
+  else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = "Safari";
+  else if (/opera|opr\//i.test(ua)) browser = "Opera";
+
+  // OS detection
+  let os: string | undefined;
+  if (/iphone|ipad|ipod/i.test(ua)) os = "iOS";
+  else if (/android/i.test(ua)) os = "Android";
+  else if (/windows/i.test(ua)) os = "Windows";
+  else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
+  else if (/linux/i.test(ua)) os = "Linux";
+
+  return { type, browser, os };
+}
+
+// Calculate time context from visitor's timezone
+function getTimeContext(timezone?: string): VisitorContext["time"] {
+  let localHour: number;
+  let isWeekend: boolean;
+
+  try {
+    if (timezone) {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        hour: "numeric",
+        hour12: false,
+        weekday: "short",
+      });
+      const parts = formatter.formatToParts(now);
+      localHour = parseInt(
+        parts.find((p) => p.type === "hour")?.value || "12",
+        10
+      );
+      const weekday = parts.find((p) => p.type === "weekday")?.value || "";
+      isWeekend = weekday === "Sat" || weekday === "Sun";
+    } else {
+      // Fallback to UTC
+      const now = new Date();
+      localHour = now.getUTCHours();
+      isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
+    }
+  } catch {
+    // Invalid timezone, use UTC
+    const now = new Date();
+    localHour = now.getUTCHours();
+    isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
+  }
+
+  // Determine time of day
+  let timeOfDay: "morning" | "afternoon" | "evening" | "night";
+  if (localHour >= 5 && localHour < 12) timeOfDay = "morning";
+  else if (localHour >= 12 && localHour < 17) timeOfDay = "afternoon";
+  else if (localHour >= 17 && localHour < 21) timeOfDay = "evening";
+  else timeOfDay = "night";
+
+  return { localHour, timeOfDay, isWeekend };
+}
+
+// Extract full visitor context from Cloudflare request
+function extractVisitorContext(request: Request): VisitorContext {
+  const cf = request.cf as IncomingRequestCfProperties | undefined;
+  const userAgent = request.headers.get("User-Agent");
+
+  const device = parseUserAgent(userAgent);
+  const timezone = cf?.timezone;
+  const time = getTimeContext(timezone);
+
+  return {
+    geo: {
+      country: cf?.country as string | undefined,
+      city: cf?.city as string | undefined,
+      continent: cf?.continent as string | undefined,
+      timezone: timezone,
+      region: cf?.region as string | undefined,
+      isEUCountry: cf?.isEUCountry === "1",
+    },
+    device,
+    time,
+    network: {
+      httpProtocol: cf?.httpProtocol || "HTTP/1.1",
+      colo: cf?.colo || "unknown",
+    },
+  };
+}
+
+// Derive UI hints from visitor context
+function deriveUIHints(context: VisitorContext): UIHints {
+  // Suggest dark theme for evening/night hours
+  let suggestedTheme: "light" | "dark" | "system" = "system";
+  if (context.time.timeOfDay === "evening" || context.time.timeOfDay === "night") {
+    suggestedTheme = "dark";
+  } else if (context.time.timeOfDay === "morning") {
+    suggestedTheme = "light";
+  }
+
+  // Prefer compact layout for mobile devices
+  const preferCompactLayout = context.device.type === "mobile";
+
+  return {
+    suggestedTheme,
+    preferCompactLayout,
+  };
+}
+
+// ============ End Visitor Context Extraction ============
+
 import {
   buildSystemPrompt,
   buildUserPrompt,
@@ -284,6 +421,20 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // Serve public folder assets from R2
+    if (url.pathname.startsWith("/assets/") || url.pathname === "/vite.svg") {
+      const key = url.pathname.slice(1); // Remove leading slash
+      const object = await env.ASSETS.get(key);
+
+      if (object) {
+        const headers = new Headers();
+        headers.set("Content-Type", object.httpMetadata?.contentType || "application/octet-stream");
+        headers.set("Cache-Control", "public, max-age=31536000");
+        headers.set("ETag", object.httpEtag);
+        return new Response(object.body, { headers });
+      }
+    }
+
     // Handle API routes
     if (url.pathname.startsWith("/api/")) {
       return handleApiRequest(request, env, url);
@@ -325,6 +476,11 @@ async function handleApiRequest(
       });
     }
 
+    // POST /api/feedback - Handle like/dislike feedback
+    if (url.pathname === "/api/feedback" && request.method === "POST") {
+      return handleFeedback(request, env, corsHeaders);
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -358,6 +514,10 @@ async function handleGenerate(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  // Extract visitor context from Cloudflare request and user agent
+  const visitorContext = extractVisitorContext(request);
+  const uiHints = deriveUIHints(visitorContext);
 
   // Step 1: Categorize custom intent if provided
   let effectiveTag = visitorTag;
@@ -402,10 +562,13 @@ async function handleGenerate(
     }
   }
 
-  // Step 2: Check layout cache
+  // Step 2: Check layout cache (include visitor context in cache key)
+  const contextHash = hashString(
+    `${visitorContext.device.type}:${visitorContext.time.timeOfDay}:${visitorContext.geo.country || "XX"}`
+  );
   const cacheKey = `layout:${effectiveTag}:${
     customGuidelines ? hashString(customGuidelines.guidelines) : "default"
-  }`;
+  }:${contextHash}`;
 
   if (env.UI_CACHE) {
     const cachedLayout = await env.UI_CACHE.get(cacheKey, "json");
@@ -414,6 +577,13 @@ async function handleGenerate(
         JSON.stringify({
           ...(cachedLayout as GeneratedLayout),
           _categorization: categorizationInfo,
+          _cacheKey: cacheKey,
+          _visitorContext: {
+            geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
+            device: { type: visitorContext.device.type },
+            time: { timeOfDay: visitorContext.time.timeOfDay },
+          },
+          _uiHints: uiHints,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -429,6 +599,13 @@ async function handleGenerate(
       JSON.stringify({
         ...getDefaultLayout(effectiveTag, portfolioContent),
         _categorization: categorizationInfo,
+        _cacheKey: cacheKey,
+        _visitorContext: {
+          geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
+          device: { type: visitorContext.device.type },
+          time: { timeOfDay: visitorContext.time.timeOfDay },
+        },
+        _uiHints: uiHints,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -451,11 +628,11 @@ async function handleGenerate(
         messages: [
           {
             role: "system",
-            content: buildSystemPrompt(portfolioContent, customGuidelines),
+            content: buildSystemPrompt(portfolioContent, customGuidelines, visitorContext),
           },
           {
             role: "user",
-            content: buildUserPrompt(effectiveTag, customIntent),
+            content: buildUserPrompt(effectiveTag, customIntent, visitorContext),
           },
         ],
         temperature: 0.7,
@@ -555,10 +732,17 @@ async function handleGenerate(
       });
     }
 
-    // Include categorization info in response
+    // Include categorization info, cache key, visitor context, and UI hints in response
     const responsePayload = {
       ...generatedLayout,
       _categorization: categorizationInfo,
+      _cacheKey: cacheKey,
+      _visitorContext: {
+        geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
+        device: { type: visitorContext.device.type },
+        time: { timeOfDay: visitorContext.time.timeOfDay },
+      },
+      _uiHints: uiHints,
     };
 
     return new Response(JSON.stringify(responsePayload), {
@@ -572,12 +756,154 @@ async function handleGenerate(
       JSON.stringify({
         ...getDefaultLayout(effectiveTag, portfolioContent),
         _categorization: categorizationInfo,
+        _cacheKey: cacheKey,
+        _visitorContext: {
+          geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
+          device: { type: visitorContext.device.type },
+          time: { timeOfDay: visitorContext.time.timeOfDay },
+        },
+        _uiHints: uiHints,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
+}
+
+// Rate limit checking helper
+interface RateLimitResult {
+  limited: boolean;
+  retryAfter: number;
+}
+
+async function checkRateLimit(
+  key: string,
+  env: Env
+): Promise<RateLimitResult> {
+  if (!env.UI_CACHE) {
+    return { limited: false, retryAfter: 0 };
+  }
+
+  const entry = (await env.UI_CACHE.get(key, "json")) as RateLimitEntry | null;
+
+  if (!entry) {
+    return { limited: false, retryAfter: 0 };
+  }
+
+  const now = Date.now();
+  const timeSinceLastDislike = now - entry.lastDislike;
+
+  if (timeSinceLastDislike < RATE_LIMIT_WINDOW_MS) {
+    const retryAfter = Math.ceil(
+      (RATE_LIMIT_WINDOW_MS - timeSinceLastDislike) / 1000
+    );
+    return { limited: true, retryAfter };
+  }
+
+  return { limited: false, retryAfter: 0 };
+}
+
+// Update rate limit entry
+async function updateRateLimit(key: string, env: Env): Promise<void> {
+  if (!env.UI_CACHE) return;
+
+  const entry: RateLimitEntry = {
+    lastDislike: Date.now(),
+    count: 1,
+  };
+
+  await env.UI_CACHE.put(key, JSON.stringify(entry), {
+    expirationTtl: 300, // 5 minutes TTL for rate limit entries
+  });
+}
+
+// Handle feedback (like/dislike) submissions
+async function handleFeedback(
+  request: Request,
+  env: Env,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const body = (await request.json()) as FeedbackRequest;
+  const { feedbackType, audienceType, cacheKey, sessionId } = body;
+
+  // Validate required fields
+  if (!feedbackType || !audienceType || !sessionId) {
+    const response: FeedbackResponse = {
+      success: false,
+      message: "Missing required fields",
+    };
+    return new Response(JSON.stringify(response), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Write to Analytics Engine
+  if (env.FEEDBACK) {
+    env.FEEDBACK.writeDataPoint({
+      blobs: [audienceType, feedbackType],
+      doubles: [1],
+      indexes: [sessionId],
+    });
+  }
+
+  // Handle like - just acknowledge
+  if (feedbackType === "like") {
+    const response: FeedbackResponse = {
+      success: true,
+      message: "Thank you for your feedback!",
+      regenerate: false,
+    };
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Handle dislike - check rate limit, clear cache, signal regeneration
+  if (feedbackType === "dislike") {
+    // Check rate limit
+    const rateLimitKey = `${RATE_LIMIT_KEY_PREFIX}${sessionId}`;
+    const rateLimitResult = await checkRateLimit(rateLimitKey, env);
+
+    if (rateLimitResult.limited) {
+      const response: FeedbackResponse = {
+        success: false,
+        message: "Please wait before requesting another regeneration",
+        rateLimited: true,
+        retryAfter: rateLimitResult.retryAfter,
+      };
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Clear cache for this layout
+    if (cacheKey && env.UI_CACHE) {
+      await env.UI_CACHE.delete(cacheKey);
+    }
+
+    // Update rate limit
+    await updateRateLimit(rateLimitKey, env);
+
+    const response: FeedbackResponse = {
+      success: true,
+      message: "Regenerating your personalized layout...",
+      regenerate: true,
+    };
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const response: FeedbackResponse = {
+    success: false,
+    message: "Invalid feedback type",
+  };
+  return new Response(JSON.stringify(response), {
+    status: 400,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 // Default layout when AI generation fails or is not configured

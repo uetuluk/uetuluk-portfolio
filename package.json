@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy"
+    "sync-assets": "wrangler r2 object put portfolio-assets/vite.svg --file=public/vite.svg && wrangler r2 object put portfolio-assets/assets/profile.png --file=public/assets/profile.png",
+    "deploy": "npm run build && npm run sync-assets && wrangler deploy"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

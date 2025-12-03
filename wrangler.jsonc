@@ -15,13 +15,20 @@
       "id": "bf2c226b1a254f92a7980aa1cb1a1e73"
     }
   ],
-  // "r2_buckets": [
-  //   { "binding": "ASSETS", "bucket_name": "portfolio-assets" }
-  // ],
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "portfolio-assets" }
+  ],
   "vars": {
     "AI_GATEWAY_ID": "personal-website"
   },
   "ai": {
     "binding": "AI"
-  }
+  },
+  // Analytics Engine for feedback tracking
+  "analytics_engine_datasets": [
+    {
+      "binding": "FEEDBACK",
+      "dataset": "feedback"
+    }
+  ]
 }

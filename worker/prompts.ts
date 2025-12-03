@@ -1,4 +1,4 @@
-import type { PortfolioContent } from "./types";
+import type { PortfolioContent, VisitorContext } from "./types";
 
 export const ALLOWED_VISITOR_TAGS = ["recruiter", "developer", "collaborator", "friend"];
 const MAX_CUSTOM_INTENT_LENGTH = 200;
@@ -74,7 +74,8 @@ export function buildCategorizationUserPrompt(customIntent: string): string {
 
 export function buildSystemPrompt(
   portfolioContent: PortfolioContent,
-  customGuidelines?: { tagName: string; guidelines: string }
+  customGuidelines?: { tagName: string; guidelines: string },
+  visitorContext?: VisitorContext
 ): string {
   const { personal, projects, experience, skills, education, hobbies } = portfolioContent;
 
@@ -105,7 +106,41 @@ export function buildSystemPrompt(
     personalizationSection += `\n- ${customGuidelines.tagName.toUpperCase()}: ${customGuidelines.guidelines}`;
   }
 
+  // Build visitor context section for subtle personalization
+  let visitorContextSection = "";
+  if (visitorContext) {
+    const deviceInfo = visitorContext.device.os
+      ? `${visitorContext.device.type} (${visitorContext.device.os})`
+      : visitorContext.device.type;
+    const timeInfo = `${visitorContext.time.timeOfDay} (${visitorContext.time.localHour}:00)${visitorContext.time.isWeekend ? " - Weekend" : ""}`;
+    const regionInfo = [
+      visitorContext.geo.city,
+      visitorContext.geo.region || visitorContext.geo.country,
+    ]
+      .filter(Boolean)
+      .join(", ") || "Unknown";
+
+    visitorContextSection = `
+=== VISITOR CONTEXT (use subtly, do NOT explicitly mention) ===
+- Device: ${deviceInfo}
+- Local Time: ${timeInfo}
+- Region: ${regionInfo}
+=== END VISITOR CONTEXT ===
+
+Personalization hints based on context:
+- Mobile devices: prefer single-column layouts, fewer sections, larger touch targets
+- Evening/night visits: content can have a more relaxed, reflective tone
+- Morning visits: content can be more energetic and action-oriented
+- Weekend visits: slightly more casual tone is acceptable
+- NEVER explicitly greet based on location (no "Hello from Austin!")
+- NEVER mention the device type in the content
+- Adaptations should feel natural, not forced
+
+`;
+  }
+
   return `You are a UI architect for a portfolio website. Your job is to create a personalized page layout based on the visitor's intent.
+${visitorContextSection}
 
 Output a JSON object with this exact structure:
 {
@@ -164,7 +199,8 @@ Rules:
 
 export function buildUserPrompt(
   visitorTag: string,
-  customIntent: string | undefined
+  customIntent: string | undefined,
+  visitorContext?: VisitorContext
 ): string {
   // Use the tag as-is (it's already validated/categorized)
   const displayTag = visitorTag.toUpperCase();
@@ -175,6 +211,28 @@ export function buildUserPrompt(
     // Truncate custom intent to limit injection surface
     const truncatedIntent = customIntent.slice(0, MAX_CUSTOM_INTENT_LENGTH);
     prompt += `\nAdditional context: ${truncatedIntent}`;
+  }
+
+  // Add subtle context hints based on visitor data
+  if (visitorContext) {
+    const hints: string[] = [];
+
+    if (visitorContext.device.type === "mobile") {
+      hints.push("on mobile device");
+    }
+    if (
+      visitorContext.time.timeOfDay === "evening" ||
+      visitorContext.time.timeOfDay === "night"
+    ) {
+      hints.push("browsing during evening hours");
+    }
+    if (visitorContext.time.isWeekend) {
+      hints.push("visiting on a weekend");
+    }
+
+    if (hints.length > 0) {
+      prompt += `\nContext: Visitor is ${hints.join(", ")}.`;
+    }
   }
 
   prompt += `\n\nGenerate a personalized layout for this visitor.`;

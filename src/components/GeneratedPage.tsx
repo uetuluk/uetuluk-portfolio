@@ -1,11 +1,13 @@
 import type { VisitorType, GeneratedLayout } from "@/App";
 import { ComponentMapper } from "./ComponentMapper";
+import { FeedbackButtons } from "./FeedbackButtons";
 import { cn } from "@/lib/utils";
 
 interface GeneratedPageProps {
   layout: GeneratedLayout | null;
   visitorType: VisitorType;
   onReset: () => void;
+  onRegenerate: () => void;
   error: string | null;
 }
 
@@ -13,6 +15,7 @@ export function GeneratedPage({
   layout,
   visitorType,
   onReset,
+  onRegenerate,
   error,
 }: GeneratedPageProps) {
   if (!layout) {
@@ -46,12 +49,19 @@ export function GeneratedPage({
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <span className="font-semibold">Portfolio</span>
-          <button
-            onClick={onReset}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Change perspective
-          </button>
+          <div className="flex items-center gap-4">
+            <FeedbackButtons
+              audienceType={visitorType || "unknown"}
+              cacheKey={layout?._cacheKey || ""}
+              onRegenerate={onRegenerate}
+            />
+            <button
+              onClick={onReset}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Change perspective
+            </button>
+          </div>
         </div>
       </nav>
 

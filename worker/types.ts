@@ -6,7 +6,10 @@ export interface Env {
 
   // Storage bindings
   UI_CACHE: KVNamespace;
-  // ASSETS: R2Bucket;
+  ASSETS: R2Bucket;
+
+  // Analytics Engine for feedback tracking
+  FEEDBACK: AnalyticsEngineDataset;
 }
 
 export interface GenerateRequest {
@@ -96,4 +99,57 @@ export interface StoredTag {
   createdAt: string;
   mappedFrom?: string;
   isCustom: boolean;
+}
+
+// Feedback types for like/dislike functionality
+export interface FeedbackRequest {
+  feedbackType: "like" | "dislike";
+  audienceType: string;
+  cacheKey: string;
+  sessionId: string;
+}
+
+export interface FeedbackResponse {
+  success: boolean;
+  message: string;
+  regenerate?: boolean;
+  rateLimited?: boolean;
+  retryAfter?: number;
+}
+
+export interface RateLimitEntry {
+  lastDislike: number;
+  count: number;
+}
+
+// Visitor context extracted from Cloudflare request
+export interface VisitorContext {
+  geo: {
+    country?: string; // ISO 3166-1 Alpha 2 (e.g., "US", "GB")
+    city?: string; // e.g., "Austin"
+    continent?: string; // e.g., "NA", "EU"
+    timezone?: string; // e.g., "America/Chicago"
+    region?: string; // e.g., "Texas"
+    isEUCountry: boolean;
+  };
+  device: {
+    type: "mobile" | "tablet" | "desktop";
+    browser?: string; // e.g., "Chrome", "Safari"
+    os?: string; // e.g., "iOS", "macOS"
+  };
+  time: {
+    localHour: number; // 0-23
+    timeOfDay: "morning" | "afternoon" | "evening" | "night";
+    isWeekend: boolean;
+  };
+  network: {
+    httpProtocol: string; // e.g., "HTTP/2"
+    colo: string; // Cloudflare datacenter code
+  };
+}
+
+// UI hints derived from visitor context
+export interface UIHints {
+  suggestedTheme: "light" | "dark" | "system";
+  preferCompactLayout: boolean;
 }
