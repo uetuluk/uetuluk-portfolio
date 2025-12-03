@@ -111,5 +111,8 @@
     "letsConnect": "Let's Connect",
     "aboutMe": "About Me",
     "photos": "Photos"
+  },
+  "seo": {
+    "portfolioFor": "Portfolio for"
   }
 }

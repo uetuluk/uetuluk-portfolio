@@ -111,5 +111,8 @@
     "letsConnect": "お問い合わせ",
     "aboutMe": "自己紹介",
     "photos": "写真"
+  },
+  "seo": {
+    "portfolioFor": "ポートフォリオ -"
   }
 }

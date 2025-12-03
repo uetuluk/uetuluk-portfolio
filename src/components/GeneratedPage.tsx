@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { VisitorType, GeneratedLayout } from "@/App";
 import { ComponentMapper } from "./ComponentMapper";
 import { FeedbackButtons } from "./FeedbackButtons";
+import { SEO } from "./SEO";
 import { cn } from "@/lib/utils";
 
 interface GeneratedPageProps {
@@ -46,8 +47,18 @@ export function GeneratedPage({
     "hero-focused": "max-w-5xl mx-auto",
   };
 
+  // Get translated visitor type label for SEO
+  const visitorTypeLabel = visitorType
+    ? t(`visitorTypes.${visitorType}.label`)
+    : undefined;
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Dynamic SEO based on visitor type */}
+      {visitorTypeLabel && (
+        <SEO title={`${t("seo.portfolioFor")} ${visitorTypeLabel}`} />
+      )}
+
       {/* Navigation bar */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">

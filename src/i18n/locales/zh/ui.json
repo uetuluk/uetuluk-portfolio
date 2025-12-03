@@ -111,5 +111,8 @@
     "letsConnect": "联系我",
     "aboutMe": "关于我",
     "photos": "照片"
+  },
+  "seo": {
+    "portfolioFor": "作品集 -"
   }
 }

@@ -422,7 +422,7 @@ export default {
     const url = new URL(request.url);
 
     // Serve public folder assets from R2
-    if (url.pathname.startsWith("/assets/") || url.pathname === "/vite.svg") {
+    if (url.pathname.startsWith("/assets/") || url.pathname === "/favicon.ico") {
       const key = url.pathname.slice(1); // Remove leading slash
       const object = await env.ASSETS.get(key);
 

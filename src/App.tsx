@@ -5,6 +5,8 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { GeneratedPage } from "@/components/GeneratedPage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SEO } from "@/components/SEO";
+import { StructuredData } from "@/components/StructuredData";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslatedPortfolio } from "@/hooks/useTranslatedPortfolio";
 
@@ -236,6 +238,8 @@ function App() {
 
   return (
     <>
+      <SEO />
+      <StructuredData />
       <LanguageSwitcher />
       <ThemeToggle />
       {!visitorType ? (
