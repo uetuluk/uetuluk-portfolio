@@ -95,11 +95,7 @@ async function handleGenerate(
   // }
 
   // Check if AI Gateway is configured
-  if (
-    !env.AI_GATEWAY_ACCOUNT_ID ||
-    !env.AI_GATEWAY_ID ||
-    !env.OPENROUTER_API_KEY
-  ) {
+  if (!env.AI || !env.AI_GATEWAY_ID) {
     console.warn("AI Gateway not configured, returning default layout");
     return new Response(
       JSON.stringify(getDefaultLayout(visitorTag, portfolioContent)),
@@ -110,38 +106,27 @@ async function handleGenerate(
   }
 
   try {
-    // Call AI Gateway -> OpenRouter -> Qwen 3
-    const aiGatewayUrl = `https://gateway.ai.cloudflare.com/v1/${env.AI_GATEWAY_ACCOUNT_ID}/${env.AI_GATEWAY_ID}`;
+    // Call AI Gateway -> OpenRouter (BYOK handles API key automatically)
+    const gateway = env.AI.gateway(env.AI_GATEWAY_ID);
 
-    const aiResponse = await fetch(aiGatewayUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([
-        {
-          provider: "openrouter",
-          endpoint: "chat/completions",
-          headers: {
-            Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
+    const aiResponse = await gateway.run({
+      provider: "openrouter",
+      endpoint: "chat/completions",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      query: {
+        model: "qwen/qwen3-coder-flash",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: buildUserPrompt(visitorTag, customIntent, portfolioContent),
           },
-          query: {
-            model: "qwen/qwen3-coder-flash",
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              {
-                role: "user",
-                content: buildUserPrompt(
-                  visitorTag,
-                  customIntent,
-                  portfolioContent
-                ),
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 2000,
-          },
-        },
-      ]),
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      },
     });
 
     if (!aiResponse.ok) {
