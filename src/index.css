@@ -58,3 +58,16 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-float-up {
+  animation: float-up 30s linear infinite;
+}

@@ -15,25 +15,33 @@ const images = [
   "/assets/vtuber-overlay.png",
 ];
 
+// Duplicate images for seamless infinite scroll
+const duplicatedImages = [...images, ...images];
+
 export function MosaicBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden z-0">
-      <div className="blur-md opacity-20">
-        <ResponsiveMasonry
-          columnsCountBreakPoints={{ 350: 2, 750: 3, 1024: 4 }}
-        >
-          <Masonry gutter="8px">
-            {images.map((src) => (
-              <img
-                key={src}
-                src={src}
-                alt=""
-                loading="lazy"
-                className="w-full block"
-              />
-            ))}
-          </Masonry>
-        </ResponsiveMasonry>
+      {/* Rotation wrapper - rotates and scales to cover corners */}
+      <div className="absolute inset-0 rotate-[30deg] scale-150 origin-center">
+        {/* Animation wrapper - floats upward */}
+        <div className="animate-float-up blur-sm opacity-20">
+          <ResponsiveMasonry
+            columnsCountBreakPoints={{ 350: 2, 750: 3, 1024: 4 }}
+          >
+            <Masonry gutter="8px">
+              {duplicatedImages.map((src, index) => (
+                <img
+                  key={`${src}-${index}`}
+                  src={src}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  className="w-full block"
+                />
+              ))}
+            </Masonry>
+          </ResponsiveMasonry>
+        </div>
       </div>
     </div>
   );
