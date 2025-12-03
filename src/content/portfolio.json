@@ -1,111 +1,100 @@
 {
   "personal": {
-    "name": "Your Name",
-    "title": "Full Stack Developer",
-    "bio": "Passionate developer with expertise in building modern web applications. I love exploring new technologies and creating solutions that make a difference.",
+    "name": "Utku Ege Tuluk",
+    "title": "Research Engineer & AI Specialist",
+    "bio": "Research Engineer and AI specialist with 3+ years developing enterprise-scale educational technology platforms at NYU Shanghai. Architected multimodal learning systems serving 300+ students, processing 100M+ tokens with 5x deployment efficiency gains. Expertise in full-stack development, LLM integration, and production AI infrastructure.",
     "contact": {
-      "email": "hello@example.com",
-      "linkedin": "https://linkedin.com/in/yourprofile",
-      "github": "https://github.com/yourusername"
+      "email": "utkuegetuluk@gmail.com",
+      "linkedin": "https://linkedin.com/in/uetuluk",
+      "github": "https://github.com/uetuluk"
     },
-    "location": "San Francisco, CA",
-    "resumeUrl": "/assets/resume.pdf"
+    "location": "Shanghai, China"
   },
   "projects": [
     {
-      "id": "project-1",
-      "title": "AI-Powered Dashboard",
-      "description": "A real-time analytics dashboard with AI-driven insights and predictive modeling capabilities.",
-      "longDescription": "Built a comprehensive analytics platform that leverages machine learning to provide actionable insights from complex datasets.",
-      "technologies": ["React", "TypeScript", "Python", "TensorFlow"],
-      "image": "/assets/project1.png",
-      "links": {
-        "demo": "https://demo.example.com",
-        "github": "https://github.com/example/project1"
-      },
-      "tags": ["ai", "web", "analytics"],
+      "id": "kiwi",
+      "title": "KIWI - Multimodal AI Learning Platform",
+      "description": "Enterprise-scale multimodal learning platform serving 300+ students across 6 classes, featuring real-time AI-powered chat, intelligent PDF annotation, and in-browser Python execution.",
+      "longDescription": "Built a production-grade educational platform with real-time streaming chat supporting multiple LLMs, AI-powered PDF annotation and highlighting, vector-based document search, and multi-class deployment automation. Processed 100M+ tokens with 5x deployment speed improvement and 99.9% uptime.",
+      "technologies": ["React", "NestJS", "PostgreSQL", "Redis", "pgvector", "Docker", "Terraform", "WebSocket"],
+      "image": "/assets/kiwi-chat.png",
+      "links": {},
+      "tags": ["ai", "education", "fullstack", "rag"],
       "featured": true
     },
     {
-      "id": "project-2",
-      "title": "E-Commerce Platform",
-      "description": "Full-stack e-commerce solution with payment processing and inventory management.",
-      "longDescription": "Developed a scalable e-commerce platform supporting thousands of concurrent users with real-time inventory tracking.",
-      "technologies": ["Next.js", "Node.js", "PostgreSQL", "Stripe"],
-      "image": "/assets/project2.png",
-      "links": {
-        "demo": "https://shop.example.com",
-        "github": "https://github.com/example/project2"
-      },
-      "tags": ["web", "fullstack", "e-commerce"],
+      "id": "ask",
+      "title": "ASK - Knowledge Base Chatbot Framework",
+      "description": "Multi-tenant chatbot framework that reduced faculty response times from hours to instant, deployed as 'Ask Angie' for NYU Shanghai faculty support.",
+      "longDescription": "Developed a customizable multi-tenant chatbot framework with role-based access control, multilingual support (English/Chinese), intelligent document processing pipeline, hybrid vector/text search, and offline text-to-speech integration. Features automatic chunking, embedding generation, and real-time analytics.",
+      "technologies": ["NestJS", "React", "PostgreSQL", "Prisma", "Elasticsearch", "BullMQ", "Redis", "Whisper"],
+      "image": "/assets/ask-chat.png",
+      "links": {},
+      "tags": ["ai", "chatbot", "rag", "enterprise"],
       "featured": true
     },
     {
-      "id": "project-3",
-      "title": "Mobile Fitness App",
-      "description": "Cross-platform fitness tracking app with social features and personalized workout plans.",
-      "longDescription": "Created a React Native app that helps users track their fitness goals with AI-generated workout recommendations.",
-      "technologies": ["React Native", "Firebase", "Node.js"],
-      "image": "/assets/project3.png",
-      "links": {
-        "demo": "https://fitness.example.com",
-        "github": "https://github.com/example/project3"
-      },
-      "tags": ["mobile", "health", "ai"],
+      "id": "vtuber-chat",
+      "title": "VTuber Chat Helper",
+      "description": "Cross-platform desktop application aggregating real-time chat messages from YouTube, Twitch, and Kick with intelligent message prioritization.",
+      "longDescription": "Built a multi-platform streaming chat aggregator used for 100+ hours of streaming. Features unified message format across platforms, priority message queuing, intelligent flood detection, SuperChat highlighting, and custom notification alerts with OAuth authentication and rate limiting compliance.",
+      "technologies": ["Electron", "React", "TypeScript", "OAuth", "WebSocket", "SQLite", "Drizzle ORM"],
+      "image": "/assets/vtuber-youtube.png",
+      "links": {},
+      "tags": ["streaming", "desktop", "realtime"],
+      "featured": false
+    },
+    {
+      "id": "spiegel-2d",
+      "title": "Spiegel 2D - AI VTuber Avatar",
+      "description": "AI-driven Live2D VTuber avatar application featuring real-time lip-sync, emotion-driven expressions, and 60fps rendering with privacy-first local AI.",
+      "longDescription": "Created an AI-powered Live2D avatar system with MFCC-based lip-sync analysis, AI-driven facial expressions, smooth 60fps rendering, and transparent background for OBS integration. Uses local AI models for privacy, Web Workers for non-blocking processing, and WebGPU acceleration.",
+      "technologies": ["Electron", "React", "Live2D Cubism SDK", "Transformers.js", "Web Workers", "WebGPU", "MFCC"],
+      "image": "/assets/spiegel-main.png",
+      "links": {},
+      "tags": ["ai", "desktop", "streaming", "graphics"],
       "featured": false
     }
   ],
   "experience": [
     {
-      "id": "exp-1",
-      "company": "Tech Company",
-      "role": "Senior Software Engineer",
-      "period": "2022 - Present",
-      "description": "Leading development of cloud-native applications and mentoring junior developers.",
+      "id": "nyu-shanghai",
+      "company": "New York University Shanghai",
+      "role": "Research Engineer (Kiwi) & Senior Emerging Technology Associate",
+      "period": "August 2023 - Present",
+      "description": "Leading development of AI-powered educational technology platforms and infrastructure.",
       "highlights": [
-        "Architected microservices handling 1M+ requests/day",
-        "Reduced deployment time by 60% through CI/CD improvements",
-        "Led team of 5 engineers on critical projects"
-      ]
-    },
-    {
-      "id": "exp-2",
-      "company": "Startup Inc",
-      "role": "Full Stack Developer",
-      "period": "2020 - 2022",
-      "description": "Built core product features from scratch in a fast-paced startup environment.",
-      "highlights": [
-        "Developed MVP that secured $2M in funding",
-        "Implemented real-time collaboration features",
-        "Optimized database queries, improving response times by 40%"
+        "Promoted to dual-role position after successfully deploying MOOC with 100+ weekly users",
+        "Optimized model deployment through AWQ quantization and vLLM tensor parallelization, maximizing GPU utilization",
+        "Spearheaded AI integration into classrooms with Stable Diffusion, RAG, and LLMs across departments",
+        "Developed custom full-stack interfaces using REST, SSE, and WebSocket APIs for cloud and on-premises infrastructure"
       ]
     }
   ],
   "skills": [
+    "Python",
     "JavaScript",
     "TypeScript",
+    "SQL",
     "React",
-    "Node.js",
-    "Python",
+    "NestJS",
+    "Electron",
     "PostgreSQL",
-    "AWS",
+    "Redis",
     "Docker",
-    "GraphQL",
-    "Git"
+    "Terraform",
+    "LangChain",
+    "RAG",
+    "Vector Databases",
+    "Real-time Processing"
   ],
   "education": [
     {
-      "id": "edu-1",
-      "institution": "University of Technology",
-      "degree": "B.S. Computer Science",
-      "period": "2016 - 2020",
-      "highlights": ["Graduated with Honors", "Dean's List"]
+      "id": "nyu-shanghai-edu",
+      "institution": "New York University Shanghai",
+      "degree": "B.S. Electrical & Systems Engineering (Minors: Computer Science, Chinese)",
+      "period": "2017 - 2021",
+      "highlights": ["GPA 3.7", "Study Away at NYU New York (2019-2020)"]
     }
-  ],
-  "hobbies": [
-    "Photography",
-    "Hiking",
-    "Open Source Contributing",
-    "Reading Sci-Fi"
   ]
 }
