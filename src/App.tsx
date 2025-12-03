@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { GeneratedPage } from "@/components/GeneratedPage";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTheme } from "@/hooks/useTheme";
-import portfolioContent from "@/content/portfolio.json";
+import { useTranslatedPortfolio } from "@/hooks/useTranslatedPortfolio";
 
 export type VisitorType =
   | "recruiter"
@@ -33,6 +35,8 @@ export interface GeneratedLayout {
 }
 
 function App() {
+  const { t, i18n } = useTranslation();
+  const portfolioContent = useTranslatedPortfolio();
   const [visitorType, setVisitorType] = useState<VisitorType>(null);
   const [customIntent, setCustomIntent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +46,11 @@ function App() {
 
   // Access theme hook to apply suggested theme based on visitor context
   const { setTheme, preference } = useTheme();
+
+  // Update document language when i18n language changes
+  useEffect(() => {
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
 
   // Helper to apply suggested theme on first visit
   const applyThemeSuggestion = (data: GeneratedLayout) => {
@@ -77,7 +86,7 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate personalized layout");
+        throw new Error(t("errors.failedGenerate"));
       }
 
       const data = (await response.json()) as GeneratedLayout;
@@ -88,7 +97,7 @@ function App() {
     } catch (err) {
       console.error("Generation error:", err);
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        err instanceof Error ? err.message : t("errors.unexpected")
       );
       // Fall back to default layout
       setGeneratedLayout(getDefaultLayout(type));
@@ -122,7 +131,7 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to regenerate personalized layout");
+        throw new Error(t("errors.failedRegenerate"));
       }
 
       const data = (await response.json()) as GeneratedLayout;
@@ -130,7 +139,7 @@ function App() {
     } catch (err) {
       console.error("Regeneration error:", err);
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        err instanceof Error ? err.message : t("errors.unexpected")
       );
       // Fall back to default layout
       setGeneratedLayout(getDefaultLayout(visitorType));
@@ -139,8 +148,95 @@ function App() {
     }
   };
 
+  // Fallback layout if AI generation fails
+  function getDefaultLayout(visitorType: VisitorType): GeneratedLayout {
+    const baseLayout: GeneratedLayout = {
+      layout: "hero-focused",
+      theme: { accent: "blue" },
+      sections: [
+        {
+          type: "Hero",
+          props: {
+            title: portfolioContent.personal.name,
+            subtitle: portfolioContent.personal.title,
+            image: "/assets/profile.png",
+          },
+        },
+      ],
+    };
+
+    switch (visitorType) {
+      case "recruiter":
+        baseLayout.sections.push(
+          {
+            type: "SkillBadges",
+            props: {
+              title: t("fallbackSections.skills"),
+              skills: portfolioContent.skills,
+            },
+          },
+          {
+            type: "Timeline",
+            props: {
+              title: t("fallbackSections.experience"),
+              items: portfolioContent.experience,
+            },
+          }
+        );
+        break;
+      case "developer":
+        baseLayout.sections.push({
+          type: "CardGrid",
+          props: {
+            title: t("fallbackSections.projects"),
+            columns: 3,
+            items: portfolioContent.projects,
+          },
+        });
+        break;
+      case "collaborator":
+        baseLayout.sections.push(
+          {
+            type: "CardGrid",
+            props: {
+              title: t("fallbackSections.projects"),
+              columns: 2,
+              items: portfolioContent.projects,
+            },
+          },
+          {
+            type: "ContactForm",
+            props: {
+              title: t("fallbackSections.letsConnect"),
+              showEmail: true,
+              showLinkedIn: true,
+            },
+          }
+        );
+        break;
+      case "friend":
+        baseLayout.sections.push(
+          {
+            type: "TextBlock",
+            props: {
+              title: t("fallbackSections.aboutMe"),
+              content: portfolioContent.personal.bio,
+            },
+          },
+          {
+            type: "ImageGallery",
+            props: { title: t("fallbackSections.photos"), images: [] },
+          }
+        );
+        break;
+    }
+
+    return baseLayout;
+  }
+
   return (
     <>
+      <LanguageSwitcher />
       <ThemeToggle />
       {!visitorType ? (
         <WelcomeModal onSelect={handleVisitorSelect} />
@@ -157,52 +253,6 @@ function App() {
       )}
     </>
   );
-}
-
-// Fallback layout if AI generation fails
-function getDefaultLayout(visitorType: VisitorType): GeneratedLayout {
-  const baseLayout: GeneratedLayout = {
-    layout: "hero-focused",
-    theme: { accent: "blue" },
-    sections: [
-      {
-        type: "Hero",
-        props: {
-          title: portfolioContent.personal.name,
-          subtitle: portfolioContent.personal.title,
-          image: "/assets/profile.png",
-        },
-      },
-    ],
-  };
-
-  switch (visitorType) {
-    case "recruiter":
-      baseLayout.sections.push(
-        { type: "SkillBadges", props: { title: "Skills", skills: portfolioContent.skills } },
-        { type: "Timeline", props: { title: "Experience", items: portfolioContent.experience } }
-      );
-      break;
-    case "developer":
-      baseLayout.sections.push(
-        { type: "CardGrid", props: { title: "Projects", columns: 3, items: portfolioContent.projects } }
-      );
-      break;
-    case "collaborator":
-      baseLayout.sections.push(
-        { type: "CardGrid", props: { title: "Projects", columns: 2, items: portfolioContent.projects } },
-        { type: "ContactForm", props: { title: "Let's Connect", showEmail: true, showLinkedIn: true } }
-      );
-      break;
-    case "friend":
-      baseLayout.sections.push(
-        { type: "TextBlock", props: { title: "About Me", content: portfolioContent.personal.bio } },
-        { type: "ImageGallery", props: { title: "Photos", images: [] } }
-      );
-      break;
-  }
-
-  return baseLayout;
 }
 
 export default App;

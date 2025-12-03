@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 interface ImageGalleryProps {
@@ -8,6 +9,7 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ title, images, className }: ImageGalleryProps) {
+  const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // If no images provided, show placeholder
@@ -16,7 +18,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
       <section className={cn("py-8", className)}>
         <h2 className="text-2xl font-bold mb-6">{title}</h2>
         <div className="text-center py-12 bg-muted rounded-lg">
-          <p className="text-muted-foreground">No images available yet.</p>
+          <p className="text-muted-foreground">{t("gallery.noImages")}</p>
         </div>
       </section>
     );
@@ -35,7 +37,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
           >
             <img
               src={image}
-              alt={`Gallery image ${index + 1}`}
+              alt={t("gallery.imageAlt", { index: index + 1 })}
               className="w-full h-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
@@ -72,7 +74,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
           </button>
           <img
             src={selectedImage}
-            alt="Selected gallery image"
+            alt={t("gallery.selectedAlt")}
             className="max-w-full max-h-[90vh] object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />

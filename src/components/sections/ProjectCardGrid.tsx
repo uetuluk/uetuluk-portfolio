@@ -1,5 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import portfolioContent from "@/content/portfolio.json";
+import { useTranslatedPortfolio } from "@/hooks/useTranslatedPortfolio";
 
 interface Project {
   id: string;
@@ -27,13 +28,18 @@ export function ProjectCardGrid({
   items,
   className,
 }: ProjectCardGridProps) {
+  const { t } = useTranslation();
+  const portfolio = useTranslatedPortfolio();
+
   // Resolve project IDs to full project objects
-  const projects = items.map((item) => {
-    if (typeof item === "string") {
-      return portfolioContent.projects.find((p) => p.id === item) || null;
-    }
-    return item;
-  }).filter(Boolean) as Project[];
+  const projects = items
+    .map((item) => {
+      if (typeof item === "string") {
+        return portfolio.projects.find((p) => p.id === item) || null;
+      }
+      return item;
+    })
+    .filter(Boolean) as Project[];
 
   const gridCols = {
     2: "md:grid-cols-2",
@@ -92,7 +98,7 @@ export function ProjectCardGrid({
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-primary hover:underline"
                   >
-                    Demo →
+                    {t("projects.demo")} →
                   </a>
                 )}
                 {project.links.github && (
@@ -102,7 +108,7 @@ export function ProjectCardGrid({
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-primary hover:underline"
                   >
-                    GitHub →
+                    {t("projects.github")} →
                   </a>
                 )}
               </div>

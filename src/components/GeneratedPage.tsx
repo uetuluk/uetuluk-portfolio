@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { VisitorType, GeneratedLayout } from "@/App";
 import { ComponentMapper } from "./ComponentMapper";
 import { FeedbackButtons } from "./FeedbackButtons";
@@ -18,19 +19,21 @@ export function GeneratedPage({
   onRegenerate,
   error,
 }: GeneratedPageProps) {
+  const { t } = useTranslation();
+
   if (!layout) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-4">Something went wrong</h2>
+          <h2 className="text-2xl font-semibold mb-4">{t("errors.title")}</h2>
           <p className="text-muted-foreground mb-6">
-            {error || "Unable to generate your personalized experience."}
+            {error || t("errors.defaultMessage")}
           </p>
           <button
             onClick={onReset}
             className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Try Again
+            {t("errors.tryAgain")}
           </button>
         </div>
       </div>
@@ -48,7 +51,7 @@ export function GeneratedPage({
       {/* Navigation bar */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <span className="font-semibold">Portfolio</span>
+          <span className="font-semibold">{t("navigation.portfolio")}</span>
           <div className="flex items-center gap-4">
             <FeedbackButtons
               audienceType={visitorType || "unknown"}
@@ -59,7 +62,7 @@ export function GeneratedPage({
               onClick={onReset}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Change perspective
+              {t("navigation.changePerspective")}
             </button>
           </div>
         </div>
@@ -69,8 +72,7 @@ export function GeneratedPage({
       {error && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2 text-center text-sm">
           <span className="text-yellow-800 dark:text-yellow-200">
-            Using fallback layout due to an error. Some personalization may be
-            limited.
+            {t("errors.fallbackNotice")}
           </span>
         </div>
       )}
@@ -92,15 +94,13 @@ export function GeneratedPage({
       <footer className="border-t mt-16">
         <div className="max-w-6xl mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
           <p>
-            This experience was personalized for you as a{" "}
+            {t("footer.personalizedFor")}{" "}
             <span className="font-medium text-foreground capitalize">
-              {visitorType}
+              {visitorType ? t(`visitorTypes.${visitorType}.label`) : visitorType}
             </span>
             .
           </p>
-          <p className="mt-2">
-            Powered by AI • Built with React + Cloudflare Workers
-          </p>
+          <p className="mt-2">{t("footer.poweredBy")}</p>
         </div>
       </footer>
     </div>

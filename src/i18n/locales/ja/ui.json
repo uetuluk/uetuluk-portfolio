@@ -1,0 +1,115 @@
+{
+  "welcome": {
+    "title": "ポートフォリオへようこそ",
+    "subtitle": "より良い体験のために、あなたについて教えてください。",
+    "formLabel": "何をお探しですか",
+    "placeholder": "興味があるのは...",
+    "continue": "続ける",
+    "quickOptions": "クイックオプション：",
+    "selectionHelp": "選択に基づいて最も関連性の高いコンテンツを表示します。"
+  },
+  "visitorTypes": {
+    "recruiter": {
+      "label": "採用担当 / HR",
+      "description": "スキルと経験を評価したい"
+    },
+    "developer": {
+      "label": "開発者仲間",
+      "description": "技術プロジェクトとコードに興味がある"
+    },
+    "collaborator": {
+      "label": "潜在的なパートナー",
+      "description": "協力の機会を探している"
+    },
+    "friend": {
+      "label": "友人 / 家族",
+      "description": "ただ見に来た"
+    }
+  },
+  "loading": {
+    "title": "体験を作成中",
+    "subtitle": "AIがあなた専用のポートフォリオをカスタマイズしています...",
+    "recruiter": [
+      "主要な実績をハイライト中...",
+      "スキル概要を準備中...",
+      "職務経験をキュレーション中..."
+    ],
+    "developer": [
+      "技術プロジェクトを読み込み中...",
+      "コードサンプルを取得中...",
+      "アーキテクチャ図を準備中..."
+    ],
+    "collaborator": [
+      "協力の機会を探索中...",
+      "現在のプロジェクトを紹介中...",
+      "連絡先オプションを準備中..."
+    ],
+    "friend": [
+      "個人的なストーリーを読み込み中...",
+      "面白い事実を探索中...",
+      "フォトギャラリーを準備中..."
+    ]
+  },
+  "feedback": {
+    "likeTooltip": "このレイアウトが好きです",
+    "dislikeTooltip": "レイアウトを再生成",
+    "thanks": "ありがとう！",
+    "share": "共有",
+    "regenerating": "再生成中...",
+    "rateLimited": "{{seconds}}秒お待ちください",
+    "sending": "送信中...",
+    "shareTitle": "このポートフォリオをチェック！",
+    "shareText": "このAIパーソナライズドポートフォリオが面白いと思いました。",
+    "linkCopied": "リンクをクリップボードにコピーしました！"
+  },
+  "theme": {
+    "switchToLight": "ライトモードに切り替え",
+    "switchToDark": "ダークモードに切り替え",
+    "useSystem": "システム設定を使用"
+  },
+  "navigation": {
+    "portfolio": "ポートフォリオ",
+    "changePerspective": "視点を変更"
+  },
+  "errors": {
+    "title": "問題が発生しました",
+    "defaultMessage": "パーソナライズされた体験を生成できませんでした。",
+    "tryAgain": "再試行",
+    "fallbackNotice": "エラーのためフォールバックレイアウトを使用しています。一部のパーソナライズが制限される場合があります。",
+    "failedGenerate": "パーソナライズされたレイアウトの生成に失敗しました",
+    "failedRegenerate": "パーソナライズされたレイアウトの再生成に失敗しました",
+    "unexpected": "予期しないエラーが発生しました"
+  },
+  "footer": {
+    "personalizedFor": "この体験は",
+    "poweredBy": "AIによる • React + Cloudflare Workersで構築"
+  },
+  "projects": {
+    "demo": "デモ",
+    "github": "GitHub"
+  },
+  "contact": {
+    "intro": "新しいプロジェクト、機会、または技術についての会話にいつでもオープンです。",
+    "email": "メール",
+    "linkedin": "LinkedIn",
+    "linkedinValue": "LinkedInでつながる",
+    "githubValue": "GitHubで見る"
+  },
+  "gallery": {
+    "noImages": "画像はまだありません。",
+    "imageAlt": "ギャラリー画像 {{index}}",
+    "selectedAlt": "選択された画像"
+  },
+  "language": {
+    "label": "言語",
+    "changeLanguage": "言語を変更"
+  },
+  "fallbackSections": {
+    "skills": "スキル",
+    "experience": "経験",
+    "projects": "プロジェクト",
+    "letsConnect": "お問い合わせ",
+    "aboutMe": "自己紹介",
+    "photos": "写真"
+  }
+}

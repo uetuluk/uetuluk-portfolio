@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { VisitorType } from "@/App";
 import { ClipLoader } from "react-spinners";
 
@@ -5,31 +6,12 @@ interface LoadingScreenProps {
   visitorType: VisitorType;
 }
 
-const loadingMessages: Record<NonNullable<VisitorType>, string[]> = {
-  recruiter: [
-    "Highlighting key achievements...",
-    "Preparing skills overview...",
-    "Curating professional experience...",
-  ],
-  developer: [
-    "Loading technical projects...",
-    "Fetching code samples...",
-    "Preparing architecture diagrams...",
-  ],
-  collaborator: [
-    "Finding collaboration opportunities...",
-    "Showcasing current projects...",
-    "Preparing contact options...",
-  ],
-  friend: [
-    "Loading personal stories...",
-    "Finding fun facts...",
-    "Preparing photo gallery...",
-  ],
-};
-
 export function LoadingScreen({ visitorType }: LoadingScreenProps) {
-  const messages = visitorType ? loadingMessages[visitorType] : [];
+  const { t } = useTranslation();
+
+  const messages = visitorType
+    ? (t(`loading.${visitorType}`, { returnObjects: true }) as string[])
+    : [];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
@@ -45,12 +27,8 @@ export function LoadingScreen({ visitorType }: LoadingScreenProps) {
         </div>
 
         {/* Main message */}
-        <h2 className="text-2xl font-semibold mb-3">
-          Crafting Your Experience
-        </h2>
-        <p className="text-muted-foreground mb-8">
-          AI is personalizing the portfolio just for you...
-        </p>
+        <h2 className="text-2xl font-semibold mb-3">{t("loading.title")}</h2>
+        <p className="text-muted-foreground mb-8">{t("loading.subtitle")}</p>
 
         {/* Animated messages */}
         <div className="space-y-2">

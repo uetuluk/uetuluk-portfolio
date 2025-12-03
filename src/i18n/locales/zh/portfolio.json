@@ -1,0 +1,52 @@
+{
+  "personal": {
+    "name": "陆胜",
+    "title": "研究工程师 & AI专家",
+    "bio": "研究工程师和AI专家，在纽约大学上海分校拥有3年以上企业级教育技术平台开发经验。设计了服务300多名学生的多模态学习系统，处理超过1亿个token，部署效率提升5倍。专长于全栈开发、LLM集成和生产级AI基础设施。",
+    "location": "中国上海"
+  },
+  "projects": {
+    "kiwi": {
+      "title": "KIWI - 多模态AI学习平台",
+      "description": "企业级多模态学习平台，服务6个班级300多名学生，具有实时AI聊天、智能PDF注释和浏览器内Python执行功能。",
+      "longDescription": "构建了生产级教育平台，支持多个LLM的实时流式聊天、AI驱动的PDF注释和高亮、基于向量的文档搜索以及多班级部署自动化。处理超过1亿个token，部署速度提升5倍，正常运行时间达99.9%。"
+    },
+    "ask": {
+      "title": "ASK - 知识库聊天机器人框架",
+      "description": "多租户聊天机器人框架，将教师响应时间从数小时缩短至即时，已部署为纽约大学上海分校的'Ask Angie'教师支持系统。",
+      "longDescription": "开发了可定制的多租户聊天机器人框架，具有基于角色的访问控制、多语言支持（英语/中文）、智能文档处理管道、混合向量/文本搜索和离线文本转语音集成。具备自动分块、嵌入生成和实时分析功能。"
+    },
+    "vtuber-chat": {
+      "title": "VTuber聊天助手",
+      "description": "跨平台桌面应用程序，聚合来自YouTube、Twitch和Kick的实时聊天消息，具有智能消息优先级功能。",
+      "longDescription": "构建了多平台流媒体聊天聚合器，已用于100多小时的直播。具有跨平台统一消息格式、优先消息队列、智能刷屏检测、SuperChat高亮显示和自定义通知提醒，支持OAuth认证和速率限制合规。"
+    },
+    "spiegel-2d": {
+      "title": "Spiegel 2D - AI虚拟主播形象",
+      "description": "AI驱动的Live2D虚拟主播形象应用，具有实时口型同步、情感驱动表情和60fps渲染，采用隐私优先的本地AI。",
+      "longDescription": "创建了AI驱动的Live2D虚拟形象系统，具有基于MFCC的口型同步分析、AI驱动的面部表情、流畅的60fps渲染和用于OBS集成的透明背景。使用本地AI模型保护隐私，Web Workers实现非阻塞处理，WebGPU加速。"
+    }
+  },
+  "experience": {
+    "nyu-shanghai": {
+      "company": "纽约大学上海分校",
+      "role": "研究工程师（Kiwi）& 高级新兴技术专员",
+      "period": "2023年8月 - 至今",
+      "description": "领导AI驱动的教育技术平台和基础设施开发。",
+      "highlights": [
+        "成功部署拥有100多周活跃用户的MOOC后，晋升为双职位",
+        "通过AWQ量化和vLLM张量并行化优化模型部署，最大化GPU利用率",
+        "在各部门推动AI与课堂的整合，包括Stable Diffusion、RAG和LLM",
+        "使用REST、SSE和WebSocket API为云端和本地基础设施开发定制全栈接口"
+      ]
+    }
+  },
+  "education": {
+    "nyu-shanghai-edu": {
+      "institution": "纽约大学上海分校",
+      "degree": "电气与系统工程理学学士（辅修：计算机科学、中文）",
+      "period": "2017 - 2021",
+      "highlights": ["GPA 3.7", "2019-2020年在纽约大学纽约校区交流学习"]
+    }
+  }
+}

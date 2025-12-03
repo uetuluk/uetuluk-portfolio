@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ThumbsUp, ThumbsDown, Share2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSessionId } from "@/hooks/useSessionId";
@@ -31,6 +32,7 @@ export function FeedbackButtons({
   cacheKey,
   onRegenerate,
 }: FeedbackButtonsProps) {
+  const { t } = useTranslation();
   const [feedbackState, setFeedbackState] = useState<FeedbackState>("idle");
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [retryAfter, setRetryAfter] = useState(0);
@@ -91,8 +93,8 @@ export function FeedbackButtons({
 
   const handleShare = async () => {
     const shareData = {
-      title: "Check out this portfolio!",
-      text: "I found this AI-personalized portfolio interesting.",
+      title: t("feedback.shareTitle"),
+      text: t("feedback.shareText"),
       url: window.location.href,
     };
 
@@ -102,7 +104,7 @@ export function FeedbackButtons({
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
+        alert(t("feedback.linkCopied"));
       }
     } catch (error) {
       // User cancelled share or error occurred
@@ -116,7 +118,7 @@ export function FeedbackButtons({
       <div className="flex items-center gap-2">
         <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
           <Check className="w-4 h-4" />
-          Thanks!
+          {t("feedback.thanks")}
         </span>
         {showShareOptions && (
           <button
@@ -124,7 +126,7 @@ export function FeedbackButtons({
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Share2 className="w-4 h-4" />
-            Share
+            {t("feedback.share")}
           </button>
         )}
       </div>
@@ -134,7 +136,9 @@ export function FeedbackButtons({
   // Disliked state (regenerating)
   if (feedbackState === "disliked") {
     return (
-      <span className="text-sm text-muted-foreground">Regenerating...</span>
+      <span className="text-sm text-muted-foreground">
+        {t("feedback.regenerating")}
+      </span>
     );
   }
 
@@ -142,14 +146,18 @@ export function FeedbackButtons({
   if (feedbackState === "rate-limited") {
     return (
       <span className="text-sm text-orange-600 dark:text-orange-400">
-        Wait {retryAfter}s
+        {t("feedback.rateLimited", { seconds: retryAfter })}
       </span>
     );
   }
 
   // Loading state
   if (feedbackState === "loading") {
-    return <span className="text-sm text-muted-foreground">Sending...</span>;
+    return (
+      <span className="text-sm text-muted-foreground">
+        {t("feedback.sending")}
+      </span>
+    );
   }
 
   // Default idle state
@@ -162,7 +170,7 @@ export function FeedbackButtons({
           "text-muted-foreground hover:text-green-600 hover:bg-green-50",
           "dark:hover:text-green-400 dark:hover:bg-green-900/20"
         )}
-        title="I like this layout"
+        title={t("feedback.likeTooltip")}
       >
         <ThumbsUp className="w-4 h-4" />
       </button>
@@ -173,7 +181,7 @@ export function FeedbackButtons({
           "text-muted-foreground hover:text-red-600 hover:bg-red-50",
           "dark:hover:text-red-400 dark:hover:bg-red-900/20"
         )}
-        title="Regenerate layout"
+        title={t("feedback.dislikeTooltip")}
       >
         <ThumbsDown className="w-4 h-4" />
       </button>

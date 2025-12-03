@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
@@ -7,14 +8,17 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
+  const { t } = useTranslation();
   const { preference, toggleTheme, isDark } = useTheme();
 
   const Icon = preference === "system" ? Monitor : isDark ? Moon : Sun;
 
   const tooltipText =
     preference === "system"
-      ? `Switch to ${isDark ? "light" : "dark"} mode`
-      : "Use system preference";
+      ? isDark
+        ? t("theme.switchToLight")
+        : t("theme.switchToDark")
+      : t("theme.useSystem");
 
   return (
     <button

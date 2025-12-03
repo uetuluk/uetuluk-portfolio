@@ -1,0 +1,115 @@
+{
+  "welcome": {
+    "title": "欢迎来到我的作品集",
+    "subtitle": "为了个性化您的体验，请告诉我一些关于您的信息。",
+    "formLabel": "告诉我您在寻找什么",
+    "placeholder": "我对...感兴趣",
+    "continue": "继续",
+    "quickOptions": "快速选项：",
+    "selectionHelp": "您的选择帮助我展示最相关的内容。"
+  },
+  "visitorTypes": {
+    "recruiter": {
+      "label": "招聘人员 / HR",
+      "description": "评估技能和经验"
+    },
+    "developer": {
+      "label": "开发者同行",
+      "description": "对技术项目和代码感兴趣"
+    },
+    "collaborator": {
+      "label": "潜在合作伙伴",
+      "description": "探索合作机会"
+    },
+    "friend": {
+      "label": "朋友 / 家人",
+      "description": "只是来看看"
+    }
+  },
+  "loading": {
+    "title": "正在打造您的体验",
+    "subtitle": "AI正在为您个性化作品集...",
+    "recruiter": [
+      "突出关键成就...",
+      "准备技能概览...",
+      "整理专业经验..."
+    ],
+    "developer": [
+      "加载技术项目...",
+      "获取代码示例...",
+      "准备架构图..."
+    ],
+    "collaborator": [
+      "寻找合作机会...",
+      "展示当前项目...",
+      "准备联系方式..."
+    ],
+    "friend": [
+      "加载个人故事...",
+      "寻找有趣事实...",
+      "准备照片集..."
+    ]
+  },
+  "feedback": {
+    "likeTooltip": "我喜欢这个布局",
+    "dislikeTooltip": "重新生成布局",
+    "thanks": "谢谢！",
+    "share": "分享",
+    "regenerating": "重新生成中...",
+    "rateLimited": "请等待 {{seconds}} 秒",
+    "sending": "发送中...",
+    "shareTitle": "看看这个作品集！",
+    "shareText": "我发现这个AI个性化作品集很有趣。",
+    "linkCopied": "链接已复制到剪贴板！"
+  },
+  "theme": {
+    "switchToLight": "切换到浅色模式",
+    "switchToDark": "切换到深色模式",
+    "useSystem": "使用系统偏好"
+  },
+  "navigation": {
+    "portfolio": "作品集",
+    "changePerspective": "更换视角"
+  },
+  "errors": {
+    "title": "出错了",
+    "defaultMessage": "无法生成您的个性化体验。",
+    "tryAgain": "重试",
+    "fallbackNotice": "由于错误使用备用布局。部分个性化功能可能受限。",
+    "failedGenerate": "生成个性化布局失败",
+    "failedRegenerate": "重新生成个性化布局失败",
+    "unexpected": "发生意外错误"
+  },
+  "footer": {
+    "personalizedFor": "此体验是为您作为",
+    "poweredBy": "由AI驱动 • 使用React + Cloudflare Workers构建"
+  },
+  "projects": {
+    "demo": "演示",
+    "github": "GitHub"
+  },
+  "contact": {
+    "intro": "我随时愿意讨论新项目、机会，或者只是聊聊技术。",
+    "email": "邮箱",
+    "linkedin": "LinkedIn",
+    "linkedinValue": "在LinkedIn上联系",
+    "githubValue": "在GitHub上查看"
+  },
+  "gallery": {
+    "noImages": "暂无图片。",
+    "imageAlt": "图片 {{index}}",
+    "selectedAlt": "选中的图片"
+  },
+  "language": {
+    "label": "语言",
+    "changeLanguage": "更改语言"
+  },
+  "fallbackSections": {
+    "skills": "技能",
+    "experience": "经验",
+    "projects": "项目",
+    "letsConnect": "联系我",
+    "aboutMe": "关于我",
+    "photos": "照片"
+  }
+}

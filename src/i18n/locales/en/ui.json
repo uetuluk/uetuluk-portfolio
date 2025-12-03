@@ -1,0 +1,115 @@
+{
+  "welcome": {
+    "title": "Welcome to My Portfolio",
+    "subtitle": "To personalize your experience, tell me a bit about yourself.",
+    "formLabel": "Tell me what you're looking for",
+    "placeholder": "I'm interested in...",
+    "continue": "Continue",
+    "quickOptions": "Quick options:",
+    "selectionHelp": "Your selection helps me show you the most relevant content."
+  },
+  "visitorTypes": {
+    "recruiter": {
+      "label": "Recruiter / HR",
+      "description": "Looking to evaluate skills and experience"
+    },
+    "developer": {
+      "label": "Fellow Developer",
+      "description": "Interested in technical projects and code"
+    },
+    "collaborator": {
+      "label": "Potential Collaborator",
+      "description": "Exploring partnership opportunities"
+    },
+    "friend": {
+      "label": "Friend / Family",
+      "description": "Just here to check things out"
+    }
+  },
+  "loading": {
+    "title": "Crafting Your Experience",
+    "subtitle": "AI is personalizing the portfolio just for you...",
+    "recruiter": [
+      "Highlighting key achievements...",
+      "Preparing skills overview...",
+      "Curating professional experience..."
+    ],
+    "developer": [
+      "Loading technical projects...",
+      "Fetching code samples...",
+      "Preparing architecture diagrams..."
+    ],
+    "collaborator": [
+      "Finding collaboration opportunities...",
+      "Showcasing current projects...",
+      "Preparing contact options..."
+    ],
+    "friend": [
+      "Loading personal stories...",
+      "Finding fun facts...",
+      "Preparing photo gallery..."
+    ]
+  },
+  "feedback": {
+    "likeTooltip": "I like this layout",
+    "dislikeTooltip": "Regenerate layout",
+    "thanks": "Thanks!",
+    "share": "Share",
+    "regenerating": "Regenerating...",
+    "rateLimited": "Wait {{seconds}}s",
+    "sending": "Sending...",
+    "shareTitle": "Check out this portfolio!",
+    "shareText": "I found this AI-personalized portfolio interesting.",
+    "linkCopied": "Link copied to clipboard!"
+  },
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
+    "useSystem": "Use system preference"
+  },
+  "navigation": {
+    "portfolio": "Portfolio",
+    "changePerspective": "Change perspective"
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "defaultMessage": "Unable to generate your personalized experience.",
+    "tryAgain": "Try Again",
+    "fallbackNotice": "Using fallback layout due to an error. Some personalization may be limited.",
+    "failedGenerate": "Failed to generate personalized layout",
+    "failedRegenerate": "Failed to regenerate personalized layout",
+    "unexpected": "An unexpected error occurred"
+  },
+  "footer": {
+    "personalizedFor": "This experience was personalized for you as a",
+    "poweredBy": "Powered by AI • Built with React + Cloudflare Workers"
+  },
+  "projects": {
+    "demo": "Demo",
+    "github": "GitHub"
+  },
+  "contact": {
+    "intro": "I'm always open to discussing new projects, opportunities, or just having a chat about technology.",
+    "email": "Email",
+    "linkedin": "LinkedIn",
+    "linkedinValue": "Connect on LinkedIn",
+    "githubValue": "View on GitHub"
+  },
+  "gallery": {
+    "noImages": "No images available yet.",
+    "imageAlt": "Gallery image {{index}}",
+    "selectedAlt": "Selected gallery image"
+  },
+  "language": {
+    "label": "Language",
+    "changeLanguage": "Change language"
+  },
+  "fallbackSections": {
+    "skills": "Skills",
+    "experience": "Experience",
+    "projects": "Projects",
+    "letsConnect": "Let's Connect",
+    "aboutMe": "About Me",
+    "photos": "Photos"
+  }
+}

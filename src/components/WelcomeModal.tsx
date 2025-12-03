@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { VisitorType } from "@/App";
 import { cn } from "@/lib/utils";
 import { MosaicBackground } from "./MosaicBackground";
@@ -7,34 +8,17 @@ interface WelcomeModalProps {
   onSelect: (type: VisitorType, customIntent?: string) => void;
 }
 
-const visitorOptions = [
-  {
-    type: "recruiter" as VisitorType,
-    label: "Recruiter / HR",
-    description: "Looking to evaluate skills and experience",
-    icon: "👔",
-  },
-  {
-    type: "developer" as VisitorType,
-    label: "Fellow Developer",
-    description: "Interested in technical projects and code",
-    icon: "💻",
-  },
-  {
-    type: "collaborator" as VisitorType,
-    label: "Potential Collaborator",
-    description: "Exploring partnership opportunities",
-    icon: "🤝",
-  },
-  {
-    type: "friend" as VisitorType,
-    label: "Friend / Family",
-    description: "Just here to check things out",
-    icon: "👋",
-  },
-];
+const visitorTypeKeys = ["recruiter", "developer", "collaborator", "friend"] as const;
+
+const visitorIcons: Record<(typeof visitorTypeKeys)[number], string> = {
+  recruiter: "👔",
+  developer: "💻",
+  collaborator: "🤝",
+  friend: "👋",
+};
 
 export function WelcomeModal({ onSelect }: WelcomeModalProps) {
+  const { t } = useTranslation();
   const [customIntent, setCustomIntent] = useState("");
 
   const handleSubmitCustom = () => {
@@ -50,23 +34,23 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
       <div className="relative z-10 max-w-2xl w-full">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Welcome to My Portfolio
+            {t("welcome.title")}
           </h1>
           <p className="text-lg text-muted-foreground">
-            To personalize your experience, tell me a bit about yourself.
+            {t("welcome.subtitle")}
           </p>
         </div>
 
         <div className="bg-card rounded-xl border shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-6 text-center">
-            Tell me what you're looking for
+            {t("welcome.formLabel")}
           </h2>
 
           <div className="space-y-4">
             <textarea
               value={customIntent}
               onChange={(e) => setCustomIntent(e.target.value)}
-              placeholder="I'm interested in..."
+              placeholder={t("welcome.placeholder")}
               className="w-full px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               rows={3}
             />
@@ -80,28 +64,28 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
                   : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
             >
-              Continue
+              {t("welcome.continue")}
             </button>
           </div>
 
           <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
-            <span>Quick options: </span>
-            {visitorOptions.map((option, index) => (
-              <span key={option.type}>
+            <span>{t("welcome.quickOptions")} </span>
+            {visitorTypeKeys.map((type, index) => (
+              <span key={type}>
                 <button
-                  onClick={() => onSelect(option.type)}
+                  onClick={() => onSelect(type)}
                   className="hover:text-foreground hover:underline transition-colors"
                 >
-                  {option.label}
+                  {visitorIcons[type]} {t(`visitorTypes.${type}.label`)}
                 </button>
-                {index < visitorOptions.length - 1 && <span> | </span>}
+                {index < visitorTypeKeys.length - 1 && <span> | </span>}
               </span>
             ))}
           </div>
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Your selection helps me show you the most relevant content.
+          {t("welcome.selectionHelp")}
         </p>
       </div>
     </div>

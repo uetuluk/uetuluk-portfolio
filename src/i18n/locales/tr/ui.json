@@ -1,0 +1,115 @@
+{
+  "welcome": {
+    "title": "Portfolyoma Hoş Geldiniz",
+    "subtitle": "Deneyiminizi kişiselleştirmek için kendinizden biraz bahsedin.",
+    "formLabel": "Ne arıyorsunuz?",
+    "placeholder": "İlgilendiğim...",
+    "continue": "Devam Et",
+    "quickOptions": "Hızlı seçenekler:",
+    "selectionHelp": "Seçiminiz size en alakalı içeriği göstermeme yardımcı olur."
+  },
+  "visitorTypes": {
+    "recruiter": {
+      "label": "İşe Alım / İK",
+      "description": "Beceri ve deneyimi değerlendirmek istiyorum"
+    },
+    "developer": {
+      "label": "Geliştirici Arkadaş",
+      "description": "Teknik projeler ve kodlarla ilgileniyorum"
+    },
+    "collaborator": {
+      "label": "Potansiyel İş Ortağı",
+      "description": "İş birliği fırsatlarını araştırıyorum"
+    },
+    "friend": {
+      "label": "Arkadaş / Aile",
+      "description": "Sadece bir göz atmak istiyorum"
+    }
+  },
+  "loading": {
+    "title": "Deneyiminiz Hazırlanıyor",
+    "subtitle": "AI portfolyoyu sizin için kişiselleştiriyor...",
+    "recruiter": [
+      "Önemli başarılar öne çıkarılıyor...",
+      "Beceri özeti hazırlanıyor...",
+      "Profesyonel deneyim düzenleniyor..."
+    ],
+    "developer": [
+      "Teknik projeler yükleniyor...",
+      "Kod örnekleri getiriliyor...",
+      "Mimari diyagramlar hazırlanıyor..."
+    ],
+    "collaborator": [
+      "İş birliği fırsatları aranıyor...",
+      "Mevcut projeler sergileniyor...",
+      "İletişim seçenekleri hazırlanıyor..."
+    ],
+    "friend": [
+      "Kişisel hikayeler yükleniyor...",
+      "İlginç bilgiler aranıyor...",
+      "Fotoğraf galerisi hazırlanıyor..."
+    ]
+  },
+  "feedback": {
+    "likeTooltip": "Bu düzeni beğendim",
+    "dislikeTooltip": "Düzeni yeniden oluştur",
+    "thanks": "Teşekkürler!",
+    "share": "Paylaş",
+    "regenerating": "Yeniden oluşturuluyor...",
+    "rateLimited": "{{seconds}} saniye bekleyin",
+    "sending": "Gönderiliyor...",
+    "shareTitle": "Bu portfolyoya göz atın!",
+    "shareText": "Bu AI ile kişiselleştirilmiş portfolyoyu ilginç buldum.",
+    "linkCopied": "Bağlantı panoya kopyalandı!"
+  },
+  "theme": {
+    "switchToLight": "Açık moda geç",
+    "switchToDark": "Koyu moda geç",
+    "useSystem": "Sistem tercihini kullan"
+  },
+  "navigation": {
+    "portfolio": "Portfolyo",
+    "changePerspective": "Perspektifi değiştir"
+  },
+  "errors": {
+    "title": "Bir şeyler yanlış gitti",
+    "defaultMessage": "Kişiselleştirilmiş deneyiminiz oluşturulamadı.",
+    "tryAgain": "Tekrar Dene",
+    "fallbackNotice": "Bir hata nedeniyle yedek düzen kullanılıyor. Bazı kişiselleştirmeler sınırlı olabilir.",
+    "failedGenerate": "Kişiselleştirilmiş düzen oluşturulamadı",
+    "failedRegenerate": "Kişiselleştirilmiş düzen yeniden oluşturulamadı",
+    "unexpected": "Beklenmeyen bir hata oluştu"
+  },
+  "footer": {
+    "personalizedFor": "Bu deneyim sizin için",
+    "poweredBy": "AI ile destekleniyor • React + Cloudflare Workers ile oluşturuldu"
+  },
+  "projects": {
+    "demo": "Demo",
+    "github": "GitHub"
+  },
+  "contact": {
+    "intro": "Yeni projeler, fırsatlar veya sadece teknoloji hakkında sohbet etmek için her zaman açığım.",
+    "email": "E-posta",
+    "linkedin": "LinkedIn",
+    "linkedinValue": "LinkedIn'de bağlan",
+    "githubValue": "GitHub'da görüntüle"
+  },
+  "gallery": {
+    "noImages": "Henüz görsel yok.",
+    "imageAlt": "Galeri görseli {{index}}",
+    "selectedAlt": "Seçili görsel"
+  },
+  "language": {
+    "label": "Dil",
+    "changeLanguage": "Dili değiştir"
+  },
+  "fallbackSections": {
+    "skills": "Beceriler",
+    "experience": "Deneyim",
+    "projects": "Projeler",
+    "letsConnect": "İletişime Geç",
+    "aboutMe": "Hakkımda",
+    "photos": "Fotoğraflar"
+  }
+}

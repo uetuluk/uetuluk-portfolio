@@ -1,0 +1,55 @@
+{
+  "personal": {
+    "name": "Utku Ege Tuluk",
+    "title": "Research Engineer & AI Specialist",
+    "bio": "Research Engineer and AI specialist with 3+ years developing enterprise-scale educational technology platforms at NYU Shanghai. Architected multimodal learning systems serving 300+ students, processing 100M+ tokens with 5x deployment efficiency gains. Expertise in full-stack development, LLM integration, and production AI infrastructure.",
+    "location": "Shanghai, China"
+  },
+  "projects": {
+    "kiwi": {
+      "title": "KIWI - Multimodal AI Learning Platform",
+      "description": "Enterprise-scale multimodal learning platform serving 300+ students across 6 classes, featuring real-time AI-powered chat, intelligent PDF annotation, and in-browser Python execution.",
+      "longDescription": "Built a production-grade educational platform with real-time streaming chat supporting multiple LLMs, AI-powered PDF annotation and highlighting, vector-based document search, and multi-class deployment automation. Processed 100M+ tokens with 5x deployment speed improvement and 99.9% uptime."
+    },
+    "ask": {
+      "title": "ASK - Knowledge Base Chatbot Framework",
+      "description": "Multi-tenant chatbot framework that reduced faculty response times from hours to instant, deployed as 'Ask Angie' for NYU Shanghai faculty support.",
+      "longDescription": "Developed a customizable multi-tenant chatbot framework with role-based access control, multilingual support (English/Chinese), intelligent document processing pipeline, hybrid vector/text search, and offline text-to-speech integration. Features automatic chunking, embedding generation, and real-time analytics."
+    },
+    "vtuber-chat": {
+      "title": "VTuber Chat Helper",
+      "description": "Cross-platform desktop application aggregating real-time chat messages from YouTube, Twitch, and Kick with intelligent message prioritization.",
+      "longDescription": "Built a multi-platform streaming chat aggregator used for 100+ hours of streaming. Features unified message format across platforms, priority message queuing, intelligent flood detection, SuperChat highlighting, and custom notification alerts with OAuth authentication and rate limiting compliance."
+    },
+    "spiegel-2d": {
+      "title": "Spiegel 2D - AI VTuber Avatar",
+      "description": "AI-driven Live2D VTuber avatar application featuring real-time lip-sync, emotion-driven expressions, and 60fps rendering with privacy-first local AI.",
+      "longDescription": "Created an AI-powered Live2D avatar system with MFCC-based lip-sync analysis, AI-driven facial expressions, smooth 60fps rendering, and transparent background for OBS integration. Uses local AI models for privacy, Web Workers for non-blocking processing, and WebGPU acceleration."
+    }
+  },
+  "experience": {
+    "nyu-shanghai": {
+      "company": "New York University Shanghai",
+      "role": "Research Engineer (Kiwi) & Senior Emerging Technology Associate",
+      "period": "August 2023 - Present",
+      "description": "Leading development of AI-powered educational technology platforms and infrastructure.",
+      "highlights": [
+        "Promoted to dual-role position after successfully deploying MOOC with 100+ weekly users",
+        "Optimized model deployment through AWQ quantization and vLLM tensor parallelization, maximizing GPU utilization",
+        "Spearheaded AI integration into classrooms with Stable Diffusion, RAG, and LLMs across departments",
+        "Developed custom full-stack interfaces using REST, SSE, and WebSocket APIs for cloud and on-premises infrastructure"
+      ]
+    }
+  },
+  "education": {
+    "nyu-shanghai-edu": {
+      "institution": "New York University Shanghai",
+      "degree": "B.S. Electrical & Systems Engineering (Minors: Computer Science, Chinese)",
+      "period": "2017 - 2021",
+      "highlights": [
+        "GPA 3.7",
+        "Study Away at NYU New York (2019-2020)"
+      ]
+    }
+  }
+}

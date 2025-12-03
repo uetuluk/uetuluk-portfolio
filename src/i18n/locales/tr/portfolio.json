@@ -1,0 +1,55 @@
+{
+  "personal": {
+    "name": "Utku Ege Tuluk",
+    "title": "Araştırma Mühendisi & AI Uzmanı",
+    "bio": "NYU Shanghai'da 3 yılı aşkın süredir kurumsal ölçekte eğitim teknolojisi platformları geliştiren Araştırma Mühendisi ve AI uzmanı. 300'den fazla öğrenciye hizmet veren çok modlu öğrenme sistemleri tasarladı, 100 milyondan fazla token işledi ve dağıtım verimliliğinde 5 kat artış sağladı. Full-stack geliştirme, LLM entegrasyonu ve üretim seviyesi AI altyapısı konularında uzman.",
+    "location": "Şangay, Çin"
+  },
+  "projects": {
+    "kiwi": {
+      "title": "KIWI - Çok Modlu AI Öğrenme Platformu",
+      "description": "6 sınıfta 300'den fazla öğrenciye hizmet veren kurumsal ölçekte çok modlu öğrenme platformu. Gerçek zamanlı AI destekli sohbet, akıllı PDF açıklama ve tarayıcı içi Python çalıştırma özellikleri.",
+      "longDescription": "Birden fazla LLM'yi destekleyen gerçek zamanlı akış sohbeti, AI destekli PDF açıklama ve vurgulama, vektör tabanlı belge arama ve çoklu sınıf dağıtım otomasyonu içeren üretim seviyesi eğitim platformu oluşturuldu. 100 milyondan fazla token işlendi, dağıtım hızında 5 kat iyileştirme ve %99,9 çalışma süresi sağlandı."
+    },
+    "ask": {
+      "title": "ASK - Bilgi Tabanı Sohbet Botu Çerçevesi",
+      "description": "Öğretim üyesi yanıt sürelerini saatlerden anlık seviyeye indiren çok kiracılı sohbet botu çerçevesi. NYU Shanghai öğretim üyesi desteği için 'Ask Angie' olarak dağıtıldı.",
+      "longDescription": "Rol tabanlı erişim kontrolü, çok dilli destek (İngilizce/Çince), akıllı belge işleme hattı, hibrit vektör/metin arama ve çevrimdışı metinden sese entegrasyonu içeren özelleştirilebilir çok kiracılı sohbet botu çerçevesi geliştirildi. Otomatik parçalama, gömme oluşturma ve gerçek zamanlı analitik özellikleri mevcut."
+    },
+    "vtuber-chat": {
+      "title": "VTuber Sohbet Yardımcısı",
+      "description": "YouTube, Twitch ve Kick'ten gerçek zamanlı sohbet mesajlarını akıllı mesaj önceliklendirmesiyle toplayan çapraz platform masaüstü uygulaması.",
+      "longDescription": "100 saatten fazla yayında kullanılan çok platformlu yayın sohbet toplayıcısı oluşturuldu. Platformlar arası birleşik mesaj formatı, öncelikli mesaj kuyruğu, akıllı spam tespiti, SuperChat vurgulama ve OAuth kimlik doğrulaması ile hız sınırlama uyumlu özel bildirim uyarıları özellikleri mevcut."
+    },
+    "spiegel-2d": {
+      "title": "Spiegel 2D - AI VTuber Avatarı",
+      "description": "Gerçek zamanlı dudak senkronizasyonu, duygu odaklı ifadeler ve gizlilik öncelikli yerel AI ile 60fps render içeren AI destekli Live2D VTuber avatar uygulaması.",
+      "longDescription": "MFCC tabanlı dudak senkronizasyon analizi, AI destekli yüz ifadeleri, akıcı 60fps render ve OBS entegrasyonu için şeffaf arka plan içeren AI destekli Live2D avatar sistemi oluşturuldu. Gizlilik için yerel AI modelleri, engellenmeyen işleme için Web Workers ve WebGPU hızlandırma kullanılıyor."
+    }
+  },
+  "experience": {
+    "nyu-shanghai": {
+      "company": "New York Üniversitesi Şangay",
+      "role": "Araştırma Mühendisi (Kiwi) & Kıdemli Gelişen Teknoloji Uzmanı",
+      "period": "Ağustos 2023 - Günümüz",
+      "description": "AI destekli eğitim teknolojisi platformları ve altyapı geliştirmesine liderlik ediyor.",
+      "highlights": [
+        "Haftalık 100'den fazla kullanıcıya sahip MOOC'u başarıyla dağıttıktan sonra çift görevli pozisyona terfi edildi",
+        "AWQ kuantizasyonu ve vLLM tensör paralelleştirmesi ile model dağıtımı optimize edildi, GPU kullanımı maksimize edildi",
+        "Tüm departmanlarda Stable Diffusion, RAG ve LLM'lerle sınıflara AI entegrasyonuna öncülük edildi",
+        "Bulut ve şirket içi altyapı için REST, SSE ve WebSocket API'leri kullanılarak özel full-stack arayüzler geliştirildi"
+      ]
+    }
+  },
+  "education": {
+    "nyu-shanghai-edu": {
+      "institution": "New York Üniversitesi Şangay",
+      "degree": "Elektrik ve Sistem Mühendisliği Lisans (Yan Dal: Bilgisayar Bilimi, Çince)",
+      "period": "2017 - 2021",
+      "highlights": [
+        "GPA 3.7",
+        "NYU New York'ta Değişim Programı (2019-2020)"
+      ]
+    }
+  }
+}
