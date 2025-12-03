@@ -1,0 +1,29 @@
+# Utku Ege Tuluk Portfolio
+
+> Personal portfolio of Utku Ege Tuluk, a Research Engineer & AI Specialist based in Shanghai, China. Features AI-powered personalized layouts generated for different visitor types.
+
+## About
+
+Utku Ege Tuluk is a Research Engineer with 3+ years developing enterprise-scale educational technology platforms at NYU Shanghai. Expertise includes full-stack development, LLM integration, and production AI infrastructure.
+
+## Contact
+
+- Email: utkuegetuluk@gmail.com
+- GitHub: https://github.com/uetuluk
+- LinkedIn: https://linkedin.com/in/uetuluk
+
+## Featured Projects
+
+- KIWI: Multimodal AI Learning Platform - enterprise-scale education system serving 300+ students
+- ASK: Knowledge Base Chatbot Framework - multi-tenant RAG-based chatbot system
+- VTuber Chat Helper: Cross-platform chat aggregator for livestreaming
+- Spiegel 2D: AI VTuber Avatar application with real-time expressions
+
+## Skills
+
+Python, JavaScript, TypeScript, SQL, React, NestJS, Electron, PostgreSQL, Redis, Docker, Terraform, LangChain, RAG, Vector Databases, Real-time Processing
+
+## Optional
+
+- [Sitemap](/sitemap.xml): XML sitemap for site structure
+- [Source Code](https://github.com/uetuluk): GitHub profile with open source projects

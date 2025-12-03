@@ -1,0 +1,18 @@
+/* TEAM */
+Developer & Designer: Utku Ege Tuluk
+Site: https://uetuluk.com
+Email: utkuegetuluk@gmail.com
+GitHub: https://github.com/uetuluk
+LinkedIn: https://linkedin.com/in/uetuluk
+Location: Shanghai, China
+
+/* SITE */
+Last update: 2025/12/03
+Language: English, Chinese, Japanese, Turkish
+Standards: HTML5, CSS3, TypeScript
+Components: React 19, Vite, Tailwind CSS
+Backend: Cloudflare Workers
+AI: Qwen 3 (via OpenRouter)
+
+/* THANKS */
+Built with React, TypeScript, and AI-powered personalization
