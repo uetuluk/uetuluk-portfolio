@@ -44,14 +44,16 @@ export function buildUserPrompt(
 ${customIntent ? `Additional context: ${customIntent}` : ""}
 
 Available content:
-- Personal: ${portfolioContent.personal.name}, ${portfolioContent.personal.title}
+- Personal: ${portfolioContent.personal.name}, ${
+    portfolioContent.personal.title
+  }
 - Bio: ${portfolioContent.personal.bio}
 - Project IDs: ${JSON.stringify(projectIds)}
 - Experience IDs: ${JSON.stringify(experienceIds)}
 - Skills: ${JSON.stringify(portfolioContent.skills)}
 - Hobbies: ${JSON.stringify(portfolioContent.hobbies || [])}
 - Has resume: ${portfolioContent.personal.resumeUrl ? "yes" : "no"}
-- Profile image: "/assets/profile.jpg"
+- Profile image: "/assets/profile.png"
 
 Generate a personalized layout for this ${visitorTag} visitor.`;
 }

@@ -1,4 +1,9 @@
-import type { Env, GenerateRequest, GeneratedLayout, AIGatewayResponse } from "./types";
+import type {
+  Env,
+  GenerateRequest,
+  GeneratedLayout,
+  AIGatewayResponse,
+} from "./types";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
 
 export default {
@@ -74,13 +79,10 @@ async function handleGenerate(
   const { visitorTag, customIntent, portfolioContent } = body;
 
   if (!visitorTag || !portfolioContent) {
-    return new Response(
-      JSON.stringify({ error: "Missing required fields" }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: "Missing required fields" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   // Check cache first (when KV is configured)
@@ -93,7 +95,11 @@ async function handleGenerate(
   // }
 
   // Check if AI Gateway is configured
-  if (!env.AI_GATEWAY_ACCOUNT_ID || !env.AI_GATEWAY_ID || !env.OPENROUTER_API_KEY) {
+  if (
+    !env.AI_GATEWAY_ACCOUNT_ID ||
+    !env.AI_GATEWAY_ID ||
+    !env.OPENROUTER_API_KEY
+  ) {
     console.warn("AI Gateway not configured, returning default layout");
     return new Response(
       JSON.stringify(getDefaultLayout(visitorTag, portfolioContent)),
@@ -124,7 +130,11 @@ async function handleGenerate(
               { role: "system", content: SYSTEM_PROMPT },
               {
                 role: "user",
-                content: buildUserPrompt(visitorTag, customIntent, portfolioContent),
+                content: buildUserPrompt(
+                  visitorTag,
+                  customIntent,
+                  portfolioContent
+                ),
               },
             ],
             temperature: 0.7,
@@ -206,7 +216,7 @@ function getDefaultLayout(
         props: {
           title: personal.name,
           subtitle: personal.title,
-          image: "/assets/profile.jpg",
+          image: "/assets/profile.png",
         },
       },
     ],

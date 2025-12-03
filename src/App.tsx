@@ -105,7 +105,7 @@ function getDefaultLayout(visitorType: VisitorType): GeneratedLayout {
         props: {
           title: portfolioContent.personal.name,
           subtitle: portfolioContent.personal.title,
-          image: "/assets/profile.jpg",
+          image: "/assets/profile.png",
         },
       },
     ],
