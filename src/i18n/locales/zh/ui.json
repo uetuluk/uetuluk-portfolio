@@ -2,7 +2,7 @@
   "welcome": {
     "title": "欢迎来到我的作品集",
     "subtitle": "为了个性化您的体验，请告诉我一些关于您的信息。",
-    "formLabel": "告诉我您在寻找什么",
+    "formLabel": "是什么让您来到这里？",
     "placeholder": "我对...感兴趣",
     "continue": "继续",
     "quickOptions": "快速选项：",

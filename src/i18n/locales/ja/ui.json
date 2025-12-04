@@ -2,7 +2,7 @@
   "welcome": {
     "title": "ポートフォリオへようこそ",
     "subtitle": "より良い体験のために、あなたについて教えてください。",
-    "formLabel": "何をお探しですか",
+    "formLabel": "ここに来たきっかけは？",
     "placeholder": "興味があるのは...",
     "continue": "続ける",
     "quickOptions": "クイックオプション：",

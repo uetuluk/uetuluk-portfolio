@@ -61,6 +61,10 @@ export interface PortfolioContent {
     highlights?: string[];
   }>;
   hobbies?: string[];
+  photos?: Array<{
+    path: string;
+    description: string;
+  }>;
 }
 
 export interface GeneratedLayout {

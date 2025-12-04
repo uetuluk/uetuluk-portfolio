@@ -2,7 +2,7 @@
   "welcome": {
     "title": "Welcome to My Portfolio",
     "subtitle": "To personalize your experience, tell me a bit about yourself.",
-    "formLabel": "Tell me what you're looking for",
+    "formLabel": "What brings you here?",
     "placeholder": "I'm interested in...",
     "continue": "Continue",
     "quickOptions": "Quick options:",

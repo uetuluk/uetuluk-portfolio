@@ -54,5 +54,6 @@ export function useTranslatedPortfolio() {
     experience,
     skills: basePortfolio.skills, // Keep technical terms in English
     education,
+    photos: basePortfolio.photos,
   };
 }

@@ -96,5 +96,19 @@
       "period": "2017 - 2021",
       "highlights": ["GPA 3.7", "Study Away at NYU New York (2019-2020)"]
     }
+  ],
+  "photos": [
+    {
+      "path": "/assets/cat-meowrio-1.png",
+      "description": "Meowrio the cat"
+    },
+    {
+      "path": "/assets/cat-meowrio-2.png",
+      "description": "Meowrio the cat"
+    },
+    {
+      "path": "/assets/cat-meowrio-3.png",
+      "description": "Meowrio the cat"
+    }
   ]
 }

@@ -77,7 +77,7 @@ export function buildSystemPrompt(
   customGuidelines?: { tagName: string; guidelines: string },
   visitorContext?: VisitorContext
 ): string {
-  const { personal, projects, experience, skills, education, hobbies } = portfolioContent;
+  const { personal, projects, experience, skills, education, hobbies, photos } = portfolioContent;
 
   const projectsList = projects
     .map(
@@ -186,6 +186,9 @@ Education:
 ${educationList}
 
 Hobbies: ${JSON.stringify(hobbies || [])}
+
+Photos (use these paths in ImageGallery):
+${photos?.map((p) => `- ${p.path}: ${p.description}`).join("\n") || "No photos available"}
 === END PORTFOLIO CONTENT ===
 
 ${personalizationSection}

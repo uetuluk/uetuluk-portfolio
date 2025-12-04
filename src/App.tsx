@@ -256,7 +256,14 @@ function App() {
           },
           {
             type: "ImageGallery",
-            props: { title: t("fallbackSections.photos"), images: [] },
+            props: {
+              title: t("fallbackSections.photos"),
+              images: [
+                "/assets/cat-meowrio-1.png",
+                "/assets/cat-meowrio-2.png",
+                "/assets/cat-meowrio-3.png",
+              ],
+            },
           }
         );
         break;

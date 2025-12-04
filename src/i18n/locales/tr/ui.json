@@ -2,7 +2,7 @@
   "welcome": {
     "title": "Portfolyoma Hoş Geldiniz",
     "subtitle": "Deneyiminizi kişiselleştirmek için kendinizden biraz bahsedin.",
-    "formLabel": "Ne arıyorsunuz?",
+    "formLabel": "Sizi buraya getiren nedir?",
     "placeholder": "İlgilendiğim...",
     "continue": "Devam Et",
     "quickOptions": "Hızlı seçenekler:",
