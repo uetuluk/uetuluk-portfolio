@@ -334,4 +334,581 @@ describe("Worker Pure Functions", () => {
       expect(hash.length).toBeGreaterThan(0);
     });
   });
+
+  describe("getClientIP", () => {
+    // Recreated getClientIP logic
+    function getClientIP(request: Request): string {
+      return (
+        request.headers.get("CF-Connecting-IP") ||
+        request.headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
+        "unknown"
+      );
+    }
+
+    it("extracts CF-Connecting-IP header when present", () => {
+      const request = new Request("https://example.com", {
+        headers: { "CF-Connecting-IP": "1.2.3.4" },
+      });
+      expect(getClientIP(request)).toBe("1.2.3.4");
+    });
+
+    it("falls back to X-Forwarded-For when CF-Connecting-IP is missing", () => {
+      const request = new Request("https://example.com", {
+        headers: { "X-Forwarded-For": "5.6.7.8, 9.10.11.12" },
+      });
+      expect(getClientIP(request)).toBe("5.6.7.8");
+    });
+
+    it("extracts first IP from X-Forwarded-For chain", () => {
+      const request = new Request("https://example.com", {
+        headers: { "X-Forwarded-For": " 1.1.1.1 , 2.2.2.2, 3.3.3.3" },
+      });
+      expect(getClientIP(request)).toBe("1.1.1.1");
+    });
+
+    it("returns unknown when no IP headers present", () => {
+      const request = new Request("https://example.com");
+      expect(getClientIP(request)).toBe("unknown");
+    });
+
+    it("prefers CF-Connecting-IP over X-Forwarded-For", () => {
+      const request = new Request("https://example.com", {
+        headers: {
+          "CF-Connecting-IP": "1.2.3.4",
+          "X-Forwarded-For": "5.6.7.8",
+        },
+      });
+      expect(getClientIP(request)).toBe("1.2.3.4");
+    });
+  });
+
+  describe("getDefaultCategorizationResult", () => {
+    // Recreated function
+    const TAG_GUIDELINES: Record<string, string> = {
+      friend: "Show personal, casual content",
+      recruiter: "Highlight professional achievements",
+      developer: "Focus on technical projects",
+      collaborator: "Emphasize collaboration opportunities",
+    };
+
+    function getDefaultCategorizationResult() {
+      return {
+        status: "matched" as const,
+        tagName: "friend",
+        displayName: "Friend",
+        guidelines: TAG_GUIDELINES.friend,
+        confidence: 1,
+        reason: "Default fallback",
+      };
+    }
+
+    it("returns matched status", () => {
+      const result = getDefaultCategorizationResult();
+      expect(result.status).toBe("matched");
+    });
+
+    it("returns friend as tag name", () => {
+      const result = getDefaultCategorizationResult();
+      expect(result.tagName).toBe("friend");
+    });
+
+    it("returns confidence of 1", () => {
+      const result = getDefaultCategorizationResult();
+      expect(result.confidence).toBe(1);
+    });
+
+    it("returns friend guidelines", () => {
+      const result = getDefaultCategorizationResult();
+      expect(result.guidelines).toBe("Show personal, casual content");
+    });
+
+    it("returns Default fallback as reason", () => {
+      const result = getDefaultCategorizationResult();
+      expect(result.reason).toBe("Default fallback");
+    });
+  });
+
+  describe("sanitizeCategorizationResult", () => {
+    const ALLOWED_VISITOR_TAGS = ["recruiter", "developer", "collaborator", "friend"];
+    const TAG_GUIDELINES: Record<string, string> = {
+      friend: "Show personal, casual content",
+      recruiter: "Highlight professional achievements",
+      developer: "Focus on technical projects",
+      collaborator: "Emphasize collaboration opportunities",
+    };
+
+    interface CategorizationResult {
+      status: "matched" | "created" | "rejected";
+      tagName: string;
+      displayName: string;
+      guidelines: string;
+      confidence: number;
+      reason: string;
+    }
+
+    function sanitizeCategorizationResult(
+      result: CategorizationResult
+    ): CategorizationResult {
+      let tagName = result.tagName
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 20);
+
+      if (!tagName) {
+        tagName = "friend";
+      }
+
+      if (result.status === "matched" && ALLOWED_VISITOR_TAGS.includes(tagName)) {
+        return {
+          ...result,
+          tagName,
+          guidelines: TAG_GUIDELINES[tagName] || result.guidelines,
+        };
+      }
+
+      if (result.status === "rejected") {
+        return {
+          ...result,
+          tagName: "friend",
+          guidelines: TAG_GUIDELINES.friend,
+        };
+      }
+
+      return {
+        ...result,
+        tagName,
+        confidence: Math.min(1, Math.max(0, result.confidence)),
+      };
+    }
+
+    it("converts tag name to lowercase", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "MyTag",
+        displayName: "My Tag",
+        guidelines: "Some guidelines",
+        confidence: 0.8,
+        reason: "Test",
+      });
+      expect(result.tagName).toBe("mytag");
+    });
+
+    it("replaces special characters with hyphens", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "my@tag#here",
+        displayName: "My Tag",
+        guidelines: "Some guidelines",
+        confidence: 0.8,
+        reason: "Test",
+      });
+      expect(result.tagName).toBe("my-tag-here");
+    });
+
+    it("collapses multiple hyphens", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "my---tag",
+        displayName: "My Tag",
+        guidelines: "Some guidelines",
+        confidence: 0.8,
+        reason: "Test",
+      });
+      expect(result.tagName).toBe("my-tag");
+    });
+
+    it("removes leading and trailing hyphens", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "-mytag-",
+        displayName: "My Tag",
+        guidelines: "Some guidelines",
+        confidence: 0.8,
+        reason: "Test",
+      });
+      expect(result.tagName).toBe("mytag");
+    });
+
+    it("truncates tag name to 20 characters", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "a".repeat(30),
+        displayName: "Long Tag",
+        guidelines: "Some guidelines",
+        confidence: 0.8,
+        reason: "Test",
+      });
+      expect(result.tagName.length).toBe(20);
+    });
+
+    it("uses friend for empty tag after sanitization", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "---",
+        displayName: "Invalid",
+        guidelines: "Some guidelines",
+        confidence: 0.8,
+        reason: "Test",
+      });
+      expect(result.tagName).toBe("friend");
+    });
+
+    it("uses canonical guidelines for matched known tags", () => {
+      const result = sanitizeCategorizationResult({
+        status: "matched",
+        tagName: "recruiter",
+        displayName: "Recruiter",
+        guidelines: "Old guidelines",
+        confidence: 0.9,
+        reason: "Test",
+      });
+      expect(result.guidelines).toBe("Highlight professional achievements");
+    });
+
+    it("forces friend tag for rejected status", () => {
+      const result = sanitizeCategorizationResult({
+        status: "rejected",
+        tagName: "spam",
+        displayName: "Spam",
+        guidelines: "Spam guidelines",
+        confidence: 0.1,
+        reason: "Looks suspicious",
+      });
+      expect(result.tagName).toBe("friend");
+      expect(result.guidelines).toBe("Show personal, casual content");
+    });
+
+    it("clamps confidence between 0 and 1 (high value)", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "custom",
+        displayName: "Custom",
+        guidelines: "Custom guidelines",
+        confidence: 1.5,
+        reason: "Test",
+      });
+      expect(result.confidence).toBe(1);
+    });
+
+    it("clamps confidence between 0 and 1 (negative value)", () => {
+      const result = sanitizeCategorizationResult({
+        status: "created",
+        tagName: "custom",
+        displayName: "Custom",
+        guidelines: "Custom guidelines",
+        confidence: -0.5,
+        reason: "Test",
+      });
+      expect(result.confidence).toBe(0);
+    });
+  });
+
+  describe("getDefaultLayout", () => {
+    interface Project {
+      id: string;
+      title: string;
+      description: string;
+    }
+
+    interface Personal {
+      name: string;
+      title: string;
+      bio: string;
+      resumeUrl?: string;
+    }
+
+    interface PortfolioContent {
+      personal: Personal;
+      projects: Project[];
+    }
+
+    interface GeneratedLayout {
+      layout: string;
+      theme: { accent: string };
+      sections: Array<{
+        type: string;
+        props: Record<string, unknown>;
+      }>;
+    }
+
+    function getDefaultLayout(
+      visitorTag: string,
+      portfolioContent: PortfolioContent
+    ): GeneratedLayout {
+      const projectIds = portfolioContent.projects.map((p) => p.id);
+      const { personal } = portfolioContent;
+
+      const baseLayout: GeneratedLayout = {
+        layout: "hero-focused",
+        theme: { accent: "blue" },
+        sections: [
+          {
+            type: "Hero",
+            props: {
+              title: personal.name,
+              subtitle: personal.title,
+              image: "/assets/profile.png",
+            },
+          },
+        ],
+      };
+
+      switch (visitorTag) {
+        case "recruiter":
+          baseLayout.sections[0].props = {
+            ...baseLayout.sections[0].props,
+            cta: personal.resumeUrl
+              ? { text: "View Resume", href: personal.resumeUrl }
+              : undefined,
+          };
+          baseLayout.sections.push(
+            {
+              type: "SkillBadges",
+              props: { title: "Technical Skills", style: "detailed" },
+            },
+            {
+              type: "Timeline",
+              props: { title: "Experience" },
+            },
+            {
+              type: "CardGrid",
+              props: {
+                title: "Featured Projects",
+                columns: 2,
+                items: projectIds.slice(0, 4),
+              },
+            }
+          );
+          break;
+
+        case "developer":
+          baseLayout.layout = "two-column";
+          baseLayout.sections.push(
+            {
+              type: "CardGrid",
+              props: { title: "Projects", columns: 3, items: projectIds },
+            },
+            {
+              type: "SkillBadges",
+              props: { title: "Tech Stack", style: "detailed" },
+            },
+            {
+              type: "ContactForm",
+              props: { title: "Connect", showGitHub: true, showEmail: true },
+            }
+          );
+          break;
+
+        case "collaborator":
+          baseLayout.sections.push(
+            {
+              type: "TextBlock",
+              props: {
+                title: "About Me",
+                content: personal.bio,
+                style: "prose",
+              },
+            },
+            {
+              type: "CardGrid",
+              props: {
+                title: "Current Projects",
+                columns: 2,
+                items: projectIds.slice(0, 2),
+              },
+            },
+            {
+              type: "ContactForm",
+              props: {
+                title: "Let's Collaborate",
+                showEmail: true,
+                showLinkedIn: true,
+                showGitHub: true,
+              },
+            }
+          );
+          break;
+
+        case "friend":
+        default:
+          baseLayout.layout = "single-column";
+          baseLayout.sections.push(
+            {
+              type: "TextBlock",
+              props: {
+                title: "About Me",
+                content: personal.bio,
+                style: "casual",
+              },
+            },
+            {
+              type: "ImageGallery",
+              props: { title: "Highlights" },
+            }
+          );
+          break;
+      }
+
+      return baseLayout;
+    }
+
+    const mockPortfolio: PortfolioContent = {
+      personal: {
+        name: "Test User",
+        title: "Software Engineer",
+        bio: "Building cool stuff",
+        resumeUrl: "https://example.com/resume.pdf",
+      },
+      projects: [
+        { id: "proj-1", title: "Project 1", description: "Desc 1" },
+        { id: "proj-2", title: "Project 2", description: "Desc 2" },
+        { id: "proj-3", title: "Project 3", description: "Desc 3" },
+        { id: "proj-4", title: "Project 4", description: "Desc 4" },
+        { id: "proj-5", title: "Project 5", description: "Desc 5" },
+      ],
+    };
+
+    describe("recruiter layout", () => {
+      it("uses hero-focused layout", () => {
+        const layout = getDefaultLayout("recruiter", mockPortfolio);
+        expect(layout.layout).toBe("hero-focused");
+      });
+
+      it("includes resume CTA when resumeUrl is provided", () => {
+        const layout = getDefaultLayout("recruiter", mockPortfolio);
+        const heroProps = layout.sections[0].props as { cta?: { text: string; href: string } };
+        expect(heroProps.cta?.text).toBe("View Resume");
+        expect(heroProps.cta?.href).toBe("https://example.com/resume.pdf");
+      });
+
+      it("includes SkillBadges section", () => {
+        const layout = getDefaultLayout("recruiter", mockPortfolio);
+        const skillSection = layout.sections.find((s) => s.type === "SkillBadges");
+        expect(skillSection).toBeDefined();
+        expect(skillSection?.props.style).toBe("detailed");
+      });
+
+      it("includes Timeline section", () => {
+        const layout = getDefaultLayout("recruiter", mockPortfolio);
+        const timelineSection = layout.sections.find((s) => s.type === "Timeline");
+        expect(timelineSection).toBeDefined();
+      });
+
+      it("includes CardGrid with first 4 projects", () => {
+        const layout = getDefaultLayout("recruiter", mockPortfolio);
+        const cardGrid = layout.sections.find((s) => s.type === "CardGrid");
+        expect(cardGrid?.props.columns).toBe(2);
+        expect((cardGrid?.props.items as string[]).length).toBe(4);
+      });
+    });
+
+    describe("developer layout", () => {
+      it("uses two-column layout", () => {
+        const layout = getDefaultLayout("developer", mockPortfolio);
+        expect(layout.layout).toBe("two-column");
+      });
+
+      it("includes CardGrid with all projects", () => {
+        const layout = getDefaultLayout("developer", mockPortfolio);
+        const cardGrid = layout.sections.find((s) => s.type === "CardGrid");
+        expect(cardGrid?.props.columns).toBe(3);
+        expect((cardGrid?.props.items as string[]).length).toBe(5);
+      });
+
+      it("includes ContactForm with GitHub and email", () => {
+        const layout = getDefaultLayout("developer", mockPortfolio);
+        const contactForm = layout.sections.find((s) => s.type === "ContactForm");
+        expect(contactForm?.props.showGitHub).toBe(true);
+        expect(contactForm?.props.showEmail).toBe(true);
+      });
+    });
+
+    describe("collaborator layout", () => {
+      it("uses hero-focused layout", () => {
+        const layout = getDefaultLayout("collaborator", mockPortfolio);
+        expect(layout.layout).toBe("hero-focused");
+      });
+
+      it("includes TextBlock with bio", () => {
+        const layout = getDefaultLayout("collaborator", mockPortfolio);
+        const textBlock = layout.sections.find((s) => s.type === "TextBlock");
+        expect(textBlock?.props.content).toBe("Building cool stuff");
+        expect(textBlock?.props.style).toBe("prose");
+      });
+
+      it("includes ContactForm with all contact options", () => {
+        const layout = getDefaultLayout("collaborator", mockPortfolio);
+        const contactForm = layout.sections.find((s) => s.type === "ContactForm");
+        expect(contactForm?.props.showEmail).toBe(true);
+        expect(contactForm?.props.showLinkedIn).toBe(true);
+        expect(contactForm?.props.showGitHub).toBe(true);
+      });
+
+      it("includes CardGrid with first 2 projects", () => {
+        const layout = getDefaultLayout("collaborator", mockPortfolio);
+        const cardGrid = layout.sections.find((s) => s.type === "CardGrid");
+        expect((cardGrid?.props.items as string[]).length).toBe(2);
+      });
+    });
+
+    describe("friend layout", () => {
+      it("uses single-column layout", () => {
+        const layout = getDefaultLayout("friend", mockPortfolio);
+        expect(layout.layout).toBe("single-column");
+      });
+
+      it("includes TextBlock with casual style", () => {
+        const layout = getDefaultLayout("friend", mockPortfolio);
+        const textBlock = layout.sections.find((s) => s.type === "TextBlock");
+        expect(textBlock?.props.style).toBe("casual");
+      });
+
+      it("includes ImageGallery", () => {
+        const layout = getDefaultLayout("friend", mockPortfolio);
+        const gallery = layout.sections.find((s) => s.type === "ImageGallery");
+        expect(gallery).toBeDefined();
+      });
+    });
+
+    describe("unknown visitor tag", () => {
+      it("defaults to friend layout", () => {
+        const layout = getDefaultLayout("unknown-tag", mockPortfolio);
+        expect(layout.layout).toBe("single-column");
+      });
+
+      it("includes ImageGallery like friend layout", () => {
+        const layout = getDefaultLayout("some-random-tag", mockPortfolio);
+        const gallery = layout.sections.find((s) => s.type === "ImageGallery");
+        expect(gallery).toBeDefined();
+      });
+    });
+
+    describe("common layout elements", () => {
+      it("always includes Hero section first", () => {
+        const layouts = ["recruiter", "developer", "collaborator", "friend"];
+        layouts.forEach((tag) => {
+          const layout = getDefaultLayout(tag, mockPortfolio);
+          expect(layout.sections[0].type).toBe("Hero");
+        });
+      });
+
+      it("Hero section includes personal info", () => {
+        const layout = getDefaultLayout("friend", mockPortfolio);
+        const heroProps = layout.sections[0].props;
+        expect(heroProps.title).toBe("Test User");
+        expect(heroProps.subtitle).toBe("Software Engineer");
+        expect(heroProps.image).toBe("/assets/profile.png");
+      });
+
+      it("always has blue accent theme", () => {
+        const layouts = ["recruiter", "developer", "collaborator", "friend"];
+        layouts.forEach((tag) => {
+          const layout = getDefaultLayout(tag, mockPortfolio);
+          expect(layout.theme.accent).toBe("blue");
+        });
+      });
+    });
+  });
 });
