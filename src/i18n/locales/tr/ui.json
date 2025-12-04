@@ -81,7 +81,7 @@
     "unexpected": "Beklenmeyen bir hata oluştu"
   },
   "footer": {
-    "personalizedFor": "Bu deneyim sizin için",
+    "personalizedFor": "Bu deneyim sizin için kişiselleştirildi:",
     "poweredBy": "AI ile destekleniyor • React + Cloudflare Workers ile oluşturuldu"
   },
   "projects": {

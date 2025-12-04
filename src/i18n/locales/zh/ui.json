@@ -81,7 +81,7 @@
     "unexpected": "发生意外错误"
   },
   "footer": {
-    "personalizedFor": "此体验是为您作为",
+    "personalizedFor": "此体验专为您定制，您的身份是：",
     "poweredBy": "由AI驱动 • 使用React + Cloudflare Workers构建"
   },
   "projects": {

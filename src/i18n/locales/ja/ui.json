@@ -81,7 +81,7 @@
     "unexpected": "予期しないエラーが発生しました"
   },
   "footer": {
-    "personalizedFor": "この体験は",
+    "personalizedFor": "この体験はあなた専用にカスタマイズされました。視点：",
     "poweredBy": "AIによる • React + Cloudflare Workersで構築"
   },
   "projects": {
