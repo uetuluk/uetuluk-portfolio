@@ -7,6 +7,9 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "sync-assets": "wrangler r2 object put portfolio-assets/vite.svg --file=public/vite.svg && wrangler r2 object put portfolio-assets/assets/profile.png --file=public/assets/profile.png",
     "deploy": "npm run build && npm run sync-assets && wrangler deploy"
   },
@@ -30,15 +33,21 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.0.0",
     "@cloudflare/workers-types": "^4.20241127.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/react-responsive-masonry": "^2.7.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^4.0.15",
     "autoprefixer": "^10.4.20",
+    "jsdom": "^27.2.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "typescript": "~5.7.2",
     "vite": "^6.0.3",
+    "vitest": "^4.0.15",
     "wrangler": "^3.93.0"
   }
 }
