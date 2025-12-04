@@ -70,17 +70,39 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
 
           <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
             <span>{t("welcome.quickOptions")} </span>
-            {visitorTypeKeys.map((type, index) => (
-              <span key={type}>
+
+            {/* Mobile: Pill buttons for easier tapping */}
+            <div className="flex flex-wrap justify-center gap-2 mt-3 md:hidden">
+              {visitorTypeKeys.map((type) => (
                 <button
+                  key={type}
                   onClick={() => onSelect(type)}
-                  className="hover:text-foreground hover:underline transition-colors"
+                  className={cn(
+                    "px-4 py-3 rounded-lg text-sm font-medium",
+                    "border border-border bg-transparent",
+                    "hover:bg-accent active:scale-95 transition-all",
+                    "min-h-[44px]"
+                  )}
                 >
                   {visitorIcons[type]} {t(`visitorTypes.${type}.label`)}
                 </button>
-                {index < visitorTypeKeys.length - 1 && <span> | </span>}
-              </span>
-            ))}
+              ))}
+            </div>
+
+            {/* Desktop: Keep current inline text links */}
+            <span className="hidden md:inline">
+              {visitorTypeKeys.map((type, index) => (
+                <span key={type}>
+                  <button
+                    onClick={() => onSelect(type)}
+                    className="hover:text-foreground hover:underline transition-colors"
+                  >
+                    {visitorIcons[type]} {t(`visitorTypes.${type}.label`)}
+                  </button>
+                  {index < visitorTypeKeys.length - 1 && <span> | </span>}
+                </span>
+              ))}
+            </span>
           </div>
         </div>
 
