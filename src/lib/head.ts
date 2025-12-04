@@ -1,3 +1,3 @@
-import { createHead } from "@unhead/react/client";
+import { createHead } from '@unhead/react/client';
 
 export const head = createHead();

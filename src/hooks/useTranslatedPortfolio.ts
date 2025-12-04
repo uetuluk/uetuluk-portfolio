@@ -1,8 +1,8 @@
-import { useTranslation } from "react-i18next";
-import basePortfolio from "@/content/portfolio.json";
+import { useTranslation } from 'react-i18next';
+import basePortfolio from '@/content/portfolio.json';
 
 export function useTranslatedPortfolio() {
-  const { t } = useTranslation("portfolio");
+  const { t } = useTranslation('portfolio');
 
   const projects = basePortfolio.projects.map((project) => ({
     ...project,
@@ -24,7 +24,7 @@ export function useTranslatedPortfolio() {
       defaultValue: exp.description,
     }),
     highlights: exp.highlights?.map((h, i) =>
-      t(`experience.${exp.id}.highlights.${i}`, { defaultValue: h })
+      t(`experience.${exp.id}.highlights.${i}`, { defaultValue: h }),
     ),
   }));
 
@@ -36,17 +36,17 @@ export function useTranslatedPortfolio() {
     degree: t(`education.${edu.id}.degree`, { defaultValue: edu.degree }),
     period: t(`education.${edu.id}.period`, { defaultValue: edu.period }),
     highlights: edu.highlights?.map((h, i) =>
-      t(`education.${edu.id}.highlights.${i}`, { defaultValue: h })
+      t(`education.${edu.id}.highlights.${i}`, { defaultValue: h }),
     ),
   }));
 
   return {
     personal: {
       ...basePortfolio.personal,
-      name: t("personal.name", { defaultValue: basePortfolio.personal.name }),
-      title: t("personal.title", { defaultValue: basePortfolio.personal.title }),
-      bio: t("personal.bio", { defaultValue: basePortfolio.personal.bio }),
-      location: t("personal.location", {
+      name: t('personal.name', { defaultValue: basePortfolio.personal.name }),
+      title: t('personal.title', { defaultValue: basePortfolio.personal.title }),
+      bio: t('personal.bio', { defaultValue: basePortfolio.personal.bio }),
+      location: t('personal.location', {
         defaultValue: basePortfolio.personal.location,
       }),
     },

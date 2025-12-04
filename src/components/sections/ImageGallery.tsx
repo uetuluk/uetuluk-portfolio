@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 
 interface ImageGalleryProps {
   title: string;
@@ -15,17 +15,17 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
   // If no images provided, show placeholder
   if (!images || images.length === 0) {
     return (
-      <section className={cn("py-8", className)}>
+      <section className={cn('py-8', className)}>
         <h2 className="text-2xl font-bold mb-6">{title}</h2>
         <div className="text-center py-12 bg-muted rounded-lg">
-          <p className="text-muted-foreground">{t("gallery.noImages")}</p>
+          <p className="text-muted-foreground">{t('gallery.noImages')}</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className={cn("py-8", className)}>
+    <section className={cn('py-8', className)}>
       <h2 className="text-2xl font-bold mb-6">{title}</h2>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -37,7 +37,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
           >
             <img
               src={image}
-              alt={t("gallery.imageAlt", { index: index + 1 })}
+              alt={t('gallery.imageAlt', { index: index + 1 })}
               className="w-full h-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
@@ -58,12 +58,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
             className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
             onClick={() => setSelectedImage(null)}
           >
-            <svg
-              className="w-8 h-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -74,7 +69,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
           </button>
           <img
             src={selectedImage}
-            alt={t("gallery.selectedAlt")}
+            alt={t('gallery.selectedAlt')}
             className="max-w-full max-h-[90vh] object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />

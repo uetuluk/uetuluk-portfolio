@@ -1,22 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
-type Theme = "light" | "dark";
-type ThemePreference = Theme | "system";
+type Theme = 'light' | 'dark';
+type ThemePreference = Theme | 'system';
 
-const STORAGE_KEY = "theme-preference";
+const STORAGE_KEY = 'theme-preference';
 
 function getSystemTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function getStoredPreference(): ThemePreference | null {
   try {
-    if (typeof window === "undefined") return null;
+    if (typeof window === 'undefined') return null;
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
       return stored;
     }
     return null;
@@ -27,18 +25,18 @@ function getStoredPreference(): ThemePreference | null {
 
 export function useTheme() {
   const [preference, setPreference] = useState<ThemePreference>(() => {
-    return getStoredPreference() ?? "system";
+    return getStoredPreference() ?? 'system';
   });
 
   const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
     const stored = getStoredPreference();
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === 'light' || stored === 'dark') return stored;
     return getSystemTheme();
   });
 
   const applyTheme = useCallback((theme: Theme) => {
     const root = document.documentElement;
-    root.classList.remove("light", "dark");
+    root.classList.remove('light', 'dark');
     root.classList.add(theme);
     setResolvedTheme(theme);
   }, []);
@@ -50,7 +48,7 @@ export function useTheme() {
       // localStorage not available
     }
 
-    if (preference === "system") {
+    if (preference === 'system') {
       applyTheme(getSystemTheme());
     } else {
       applyTheme(preference);
@@ -58,26 +56,26 @@ export function useTheme() {
   }, [preference, applyTheme]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     const handleChange = (e: MediaQueryListEvent) => {
-      if (preference === "system") {
-        applyTheme(e.matches ? "dark" : "light");
+      if (preference === 'system') {
+        applyTheme(e.matches ? 'dark' : 'light');
       }
     };
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, [preference, applyTheme]);
 
   const toggleTheme = useCallback(() => {
     setPreference((current) => {
-      if (current === "system") {
+      if (current === 'system') {
         // Toggle to opposite of system preference
-        return getSystemTheme() === "dark" ? "light" : "dark";
+        return getSystemTheme() === 'dark' ? 'light' : 'dark';
       }
       // Go back to system preference
-      return "system";
+      return 'system';
     });
   }, []);
 
@@ -90,8 +88,8 @@ export function useTheme() {
     preference,
     toggleTheme,
     setTheme,
-    isDark: resolvedTheme === "dark",
-    isLight: resolvedTheme === "light",
-    isSystem: preference === "system",
+    isDark: resolvedTheme === 'dark',
+    isLight: resolvedTheme === 'light',
+    isSystem: preference === 'system',
   };
 }

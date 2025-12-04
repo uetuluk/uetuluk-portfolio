@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface HeroSectionProps {
   title: string;
@@ -11,20 +11,9 @@ interface HeroSectionProps {
   className?: string;
 }
 
-export function HeroSection({
-  title,
-  subtitle,
-  image,
-  cta,
-  className,
-}: HeroSectionProps) {
+export function HeroSection({ title, subtitle, image, cta, className }: HeroSectionProps) {
   return (
-    <section
-      className={cn(
-        "flex flex-col md:flex-row items-center gap-8 py-12",
-        className
-      )}
-    >
+    <section className={cn('flex flex-col md:flex-row items-center gap-8 py-12', className)}>
       {image && (
         <div className="flex-shrink-0">
           <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden bg-muted border-4 border-background shadow-xl">
@@ -56,12 +45,7 @@ export function HeroSection({
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             {cta.text}
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

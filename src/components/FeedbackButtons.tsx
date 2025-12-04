@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { ThumbsUp, ThumbsDown, Share2, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useSessionId } from "@/hooks/useSessionId";
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ThumbsUp, ThumbsDown, Share2, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useSessionId } from '@/hooks/useSessionId';
 
-type FeedbackState = "idle" | "loading" | "liked" | "disliked" | "rate-limited";
+type FeedbackState = 'idle' | 'loading' | 'liked' | 'disliked' | 'rate-limited';
 
 interface FeedbackRequest {
-  feedbackType: "like" | "dislike";
+  feedbackType: 'like' | 'dislike';
   audienceType: string;
   cacheKey: string;
   sessionId: string;
@@ -27,24 +27,20 @@ interface FeedbackButtonsProps {
   onRegenerate: () => void;
 }
 
-export function FeedbackButtons({
-  audienceType,
-  cacheKey,
-  onRegenerate,
-}: FeedbackButtonsProps) {
+export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: FeedbackButtonsProps) {
   const { t } = useTranslation();
-  const [feedbackState, setFeedbackState] = useState<FeedbackState>("idle");
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [retryAfter, setRetryAfter] = useState(0);
   const sessionId = useSessionId();
 
   // Countdown timer for rate limit
   useEffect(() => {
-    if (feedbackState === "rate-limited" && retryAfter > 0) {
+    if (feedbackState === 'rate-limited' && retryAfter > 0) {
       const timer = setInterval(() => {
         setRetryAfter((prev) => {
           if (prev <= 1) {
-            setFeedbackState("idle");
+            setFeedbackState('idle');
             return 0;
           }
           return prev - 1;
@@ -54,13 +50,13 @@ export function FeedbackButtons({
     }
   }, [feedbackState, retryAfter]);
 
-  const submitFeedback = async (type: "like" | "dislike") => {
-    setFeedbackState("loading");
+  const submitFeedback = async (type: 'like' | 'dislike') => {
+    setFeedbackState('loading');
 
     try {
-      const response = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           feedbackType: type,
           audienceType,
@@ -72,29 +68,29 @@ export function FeedbackButtons({
       const data = (await response.json()) as FeedbackResponse;
 
       if (data.rateLimited) {
-        setFeedbackState("rate-limited");
+        setFeedbackState('rate-limited');
         setRetryAfter(data.retryAfter || 60);
         return;
       }
 
-      if (type === "like") {
-        setFeedbackState("liked");
+      if (type === 'like') {
+        setFeedbackState('liked');
         setShowShareOptions(true);
-      } else if (type === "dislike" && data.regenerate) {
-        setFeedbackState("disliked");
+      } else if (type === 'dislike' && data.regenerate) {
+        setFeedbackState('disliked');
         // Trigger regeneration after brief delay
         setTimeout(() => onRegenerate(), 500);
       }
     } catch (error) {
-      console.error("Feedback error:", error);
-      setFeedbackState("idle");
+      console.error('Feedback error:', error);
+      setFeedbackState('idle');
     }
   };
 
   const handleShare = async () => {
     const shareData = {
-      title: t("feedback.shareTitle"),
-      text: t("feedback.shareText"),
+      title: t('feedback.shareTitle'),
+      text: t('feedback.shareText'),
       url: window.location.href,
     };
 
@@ -104,21 +100,21 @@ export function FeedbackButtons({
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(window.location.href);
-        alert(t("feedback.linkCopied"));
+        alert(t('feedback.linkCopied'));
       }
     } catch (error) {
       // User cancelled share or error occurred
-      console.error("Share error:", error);
+      console.error('Share error:', error);
     }
   };
 
   // Liked state with share option
-  if (feedbackState === "liked") {
+  if (feedbackState === 'liked') {
     return (
       <div className="flex items-center gap-2">
         <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
           <Check className="w-4 h-4" />
-          {t("feedback.thanks")}
+          {t('feedback.thanks')}
         </span>
         {showShareOptions && (
           <button
@@ -126,7 +122,7 @@ export function FeedbackButtons({
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Share2 className="w-4 h-4" />
-            {t("feedback.share")}
+            {t('feedback.share')}
           </button>
         )}
       </div>
@@ -134,54 +130,46 @@ export function FeedbackButtons({
   }
 
   // Disliked state (regenerating)
-  if (feedbackState === "disliked") {
-    return (
-      <span className="text-sm text-muted-foreground">
-        {t("feedback.regenerating")}
-      </span>
-    );
+  if (feedbackState === 'disliked') {
+    return <span className="text-sm text-muted-foreground">{t('feedback.regenerating')}</span>;
   }
 
   // Rate limited state
-  if (feedbackState === "rate-limited") {
+  if (feedbackState === 'rate-limited') {
     return (
       <span className="text-sm text-orange-600 dark:text-orange-400">
-        {t("feedback.rateLimited", { seconds: retryAfter })}
+        {t('feedback.rateLimited', { seconds: retryAfter })}
       </span>
     );
   }
 
   // Loading state
-  if (feedbackState === "loading") {
-    return (
-      <span className="text-sm text-muted-foreground">
-        {t("feedback.sending")}
-      </span>
-    );
+  if (feedbackState === 'loading') {
+    return <span className="text-sm text-muted-foreground">{t('feedback.sending')}</span>;
   }
 
   // Default idle state
   return (
     <div className="flex items-center gap-1">
       <button
-        onClick={() => submitFeedback("like")}
+        onClick={() => submitFeedback('like')}
         className={cn(
-          "p-2 rounded-lg transition-colors",
-          "text-muted-foreground hover:text-green-600 hover:bg-green-50",
-          "dark:hover:text-green-400 dark:hover:bg-green-900/20"
+          'p-2 rounded-lg transition-colors',
+          'text-muted-foreground hover:text-green-600 hover:bg-green-50',
+          'dark:hover:text-green-400 dark:hover:bg-green-900/20',
         )}
-        title={t("feedback.likeTooltip")}
+        title={t('feedback.likeTooltip')}
       >
         <ThumbsUp className="w-4 h-4" />
       </button>
       <button
-        onClick={() => submitFeedback("dislike")}
+        onClick={() => submitFeedback('dislike')}
         className={cn(
-          "p-2 rounded-lg transition-colors",
-          "text-muted-foreground hover:text-red-600 hover:bg-red-50",
-          "dark:hover:text-red-400 dark:hover:bg-red-900/20"
+          'p-2 rounded-lg transition-colors',
+          'text-muted-foreground hover:text-red-600 hover:bg-red-50',
+          'dark:hover:text-red-400 dark:hover:bg-red-900/20',
         )}
-        title={t("feedback.dislikeTooltip")}
+        title={t('feedback.dislikeTooltip')}
       >
         <ThumbsDown className="w-4 h-4" />
       </button>

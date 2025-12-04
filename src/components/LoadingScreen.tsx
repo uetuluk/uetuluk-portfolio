@@ -1,6 +1,6 @@
-import { useTranslation } from "react-i18next";
-import type { VisitorType } from "@/App";
-import { ClipLoader } from "react-spinners";
+import { useTranslation } from 'react-i18next';
+import type { VisitorType } from '@/App';
+import { ClipLoader } from 'react-spinners';
 
 interface LoadingScreenProps {
   visitorType: VisitorType;
@@ -27,8 +27,8 @@ export function LoadingScreen({ visitorType }: LoadingScreenProps) {
         </div>
 
         {/* Main message */}
-        <h2 className="text-2xl font-semibold mb-3">{t("loading.title")}</h2>
-        <p className="text-muted-foreground mb-8">{t("loading.subtitle")}</p>
+        <h2 className="text-2xl font-semibold mb-3">{t('loading.title')}</h2>
+        <p className="text-muted-foreground mb-8">{t('loading.subtitle')}</p>
 
         {/* Animated messages */}
         <div className="space-y-2">
@@ -38,7 +38,7 @@ export function LoadingScreen({ visitorType }: LoadingScreenProps) {
               className="text-sm text-muted-foreground animate-pulse"
               style={{
                 animationDelay: `${index * 0.5}s`,
-                animationDuration: "2s",
+                animationDuration: '2s',
               }}
             >
               {message}

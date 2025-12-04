@@ -1,10 +1,10 @@
-import { HeroSection } from "./sections/HeroSection";
-import { ProjectCardGrid } from "./sections/ProjectCardGrid";
-import { SkillBadgeList } from "./sections/SkillBadgeList";
-import { ExperienceTimeline } from "./sections/ExperienceTimeline";
-import { ContactSection } from "./sections/ContactSection";
-import { TextBlock } from "./sections/TextBlock";
-import { ImageGallery } from "./sections/ImageGallery";
+import { HeroSection } from './sections/HeroSection';
+import { ProjectCardGrid } from './sections/ProjectCardGrid';
+import { SkillBadgeList } from './sections/SkillBadgeList';
+import { ExperienceTimeline } from './sections/ExperienceTimeline';
+import { ContactSection } from './sections/ContactSection';
+import { TextBlock } from './sections/TextBlock';
+import { ImageGallery } from './sections/ImageGallery';
 
 interface SectionConfig {
   type: string;

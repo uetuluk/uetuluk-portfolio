@@ -115,8 +115,8 @@ export function generatePalette(base: HSLColor = DEFAULT_BASE_COLOR): ThemePalet
     accentForeground: hslToString({ h: base.h, s: 60, l: 25 }),
 
     // Destructive: Keep red for semantic meaning
-    destructive: "0 84.2% 60.2%",
-    destructiveForeground: "0 0% 98%",
+    destructive: '0 84.2% 60.2%',
+    destructiveForeground: '0 0% 98%',
 
     // Borders and inputs: Subtle teal-tinted grays
     border: hslToString({ h: base.h, s: 15, l: 85 }),
@@ -138,7 +138,11 @@ export function generatePalette(base: HSLColor = DEFAULT_BASE_COLOR): ThemePalet
     popoverForeground: hslToString({ h: base.h, s: 15, l: 95 }),
 
     // Primary: Lighter version for dark backgrounds
-    primary: hslToString({ h: base.h, s: clamp(base.s - 10, 0, 100), l: clamp(base.l + 25, 0, 100) }),
+    primary: hslToString({
+      h: base.h,
+      s: clamp(base.s - 10, 0, 100),
+      l: clamp(base.l + 25, 0, 100),
+    }),
     primaryForeground: hslToString({ h: base.h, s: 30, l: 10 }),
 
     // Secondary
@@ -154,8 +158,8 @@ export function generatePalette(base: HSLColor = DEFAULT_BASE_COLOR): ThemePalet
     accentForeground: hslToString({ h: base.h, s: 50, l: 85 }),
 
     // Destructive: Darker red for dark mode
-    destructive: "0 62.8% 30.6%",
-    destructiveForeground: "0 0% 98%",
+    destructive: '0 62.8% 30.6%',
+    destructiveForeground: '0 0% 98%',
 
     // Borders
     border: hslToString({ h: base.h, s: 20, l: 20 }),

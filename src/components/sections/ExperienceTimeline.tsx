@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import portfolioContent from "@/content/portfolio.json";
+import { cn } from '@/lib/utils';
+import portfolioContent from '@/content/portfolio.json';
 
 interface Experience {
   id: string;
@@ -22,15 +22,17 @@ export function ExperienceTimeline({
   className,
 }: ExperienceTimelineProps) {
   // Resolve experience IDs to full objects
-  const experiences = items.map((item) => {
-    if (typeof item === "string") {
-      return portfolioContent.experience.find((e) => e.id === item) || null;
-    }
-    return item;
-  }).filter(Boolean) as Experience[];
+  const experiences = items
+    .map((item) => {
+      if (typeof item === 'string') {
+        return portfolioContent.experience.find((e) => e.id === item) || null;
+      }
+      return item;
+    })
+    .filter(Boolean) as Experience[];
 
   return (
-    <section className={cn("py-8", className)}>
+    <section className={cn('py-8', className)}>
       <h2 className="text-2xl font-bold mb-8">{title}</h2>
 
       <div className="relative">
@@ -44,8 +46,8 @@ export function ExperienceTimeline({
               {/* Timeline dot */}
               <div
                 className={cn(
-                  "absolute left-2.5 w-3 h-3 rounded-full border-2 border-background",
-                  index === 0 ? "bg-primary" : "bg-muted-foreground"
+                  'absolute left-2.5 w-3 h-3 rounded-full border-2 border-background',
+                  index === 0 ? 'bg-primary' : 'bg-muted-foreground',
                 )}
               />
 

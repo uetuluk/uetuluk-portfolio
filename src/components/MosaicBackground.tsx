@@ -1,18 +1,18 @@
-import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
+import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
 
 const images = [
-  "/assets/kiwi-chat.png",
-  "/assets/kiwi-annotate.png",
-  "/assets/kiwi-analytics.png",
-  "/assets/kiwi-ide.png",
-  "/assets/ask-chat.png",
-  "/assets/ask-tts.png",
-  "/assets/ask-multiple-experiences.png",
-  "/assets/spiegel-main.png",
-  "/assets/spiegel-obs.png",
-  "/assets/vtuber-youtube.png",
-  "/assets/vtuber-twitch.png",
-  "/assets/vtuber-overlay.png",
+  '/assets/kiwi-chat.png',
+  '/assets/kiwi-annotate.png',
+  '/assets/kiwi-analytics.png',
+  '/assets/kiwi-ide.png',
+  '/assets/ask-chat.png',
+  '/assets/ask-tts.png',
+  '/assets/ask-multiple-experiences.png',
+  '/assets/spiegel-main.png',
+  '/assets/spiegel-obs.png',
+  '/assets/vtuber-youtube.png',
+  '/assets/vtuber-twitch.png',
+  '/assets/vtuber-overlay.png',
 ];
 
 function MasonryGrid({ keyPrefix }: { keyPrefix: string }) {

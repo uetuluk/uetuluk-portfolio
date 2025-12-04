@@ -44,11 +44,7 @@
       "Showcasing current projects...",
       "Preparing contact options..."
     ],
-    "friend": [
-      "Loading personal stories...",
-      "Finding fun facts...",
-      "Preparing photo gallery..."
-    ]
+    "friend": ["Loading personal stories...", "Finding fun facts...", "Preparing photo gallery..."]
   },
   "feedback": {
     "likeTooltip": "I like this layout",

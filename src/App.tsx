@@ -1,26 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
-import { useTranslation } from "react-i18next";
-import { WelcomeModal } from "@/components/WelcomeModal";
-import { LoadingScreen } from "@/components/LoadingScreen";
-import { GeneratedPage } from "@/components/GeneratedPage";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { SEO } from "@/components/SEO";
-import { StructuredData } from "@/components/StructuredData";
-import { useTheme } from "@/hooks/useTheme";
-import { useTranslatedPortfolio } from "@/hooks/useTranslatedPortfolio";
-import { generatePalette, colorNameToHSL } from "@/lib/palette";
-import { applyPaletteToRoot } from "@/lib/applyPalette";
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { WelcomeModal } from '@/components/WelcomeModal';
+import { LoadingScreen } from '@/components/LoadingScreen';
+import { GeneratedPage } from '@/components/GeneratedPage';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { SEO } from '@/components/SEO';
+import { StructuredData } from '@/components/StructuredData';
+import { useTheme } from '@/hooks/useTheme';
+import { useTranslatedPortfolio } from '@/hooks/useTranslatedPortfolio';
+import { generatePalette, colorNameToHSL } from '@/lib/palette';
+import { applyPaletteToRoot } from '@/lib/applyPalette';
 
-export type VisitorType =
-  | "recruiter"
-  | "developer"
-  | "collaborator"
-  | "friend"
-  | null;
+export type VisitorType = 'recruiter' | 'developer' | 'collaborator' | 'friend' | null;
 
 export interface GeneratedLayout {
-  layout: "single-column" | "two-column" | "hero-focused";
+  layout: 'single-column' | 'two-column' | 'hero-focused';
   theme: { accent: string };
   sections: Array<{
     type: string;
@@ -29,11 +24,11 @@ export interface GeneratedLayout {
   _cacheKey?: string;
   _visitorContext?: {
     geo?: { country?: string; city?: string };
-    device?: { type?: "mobile" | "tablet" | "desktop" };
+    device?: { type?: 'mobile' | 'tablet' | 'desktop' };
     time?: { timeOfDay?: string };
   };
   _uiHints?: {
-    suggestedTheme?: "light" | "dark" | "system";
+    suggestedTheme?: 'light' | 'dark' | 'system';
     preferCompactLayout?: boolean;
   };
   _rateLimited?: boolean;
@@ -44,10 +39,9 @@ function App() {
   const { t, i18n } = useTranslation();
   const portfolioContent = useTranslatedPortfolio();
   const [visitorType, setVisitorType] = useState<VisitorType>(null);
-  const [customIntent, setCustomIntent] = useState<string>("");
+  const [customIntent, setCustomIntent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedLayout, setGeneratedLayout] =
-    useState<GeneratedLayout | null>(null);
+  const [generatedLayout, setGeneratedLayout] = useState<GeneratedLayout | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Access theme hook to apply suggested theme based on visitor context
@@ -60,13 +54,13 @@ function App() {
 
   // Helper to apply suggested theme on first visit
   const applyThemeSuggestion = (data: GeneratedLayout) => {
-    if (data._uiHints?.suggestedTheme && preference === "system") {
+    if (data._uiHints?.suggestedTheme && preference === 'system') {
       // Only apply suggestion if user hasn't explicitly set a preference
       // and only on first visit to this site
-      const hasVisited = localStorage.getItem("portfolio-visited");
-      if (!hasVisited && data._uiHints.suggestedTheme !== "system") {
+      const hasVisited = localStorage.getItem('portfolio-visited');
+      if (!hasVisited && data._uiHints.suggestedTheme !== 'system') {
         setTheme(data._uiHints.suggestedTheme);
-        localStorage.setItem("portfolio-visited", "true");
+        localStorage.setItem('portfolio-visited', 'true');
       }
     }
   };
@@ -80,19 +74,16 @@ function App() {
     }
   }, []);
 
-  const handleVisitorSelect = async (
-    type: VisitorType,
-    custom?: string
-  ) => {
+  const handleVisitorSelect = async (type: VisitorType, custom?: string) => {
     setVisitorType(type);
-    setCustomIntent(custom || "");
+    setCustomIntent(custom || '');
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           visitorTag: type,
           customIntent: custom,
@@ -101,14 +92,14 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(t("errors.failedGenerate"));
+        throw new Error(t('errors.failedGenerate'));
       }
 
       const data = (await response.json()) as GeneratedLayout;
 
       // Log if rate limited (using default layout)
       if (data._rateLimited) {
-        console.info("Rate limited - showing default layout");
+        console.info('Rate limited - showing default layout');
       }
 
       setGeneratedLayout(data);
@@ -119,10 +110,8 @@ function App() {
       // Apply theme suggestion based on visitor's local time
       applyThemeSuggestion(data);
     } catch (err) {
-      console.error("Generation error:", err);
-      setError(
-        err instanceof Error ? err.message : t("errors.unexpected")
-      );
+      console.error('Generation error:', err);
+      setError(err instanceof Error ? err.message : t('errors.unexpected'));
       // Fall back to default layout
       const fallbackLayout = getDefaultLayout(type);
       setGeneratedLayout(fallbackLayout);
@@ -134,7 +123,7 @@ function App() {
 
   const handleReset = () => {
     setVisitorType(null);
-    setCustomIntent("");
+    setCustomIntent('');
     setGeneratedLayout(null);
     setError(null);
   };
@@ -146,9 +135,9 @@ function App() {
     setError(null);
 
     try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           visitorTag: visitorType,
           customIntent: customIntent || undefined,
@@ -157,7 +146,7 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(t("errors.failedRegenerate"));
+        throw new Error(t('errors.failedRegenerate'));
       }
 
       const data = (await response.json()) as GeneratedLayout;
@@ -166,10 +155,8 @@ function App() {
       // Apply AI-selected color palette
       applyColorPalette(data);
     } catch (err) {
-      console.error("Regeneration error:", err);
-      setError(
-        err instanceof Error ? err.message : t("errors.unexpected")
-      );
+      console.error('Regeneration error:', err);
+      setError(err instanceof Error ? err.message : t('errors.unexpected'));
       // Fall back to default layout
       const fallbackLayout = getDefaultLayout(visitorType);
       setGeneratedLayout(fallbackLayout);
@@ -182,89 +169,89 @@ function App() {
   // Fallback layout if AI generation fails
   function getDefaultLayout(visitorType: VisitorType): GeneratedLayout {
     const baseLayout: GeneratedLayout = {
-      layout: "hero-focused",
-      theme: { accent: "blue" },
+      layout: 'hero-focused',
+      theme: { accent: 'blue' },
       sections: [
         {
-          type: "Hero",
+          type: 'Hero',
           props: {
             title: portfolioContent.personal.name,
             subtitle: portfolioContent.personal.title,
-            image: "/assets/profile.png",
+            image: '/assets/profile.png',
           },
         },
       ],
     };
 
     switch (visitorType) {
-      case "recruiter":
+      case 'recruiter':
         baseLayout.sections.push(
           {
-            type: "SkillBadges",
+            type: 'SkillBadges',
             props: {
-              title: t("fallbackSections.skills"),
+              title: t('fallbackSections.skills'),
               skills: portfolioContent.skills,
             },
           },
           {
-            type: "Timeline",
+            type: 'Timeline',
             props: {
-              title: t("fallbackSections.experience"),
+              title: t('fallbackSections.experience'),
               items: portfolioContent.experience,
             },
-          }
+          },
         );
         break;
-      case "developer":
+      case 'developer':
         baseLayout.sections.push({
-          type: "CardGrid",
+          type: 'CardGrid',
           props: {
-            title: t("fallbackSections.projects"),
+            title: t('fallbackSections.projects'),
             columns: 3,
             items: portfolioContent.projects,
           },
         });
         break;
-      case "collaborator":
+      case 'collaborator':
         baseLayout.sections.push(
           {
-            type: "CardGrid",
+            type: 'CardGrid',
             props: {
-              title: t("fallbackSections.projects"),
+              title: t('fallbackSections.projects'),
               columns: 2,
               items: portfolioContent.projects,
             },
           },
           {
-            type: "ContactForm",
+            type: 'ContactForm',
             props: {
-              title: t("fallbackSections.letsConnect"),
+              title: t('fallbackSections.letsConnect'),
               showEmail: true,
               showLinkedIn: true,
             },
-          }
+          },
         );
         break;
-      case "friend":
+      case 'friend':
         baseLayout.sections.push(
           {
-            type: "TextBlock",
+            type: 'TextBlock',
             props: {
-              title: t("fallbackSections.aboutMe"),
+              title: t('fallbackSections.aboutMe'),
               content: portfolioContent.personal.bio,
             },
           },
           {
-            type: "ImageGallery",
+            type: 'ImageGallery',
             props: {
-              title: t("fallbackSections.photos"),
+              title: t('fallbackSections.photos'),
               images: [
-                "/assets/cat-meowrio-1.png",
-                "/assets/cat-meowrio-2.png",
-                "/assets/cat-meowrio-3.png",
+                '/assets/cat-meowrio-1.png',
+                '/assets/cat-meowrio-2.png',
+                '/assets/cat-meowrio-3.png',
               ],
             },
-          }
+          },
         );
         break;
     }

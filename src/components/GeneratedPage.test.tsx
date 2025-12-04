@@ -1,26 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { GeneratedPage } from "./GeneratedPage";
-import type { GeneratedLayout, VisitorType } from "@/App";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { GeneratedPage } from './GeneratedPage';
+import type { GeneratedLayout, VisitorType } from '@/App';
 
 // Mock react-i18next
-vi.mock("react-i18next", () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => {
       const translations: Record<string, string> = {
-        "errors.title": "Something went wrong",
-        "errors.defaultMessage": "Failed to generate layout",
-        "errors.tryAgain": "Try Again",
-        "errors.fallbackNotice": "Showing default layout due to an error",
-        "navigation.portfolio": "Portfolio",
-        "navigation.changePerspective": "Change perspective",
-        "footer.personalizedFor": "Personalized for",
-        "footer.poweredBy": "Powered by AI",
-        "seo.portfolioFor": "Portfolio for",
-        "visitorTypes.developer.label": "Developer",
-        "visitorTypes.recruiter.label": "Recruiter",
-        "visitorTypes.collaborator.label": "Collaborator",
-        "visitorTypes.friend.label": "Friend",
+        'errors.title': 'Something went wrong',
+        'errors.defaultMessage': 'Failed to generate layout',
+        'errors.tryAgain': 'Try Again',
+        'errors.fallbackNotice': 'Showing default layout due to an error',
+        'navigation.portfolio': 'Portfolio',
+        'navigation.changePerspective': 'Change perspective',
+        'footer.personalizedFor': 'Personalized for',
+        'footer.poweredBy': 'Powered by AI',
+        'seo.portfolioFor': 'Portfolio for',
+        'visitorTypes.developer.label': 'Developer',
+        'visitorTypes.recruiter.label': 'Recruiter',
+        'visitorTypes.collaborator.label': 'Collaborator',
+        'visitorTypes.friend.label': 'Friend',
       };
       return translations[key] || key;
     },
@@ -28,21 +28,15 @@ vi.mock("react-i18next", () => ({
 }));
 
 // Mock ComponentMapper
-vi.mock("./ComponentMapper", () => ({
+vi.mock('./ComponentMapper', () => ({
   ComponentMapper: ({ section }: { section: { type: string } }) => (
     <div data-testid={`section-${section.type}`}>Section: {section.type}</div>
   ),
 }));
 
 // Mock FeedbackButtons
-vi.mock("./FeedbackButtons", () => ({
-  FeedbackButtons: ({
-    audienceType,
-    cacheKey,
-  }: {
-    audienceType: string;
-    cacheKey: string;
-  }) => (
+vi.mock('./FeedbackButtons', () => ({
+  FeedbackButtons: ({ audienceType, cacheKey }: { audienceType: string; cacheKey: string }) => (
     <div data-testid="feedback-buttons">
       Feedback: {audienceType} - {cacheKey}
     </div>
@@ -50,27 +44,27 @@ vi.mock("./FeedbackButtons", () => ({
 }));
 
 // Mock SEO
-vi.mock("./SEO", () => ({
+vi.mock('./SEO', () => ({
   SEO: ({ title }: { title: string }) => <div data-testid="seo">{title}</div>,
 }));
 
-describe("GeneratedPage", () => {
+describe('GeneratedPage', () => {
   const mockOnReset = vi.fn();
   const mockOnRegenerate = vi.fn();
 
   const defaultLayout: GeneratedLayout = {
-    layout: "single-column",
-    theme: { accent: "blue" },
+    layout: 'single-column',
+    theme: { accent: 'blue' },
     sections: [
-      { type: "Hero", props: { title: "Test Hero" } },
-      { type: "CardGrid", props: { title: "Projects" } },
+      { type: 'Hero', props: { title: 'Test Hero' } },
+      { type: 'CardGrid', props: { title: 'Projects' } },
     ],
-    _cacheKey: "test-cache-key",
+    _cacheKey: 'test-cache-key',
   };
 
   const defaultProps = {
     layout: defaultLayout,
-    visitorType: "developer" as VisitorType,
+    visitorType: 'developer' as VisitorType,
     onReset: mockOnReset,
     onRegenerate: mockOnRegenerate,
     error: null,
@@ -80,172 +74,160 @@ describe("GeneratedPage", () => {
     vi.clearAllMocks();
   });
 
-  describe("Error state (no layout)", () => {
-    it("renders error title when layout is null", () => {
+  describe('Error state (no layout)', () => {
+    it('renders error title when layout is null', () => {
       render(<GeneratedPage {...defaultProps} layout={null} />);
 
-      expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+      expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
 
-    it("shows default error message when error is null", () => {
+    it('shows default error message when error is null', () => {
       render(<GeneratedPage {...defaultProps} layout={null} error={null} />);
 
-      expect(screen.getByText("Failed to generate layout")).toBeInTheDocument();
+      expect(screen.getByText('Failed to generate layout')).toBeInTheDocument();
     });
 
-    it("shows custom error message when provided", () => {
-      render(
-        <GeneratedPage
-          {...defaultProps}
-          layout={null}
-          error="Custom error occurred"
-        />
-      );
+    it('shows custom error message when provided', () => {
+      render(<GeneratedPage {...defaultProps} layout={null} error="Custom error occurred" />);
 
-      expect(screen.getByText("Custom error occurred")).toBeInTheDocument();
+      expect(screen.getByText('Custom error occurred')).toBeInTheDocument();
     });
 
-    it("try again button calls onReset", () => {
+    it('try again button calls onReset', () => {
       render(<GeneratedPage {...defaultProps} layout={null} />);
 
-      const tryAgainButton = screen.getByText("Try Again");
+      const tryAgainButton = screen.getByText('Try Again');
       fireEvent.click(tryAgainButton);
 
       expect(mockOnReset).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("Normal state (with layout)", () => {
-    it("renders navigation with portfolio title", () => {
+  describe('Normal state (with layout)', () => {
+    it('renders navigation with portfolio title', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      expect(screen.getByText("Portfolio")).toBeInTheDocument();
+      expect(screen.getByText('Portfolio')).toBeInTheDocument();
     });
 
-    it("renders change perspective button", () => {
+    it('renders change perspective button', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      expect(screen.getByText("Change perspective")).toBeInTheDocument();
+      expect(screen.getByText('Change perspective')).toBeInTheDocument();
     });
 
-    it("change perspective button calls onReset", () => {
+    it('change perspective button calls onReset', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      const changePerspectiveButton = screen.getByText("Change perspective");
+      const changePerspectiveButton = screen.getByText('Change perspective');
       fireEvent.click(changePerspectiveButton);
 
       expect(mockOnReset).toHaveBeenCalledTimes(1);
     });
 
-    it("renders FeedbackButtons with correct props", () => {
+    it('renders FeedbackButtons with correct props', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      const feedbackButtons = screen.getByTestId("feedback-buttons");
+      const feedbackButtons = screen.getByTestId('feedback-buttons');
       expect(feedbackButtons).toBeInTheDocument();
-      expect(feedbackButtons).toHaveTextContent("developer");
-      expect(feedbackButtons).toHaveTextContent("test-cache-key");
+      expect(feedbackButtons).toHaveTextContent('developer');
+      expect(feedbackButtons).toHaveTextContent('test-cache-key');
     });
 
-    it("renders sections using ComponentMapper", () => {
+    it('renders sections using ComponentMapper', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      expect(screen.getByTestId("section-Hero")).toBeInTheDocument();
-      expect(screen.getByTestId("section-CardGrid")).toBeInTheDocument();
+      expect(screen.getByTestId('section-Hero')).toBeInTheDocument();
+      expect(screen.getByTestId('section-CardGrid')).toBeInTheDocument();
     });
 
-    it("renders footer with visitor type label", () => {
+    it('renders footer with visitor type label', () => {
       render(<GeneratedPage {...defaultProps} />);
 
       // Text is split across elements, so we search for partial match
       expect(screen.getByText(/Personalized for/)).toBeInTheDocument();
-      expect(screen.getByText("Developer")).toBeInTheDocument();
+      expect(screen.getByText('Developer')).toBeInTheDocument();
     });
 
-    it("renders powered by text in footer", () => {
+    it('renders powered by text in footer', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      expect(screen.getByText("Powered by AI")).toBeInTheDocument();
+      expect(screen.getByText('Powered by AI')).toBeInTheDocument();
     });
 
-    it("renders SEO component with visitor type", () => {
+    it('renders SEO component with visitor type', () => {
       render(<GeneratedPage {...defaultProps} />);
 
-      const seo = screen.getByTestId("seo");
-      expect(seo).toHaveTextContent("Portfolio for Developer");
+      const seo = screen.getByTestId('seo');
+      expect(seo).toHaveTextContent('Portfolio for Developer');
     });
   });
 
-  describe("Layout classes", () => {
-    it("applies single-column layout class", () => {
-      const layout = { ...defaultLayout, layout: "single-column" as const };
+  describe('Layout classes', () => {
+    it('applies single-column layout class', () => {
+      const layout = { ...defaultLayout, layout: 'single-column' as const };
       render(<GeneratedPage {...defaultProps} layout={layout} />);
 
-      const main = document.querySelector("main");
-      expect(main).toHaveClass("max-w-3xl");
+      const main = document.querySelector('main');
+      expect(main).toHaveClass('max-w-3xl');
     });
 
-    it("applies two-column layout class", () => {
-      const layout = { ...defaultLayout, layout: "two-column" as const };
+    it('applies two-column layout class', () => {
+      const layout = { ...defaultLayout, layout: 'two-column' as const };
       render(<GeneratedPage {...defaultProps} layout={layout} />);
 
-      const main = document.querySelector("main");
-      expect(main).toHaveClass("max-w-6xl");
+      const main = document.querySelector('main');
+      expect(main).toHaveClass('max-w-6xl');
     });
 
-    it("applies hero-focused layout class", () => {
-      const layout = { ...defaultLayout, layout: "hero-focused" as const };
+    it('applies hero-focused layout class', () => {
+      const layout = { ...defaultLayout, layout: 'hero-focused' as const };
       render(<GeneratedPage {...defaultProps} layout={layout} />);
 
-      const main = document.querySelector("main");
-      expect(main).toHaveClass("max-w-5xl");
+      const main = document.querySelector('main');
+      expect(main).toHaveClass('max-w-5xl');
     });
 
-    it("applies grid class for two-column layout", () => {
-      const layout = { ...defaultLayout, layout: "two-column" as const };
+    it('applies grid class for two-column layout', () => {
+      const layout = { ...defaultLayout, layout: 'two-column' as const };
       render(<GeneratedPage {...defaultProps} layout={layout} />);
 
-      const gridContainer = document.querySelector(".grid.md\\:grid-cols-2");
+      const gridContainer = document.querySelector('.grid.md\\:grid-cols-2');
       expect(gridContainer).toBeInTheDocument();
     });
   });
 
-  describe("Error banner", () => {
-    it("shows error banner when error prop is truthy but layout exists", () => {
-      render(
-        <GeneratedPage {...defaultProps} error="Some error occurred" />
-      );
+  describe('Error banner', () => {
+    it('shows error banner when error prop is truthy but layout exists', () => {
+      render(<GeneratedPage {...defaultProps} error="Some error occurred" />);
 
-      expect(
-        screen.getByText("Showing default layout due to an error")
-      ).toBeInTheDocument();
+      expect(screen.getByText('Showing default layout due to an error')).toBeInTheDocument();
     });
 
-    it("does not show error banner when error is null", () => {
+    it('does not show error banner when error is null', () => {
       render(<GeneratedPage {...defaultProps} error={null} />);
 
-      expect(
-        screen.queryByText("Showing default layout due to an error")
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Showing default layout due to an error')).not.toBeInTheDocument();
     });
   });
 
-  describe("Different visitor types", () => {
-    it("renders recruiter visitor type in footer", () => {
+  describe('Different visitor types', () => {
+    it('renders recruiter visitor type in footer', () => {
       render(<GeneratedPage {...defaultProps} visitorType="recruiter" />);
 
-      expect(screen.getByText("Recruiter")).toBeInTheDocument();
+      expect(screen.getByText('Recruiter')).toBeInTheDocument();
     });
 
-    it("renders collaborator visitor type in footer", () => {
+    it('renders collaborator visitor type in footer', () => {
       render(<GeneratedPage {...defaultProps} visitorType="collaborator" />);
 
-      expect(screen.getByText("Collaborator")).toBeInTheDocument();
+      expect(screen.getByText('Collaborator')).toBeInTheDocument();
     });
 
-    it("renders friend visitor type in footer", () => {
+    it('renders friend visitor type in footer', () => {
       render(<GeneratedPage {...defaultProps} visitorType="friend" />);
 
-      expect(screen.getByText("Friend")).toBeInTheDocument();
+      expect(screen.getByText('Friend')).toBeInTheDocument();
     });
   });
 });

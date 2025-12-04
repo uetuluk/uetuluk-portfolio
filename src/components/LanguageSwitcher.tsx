@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Globe } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
-import { supportedLanguages, languageNames, type SupportedLanguage } from "@/i18n";
+import { useState } from 'react';
+import { Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { supportedLanguages, languageNames, type SupportedLanguage } from '@/i18n';
 
 interface LanguageSwitcherProps {
   className?: string;
@@ -21,20 +21,20 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn('relative', className)}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-20 right-6 z-50",
-          "w-12 h-12 rounded-full",
-          "bg-card border border-border shadow-lg",
-          "hover:bg-accent hover:scale-110",
-          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-          "transition-all duration-200 ease-in-out",
-          "flex items-center justify-center"
+          'fixed bottom-20 right-6 z-50',
+          'w-12 h-12 rounded-full',
+          'bg-card border border-border shadow-lg',
+          'hover:bg-accent hover:scale-110',
+          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+          'transition-all duration-200 ease-in-out',
+          'flex items-center justify-center',
         )}
-        aria-label={t("language.changeLanguage")}
-        title={t("language.changeLanguage")}
+        aria-label={t('language.changeLanguage')}
+        title={t('language.changeLanguage')}
       >
         <Globe className="w-5 h-5 text-foreground" />
       </button>
@@ -42,10 +42,7 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
           {/* Dropdown */}
           <div className="fixed bottom-[8.5rem] right-6 z-50 bg-card border border-border rounded-lg shadow-lg p-2 min-w-[140px]">
@@ -54,10 +51,10 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
                 key={lang}
                 onClick={() => handleLanguageChange(lang)}
                 className={cn(
-                  "block w-full text-left px-3 py-2 rounded text-sm transition-colors",
+                  'block w-full text-left px-3 py-2 rounded text-sm transition-colors',
                   currentLanguage === lang
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent"
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-accent',
                 )}
               >
                 {languageNames[lang]}

@@ -1,6 +1,6 @@
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
-import { useTranslatedPortfolio } from "@/hooks/useTranslatedPortfolio";
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { useTranslatedPortfolio } from '@/hooks/useTranslatedPortfolio';
 
 interface Project {
   id: string;
@@ -22,19 +22,14 @@ interface ProjectCardGridProps {
   className?: string;
 }
 
-export function ProjectCardGrid({
-  title,
-  columns = 3,
-  items,
-  className,
-}: ProjectCardGridProps) {
+export function ProjectCardGrid({ title, columns = 3, items, className }: ProjectCardGridProps) {
   const { t } = useTranslation();
   const portfolio = useTranslatedPortfolio();
 
   // Resolve project IDs to full project objects
   const projects = items
     .map((item) => {
-      if (typeof item === "string") {
+      if (typeof item === 'string') {
         return portfolio.projects.find((p) => p.id === item) || null;
       }
       return item;
@@ -42,16 +37,16 @@ export function ProjectCardGrid({
     .filter(Boolean) as Project[];
 
   const gridCols = {
-    2: "md:grid-cols-2",
-    3: "md:grid-cols-2 lg:grid-cols-3",
-    4: "md:grid-cols-2 lg:grid-cols-4",
+    2: 'md:grid-cols-2',
+    3: 'md:grid-cols-2 lg:grid-cols-3',
+    4: 'md:grid-cols-2 lg:grid-cols-4',
   };
 
   return (
-    <section className={cn("py-8", className)}>
+    <section className={cn('py-8', className)}>
       <h2 className="text-2xl font-bold mb-6">{title}</h2>
 
-      <div className={cn("grid gap-6", gridCols[columns])}>
+      <div className={cn('grid gap-6', gridCols[columns])}>
         {projects.map((project) => (
           <div
             key={project.id}
@@ -80,10 +75,7 @@ export function ProjectCardGrid({
               {/* Technologies */}
               <div className="flex flex-wrap gap-1 mb-4">
                 {project.technologies.slice(0, 4).map((tech) => (
-                  <span
-                    key={tech}
-                    className="px-2 py-0.5 text-xs bg-secondary rounded-full"
-                  >
+                  <span key={tech} className="px-2 py-0.5 text-xs bg-secondary rounded-full">
                     {tech}
                   </span>
                 ))}
@@ -98,7 +90,7 @@ export function ProjectCardGrid({
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-primary hover:underline"
                   >
-                    {t("projects.demo")} →
+                    {t('projects.demo')} →
                   </a>
                 )}
                 {project.links.github && (
@@ -108,7 +100,7 @@ export function ProjectCardGrid({
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-primary hover:underline"
                   >
-                    {t("projects.github")} →
+                    {t('projects.github')} →
                   </a>
                 )}
               </div>
