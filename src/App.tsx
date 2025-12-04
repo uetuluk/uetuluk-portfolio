@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -9,6 +9,8 @@ import { SEO } from "@/components/SEO";
 import { StructuredData } from "@/components/StructuredData";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslatedPortfolio } from "@/hooks/useTranslatedPortfolio";
+import { generatePalette, colorNameToHSL } from "@/lib/palette";
+import { applyPaletteToRoot } from "@/lib/applyPalette";
 
 export type VisitorType =
   | "recruiter"
@@ -67,6 +69,15 @@ function App() {
     }
   };
 
+  // Helper to apply AI-selected color palette
+  const applyColorPalette = useCallback((data: GeneratedLayout) => {
+    if (data.theme?.accent) {
+      const baseColor = colorNameToHSL(data.theme.accent);
+      const palette = generatePalette(baseColor);
+      applyPaletteToRoot(palette);
+    }
+  }, []);
+
   const handleVisitorSelect = async (
     type: VisitorType,
     custom?: string
@@ -94,6 +105,9 @@ function App() {
       const data = (await response.json()) as GeneratedLayout;
       setGeneratedLayout(data);
 
+      // Apply AI-selected color palette
+      applyColorPalette(data);
+
       // Apply theme suggestion based on visitor's local time
       applyThemeSuggestion(data);
     } catch (err) {
@@ -102,7 +116,9 @@ function App() {
         err instanceof Error ? err.message : t("errors.unexpected")
       );
       // Fall back to default layout
-      setGeneratedLayout(getDefaultLayout(type));
+      const fallbackLayout = getDefaultLayout(type);
+      setGeneratedLayout(fallbackLayout);
+      applyColorPalette(fallbackLayout);
     } finally {
       setIsLoading(false);
     }
@@ -138,13 +154,18 @@ function App() {
 
       const data = (await response.json()) as GeneratedLayout;
       setGeneratedLayout(data);
+
+      // Apply AI-selected color palette
+      applyColorPalette(data);
     } catch (err) {
       console.error("Regeneration error:", err);
       setError(
         err instanceof Error ? err.message : t("errors.unexpected")
       );
       // Fall back to default layout
-      setGeneratedLayout(getDefaultLayout(visitorType));
+      const fallbackLayout = getDefaultLayout(visitorType);
+      setGeneratedLayout(fallbackLayout);
+      applyColorPalette(fallbackLayout);
     } finally {
       setIsLoading(false);
     }
