@@ -36,6 +36,8 @@ export interface GeneratedLayout {
     suggestedTheme?: "light" | "dark" | "system";
     preferCompactLayout?: boolean;
   };
+  _rateLimited?: boolean;
+  _retryAfter?: number;
 }
 
 function App() {
@@ -103,6 +105,12 @@ function App() {
       }
 
       const data = (await response.json()) as GeneratedLayout;
+
+      // Log if rate limited (using default layout)
+      if (data._rateLimited) {
+        console.info("Rate limited - showing default layout");
+      }
+
       setGeneratedLayout(data);
 
       // Apply AI-selected color palette

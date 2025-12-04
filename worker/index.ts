@@ -16,6 +16,10 @@ import type {
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_KEY_PREFIX = "ratelimit:";
 
+// Generate endpoint rate limiting (stricter)
+const GENERATE_RATE_LIMIT_MAX = 3; // 3 requests per window
+const GENERATE_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+
 // ============ Visitor Context Extraction ============
 
 // Parse User-Agent to extract device type, browser, and OS (no external deps)
@@ -515,6 +519,28 @@ async function handleGenerate(
     });
   }
 
+  // Check rate limit (IP-based, 3 requests per minute)
+  const clientIP = getClientIP(request);
+  const rateLimitResult = await checkGenerateRateLimit(clientIP, env);
+
+  if (rateLimitResult.limited) {
+    // Return default layout with rateLimited flag (no error, just fallback)
+    const defaultLayout = getDefaultLayout(visitorTag, portfolioContent);
+    return new Response(
+      JSON.stringify({
+        ...defaultLayout,
+        _rateLimited: true,
+        _retryAfter: rateLimitResult.retryAfter,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  // Update rate limit counter
+  await updateGenerateRateLimit(clientIP, env);
+
   // Extract visitor context from Cloudflare request and user agent
   const visitorContext = extractVisitorContext(request);
   const uiHints = deriveUIHints(visitorContext);
@@ -815,6 +841,93 @@ async function updateRateLimit(key: string, env: Env): Promise<void> {
 
   await env.UI_CACHE.put(key, JSON.stringify(entry), {
     expirationTtl: 300, // 5 minutes TTL for rate limit entries
+  });
+}
+
+// Generate endpoint rate limiting (IP-based, count-based)
+interface GenerateRateLimitEntry {
+  count: number;
+  windowStart: number;
+}
+
+interface GenerateRateLimitResult {
+  limited: boolean;
+  retryAfter: number;
+}
+
+// Get client IP from Cloudflare headers
+function getClientIP(request: Request): string {
+  return (
+    request.headers.get("CF-Connecting-IP") ||
+    request.headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
+    "unknown"
+  );
+}
+
+// Check generate endpoint rate limit
+async function checkGenerateRateLimit(
+  clientIP: string,
+  env: Env
+): Promise<GenerateRateLimitResult> {
+  if (!env.UI_CACHE) {
+    return { limited: false, retryAfter: 0 };
+  }
+
+  const key = `${RATE_LIMIT_KEY_PREFIX}generate:${clientIP}`;
+  const entry = (await env.UI_CACHE.get(key, "json")) as GenerateRateLimitEntry | null;
+  const now = Date.now();
+
+  if (!entry) {
+    return { limited: false, retryAfter: 0 };
+  }
+
+  const timeSinceWindowStart = now - entry.windowStart;
+
+  // Window expired, not limited
+  if (timeSinceWindowStart >= GENERATE_RATE_LIMIT_WINDOW_MS) {
+    return { limited: false, retryAfter: 0 };
+  }
+
+  // Check if over limit
+  if (entry.count >= GENERATE_RATE_LIMIT_MAX) {
+    const retryAfter = Math.ceil(
+      (GENERATE_RATE_LIMIT_WINDOW_MS - timeSinceWindowStart) / 1000
+    );
+    return { limited: true, retryAfter };
+  }
+
+  return { limited: false, retryAfter: 0 };
+}
+
+// Update generate endpoint rate limit
+async function updateGenerateRateLimit(
+  clientIP: string,
+  env: Env
+): Promise<void> {
+  if (!env.UI_CACHE) return;
+
+  const key = `${RATE_LIMIT_KEY_PREFIX}generate:${clientIP}`;
+  const existing = (await env.UI_CACHE.get(key, "json")) as GenerateRateLimitEntry | null;
+  const now = Date.now();
+
+  let entry: GenerateRateLimitEntry;
+
+  if (existing && now - existing.windowStart < GENERATE_RATE_LIMIT_WINDOW_MS) {
+    // Within window, increment count
+    entry = {
+      count: existing.count + 1,
+      windowStart: existing.windowStart,
+    };
+  } else {
+    // New window
+    entry = {
+      count: 1,
+      windowStart: now,
+    };
+  }
+
+  await env.UI_CACHE.put(key, JSON.stringify(entry), {
+    expirationTtl: 120, // 2 minutes TTL
   });
 }
 
