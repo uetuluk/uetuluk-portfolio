@@ -100,15 +100,15 @@
   "photos": [
     {
       "path": "/assets/cat-meowrio-1.png",
-      "description": "Meowrio the cat"
+      "description": "My cat Meowrio"
     },
     {
       "path": "/assets/cat-meowrio-2.png",
-      "description": "Meowrio the cat"
+      "description": "My cat Meowrio"
     },
     {
       "path": "/assets/cat-meowrio-3.png",
-      "description": "Meowrio the cat"
+      "description": "My cat Meowrio"
     }
   ]
 }

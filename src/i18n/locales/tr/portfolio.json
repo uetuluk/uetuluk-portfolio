@@ -51,5 +51,16 @@
         "NYU New York'ta Değişim Programı (2019-2020)"
       ]
     }
+  },
+  "photos": {
+    "cat-meowrio-1": {
+      "description": "Kedim Miyavro"
+    },
+    "cat-meowrio-2": {
+      "description": "Kedim Miyavro"
+    },
+    "cat-meowrio-3": {
+      "description": "Kedim Miyavro"
+    }
   }
 }

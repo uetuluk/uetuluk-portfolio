@@ -51,5 +51,16 @@
         "Study Away at NYU New York (2019-2020)"
       ]
     }
+  },
+  "photos": {
+    "cat-meowrio-1": {
+      "description": "My cat Meowrio"
+    },
+    "cat-meowrio-2": {
+      "description": "My cat Meowrio"
+    },
+    "cat-meowrio-3": {
+      "description": "My cat Meowrio"
+    }
   }
 }

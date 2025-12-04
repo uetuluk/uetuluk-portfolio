@@ -48,5 +48,16 @@
       "period": "2017 - 2021",
       "highlights": ["GPA 3.7", "2019-2020年在纽约大学纽约校区交流学习"]
     }
+  },
+  "photos": {
+    "cat-meowrio-1": {
+      "description": "喵里奥"
+    },
+    "cat-meowrio-2": {
+      "description": "喵里奥"
+    },
+    "cat-meowrio-3": {
+      "description": "喵里奥"
+    }
   }
 }
