@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 type Theme = 'light' | 'dark';
 type ThemePreference = Theme | 'system';
@@ -28,19 +28,27 @@ export function useTheme() {
     return getStoredPreference() ?? 'system';
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<Theme>(() => {
-    const stored = getStoredPreference();
-    if (stored === 'light' || stored === 'dark') return stored;
-    return getSystemTheme();
-  });
+  // Track system theme changes separately
+  const [systemTheme, setSystemTheme] = useState<Theme>(getSystemTheme);
 
-  const applyTheme = useCallback((theme: Theme) => {
-    const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-    setResolvedTheme(theme);
+  // Compute resolved theme from preference and system theme
+  const resolvedTheme = useMemo<Theme>(() => {
+    return preference === 'system' ? systemTheme : preference;
+  }, [preference, systemTheme]);
+
+  // Listen for system theme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemTheme(e.matches ? 'dark' : 'light');
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  // Apply theme to DOM and persist preference
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, preference);
@@ -48,25 +56,10 @@ export function useTheme() {
       // localStorage not available
     }
 
-    if (preference === 'system') {
-      applyTheme(getSystemTheme());
-    } else {
-      applyTheme(preference);
-    }
-  }, [preference, applyTheme]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (preference === 'system') {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [preference, applyTheme]);
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(resolvedTheme);
+  }, [preference, resolvedTheme]);
 
   const toggleTheme = useCallback(() => {
     setPreference((current) => {

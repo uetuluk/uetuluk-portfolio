@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -14,8 +14,14 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
 
   const currentLanguage = i18n.language as SupportedLanguage;
 
+  // Sync document lang attribute with i18n language
+  useEffect(() => {
+    document.documentElement.lang = currentLanguage;
+  }, [currentLanguage]);
+
   const handleLanguageChange = (lang: SupportedLanguage) => {
     i18n.changeLanguage(lang);
+    // eslint-disable-next-line react-hooks/immutability -- DOM manipulation is valid here
     document.documentElement.lang = lang;
     setIsOpen(false);
   };

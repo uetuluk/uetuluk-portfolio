@@ -39,7 +39,7 @@ describe('SkillBadgeList', () => {
 
   it('applies compact style by default', () => {
     const skills = ['React'];
-    const { container } = render(<SkillBadgeList {...defaultProps} skills={skills} />);
+    render(<SkillBadgeList {...defaultProps} skills={skills} />);
 
     // Compact style uses gap-2 and smaller text
     const skillBadge = screen.getByText('React');
@@ -48,9 +48,7 @@ describe('SkillBadgeList', () => {
 
   it('applies detailed style when specified', () => {
     const skills = ['React'];
-    const { container } = render(
-      <SkillBadgeList {...defaultProps} skills={skills} style="detailed" />,
-    );
+    render(<SkillBadgeList {...defaultProps} skills={skills} style="detailed" />);
 
     // Detailed style uses gap-3 and larger text
     const skillBadge = screen.getByText('React');
