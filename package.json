@@ -21,7 +21,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
-    "sync-assets": "wrangler r2 object put portfolio-assets/vite.svg --file=public/vite.svg && wrangler r2 object put portfolio-assets/assets/profile.png --file=public/assets/profile.png",
+    "sync-assets": "for f in public/assets/*.png; do wrangler r2 object put portfolio-assets/assets/$(basename $f) --file=$f; done && wrangler r2 object put portfolio-assets/favicon.ico --file=public/favicon.ico",
     "deploy": "npm run build && npm run sync-assets && wrangler deploy"
   },
   "dependencies": {
