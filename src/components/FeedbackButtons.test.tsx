@@ -195,7 +195,9 @@ describe('FeedbackButtons', () => {
   it('returns to idle state on API error', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('Network error'),
+    );
 
     render(<FeedbackButtons {...defaultProps} />);
 
