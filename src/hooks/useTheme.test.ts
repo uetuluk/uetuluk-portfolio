@@ -26,7 +26,7 @@ describe('useTheme', () => {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }));
-    window.matchMedia = mockMatchMedia;
+    window.matchMedia = mockMatchMedia as typeof window.matchMedia;
 
     // Mock document.documentElement.classList
     vi.spyOn(document.documentElement.classList, 'add').mockImplementation(() => undefined);

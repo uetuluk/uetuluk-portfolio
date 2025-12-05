@@ -39,7 +39,7 @@ describe('FeedbackButtons', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
   });
 
   afterEach(() => {
@@ -55,7 +55,7 @@ describe('FeedbackButtons', () => {
   });
 
   it('shows loading state when feedback is submitted', () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
       () => new Promise(() => {}), // Never resolves
     );
 
@@ -68,7 +68,7 @@ describe('FeedbackButtons', () => {
   });
 
   it('transitions to liked state with share button after successful like', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({ success: true, message: 'Feedback received' }),
     });
 
@@ -84,7 +84,7 @@ describe('FeedbackButtons', () => {
   });
 
   it('transitions to disliked state and shows regenerating message', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({
         success: true,
         message: 'Will regenerate',
@@ -104,7 +104,7 @@ describe('FeedbackButtons', () => {
   });
 
   it('shows rate-limited state', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({
         success: false,
         rateLimited: true,
@@ -130,7 +130,7 @@ describe('FeedbackButtons', () => {
       configurable: true,
     });
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({ success: true }),
     });
 
@@ -171,7 +171,7 @@ describe('FeedbackButtons', () => {
 
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({ success: true }),
     });
 
@@ -195,7 +195,7 @@ describe('FeedbackButtons', () => {
   it('returns to idle state on API error', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
 
     render(<FeedbackButtons {...defaultProps} />);
 
@@ -212,7 +212,7 @@ describe('FeedbackButtons', () => {
   });
 
   it('sends correct feedback request payload', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({ success: true }),
     });
 
@@ -221,7 +221,7 @@ describe('FeedbackButtons', () => {
     fireEvent.click(screen.getByTitle('I like this layout'));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/feedback', {
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -235,7 +235,7 @@ describe('FeedbackButtons', () => {
   });
 
   it('sends dislike feedback with regenerate flag', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       json: async () => ({ success: true, regenerate: true }),
     });
 
@@ -244,7 +244,7 @@ describe('FeedbackButtons', () => {
     fireEvent.click(screen.getByTitle('Show me something different'));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/feedback', {
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

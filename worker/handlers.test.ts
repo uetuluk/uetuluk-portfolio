@@ -6,6 +6,23 @@ import type {
   PortfolioContent,
 } from "./types";
 
+// Type for API responses in tests
+type ApiResponse = {
+  status?: string;
+  error?: string;
+  success?: boolean;
+  message?: string;
+  layout?: string;
+  sections?: unknown[];
+  _visitorContext?: unknown;
+  _uiHints?: unknown;
+  _rateLimited?: boolean;
+  _retryAfter?: number;
+  regenerate?: boolean;
+  rateLimited?: boolean;
+  retryAfter?: number;
+};
+
 // Import the default export (worker)
 import worker from "./index";
 
@@ -174,7 +191,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data).toEqual({ status: "ok" });
@@ -193,7 +210,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
       expect(data.error).toBe("Missing required fields");
@@ -210,7 +227,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
       expect(data.error).toBe("Missing required fields");
@@ -228,7 +245,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data.layout).toBeDefined();
@@ -265,7 +282,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(data.layout).toBe("cached-layout");
     });
@@ -288,7 +305,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, envWithoutAI);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data.layout).toBeDefined();
@@ -321,7 +338,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data._rateLimited).toBe(true);
@@ -341,7 +358,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
@@ -360,7 +377,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
@@ -380,7 +397,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -401,7 +418,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -474,7 +491,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(false);
@@ -496,7 +513,7 @@ describe("Worker API Handlers", () => {
       });
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
@@ -514,7 +531,7 @@ describe("Worker API Handlers", () => {
       );
 
       const response = await worker.fetch(request, mockEnv);
-      const data = await response.json();
+      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(404);
       expect(data.error).toBe("Not found");

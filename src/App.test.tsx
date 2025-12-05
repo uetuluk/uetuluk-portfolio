@@ -130,7 +130,7 @@ describe('App', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
 
     mockLocalStorage = {};
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
@@ -163,7 +163,7 @@ describe('App', () => {
   });
 
   it('shows LoadingScreen during API call', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
       () => new Promise(() => {}), // Never resolves
     );
 
@@ -184,7 +184,7 @@ describe('App', () => {
       sections: [{ type: 'Hero', props: {} }],
     };
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockLayout,
     });
@@ -204,7 +204,7 @@ describe('App', () => {
   it('handles API error and falls back to default layout', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
     });
 
@@ -229,7 +229,7 @@ describe('App', () => {
       sections: [],
     };
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockLayout,
     });
@@ -264,7 +264,7 @@ describe('App', () => {
       sections: [{ type: 'Hero', props: { version: 2 } }],
     };
 
-    (global.fetch as ReturnType<typeof vi.fn>)
+    (globalThis.fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => mockLayout1,
@@ -289,14 +289,14 @@ describe('App', () => {
     });
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     });
   });
 
   it('getDefaultLayout returns correct sections for recruiter', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
     });
 
@@ -322,7 +322,7 @@ describe('App', () => {
   it('getDefaultLayout returns correct sections for developer', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
     });
 
@@ -347,7 +347,7 @@ describe('App', () => {
   it('getDefaultLayout returns correct sections for collaborator', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
     });
 
@@ -373,7 +373,7 @@ describe('App', () => {
   it('getDefaultLayout returns correct sections for friend', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
     });
 
@@ -412,7 +412,7 @@ describe('App', () => {
       _rateLimited: true,
     };
 
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockLayout,
     });
