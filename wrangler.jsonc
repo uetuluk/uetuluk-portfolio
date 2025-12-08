@@ -24,6 +24,10 @@
   "ai": {
     "binding": "AI"
   },
+  // Custom domain
+  "routes": [
+    { "pattern": "uetuluk.com", "custom_domain": true }
+  ],
   // Analytics Engine for feedback tracking
   "analytics_engine_datasets": [
     {
