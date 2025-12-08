@@ -1,5 +1,10 @@
 # AI-Personalized Portfolio
 
+![CI](https://img.shields.io/github/actions/workflow/status/uetuluk/uetuluk-portfolio/ci.yml?style=flat-square)
+![Coverage](https://img.shields.io/codecov/c/github/uetuluk/uetuluk-portfolio?style=flat-square)
+![License](https://img.shields.io/github/license/uetuluk/uetuluk-portfolio?style=flat-square)
+![Node](https://img.shields.io/badge/node-v24.11.1-brightgreen?style=flat-square)
+
 A portfolio website that uses AI (Qwen 3 via OpenRouter/Cloudflare AI Gateway) to dynamically generate personalized UI for each visitor based on their intent.
 
 ## Features
