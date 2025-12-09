@@ -7,10 +7,15 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  schedule:
+    # Run weekly on Monday at 9 AM UTC to detect LLM API degradation
+    - cron: "0 9 * * 1"
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # Skip CI checks on scheduled runs (only prompt tests needed)
+    if: ${{ github.event_name != 'schedule' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -43,8 +48,8 @@ jobs:
 
   prompt-tests:
     runs-on: ubuntu-latest
-    # Only run if OPENROUTER_API_KEY secret is available
-    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    # Run on push, schedule, or PRs from the same repo (secrets available)
+    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - uses: actions/checkout@v6
 
