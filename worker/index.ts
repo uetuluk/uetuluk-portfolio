@@ -13,17 +13,17 @@ import type {
 } from "./types";
 
 // Rate limiting configuration
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const RATE_LIMIT_KEY_PREFIX = "ratelimit:";
+export const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+export const RATE_LIMIT_KEY_PREFIX = "ratelimit:";
 
 // Generate endpoint rate limiting (stricter)
-const GENERATE_RATE_LIMIT_MAX = 3; // 3 requests per window
-const GENERATE_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+export const GENERATE_RATE_LIMIT_MAX = 3; // 3 requests per window
+export const GENERATE_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 
 // ============ Visitor Context Extraction ============
 
 // Parse User-Agent to extract device type, browser, and OS (no external deps)
-function parseUserAgent(ua: string | null): VisitorContext["device"] {
+export function parseUserAgent(ua: string | null): VisitorContext["device"] {
   if (!ua) {
     return { type: "desktop" };
   }
@@ -39,10 +39,10 @@ function parseUserAgent(ua: string | null): VisitorContext["device"] {
   // Browser detection (order matters - check specific before generic)
   let browser: string | undefined;
   if (/edg\//i.test(ua)) browser = "Edge";
+  else if (/opera|opr\//i.test(ua)) browser = "Opera";
   else if (/chrome|crios/i.test(ua) && !/edg\//i.test(ua)) browser = "Chrome";
   else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
   else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = "Safari";
-  else if (/opera|opr\//i.test(ua)) browser = "Opera";
 
   // OS detection
   let os: string | undefined;
@@ -56,7 +56,7 @@ function parseUserAgent(ua: string | null): VisitorContext["device"] {
 }
 
 // Calculate time context from visitor's timezone
-function getTimeContext(timezone?: string): VisitorContext["time"] {
+export function getTimeContext(timezone?: string): VisitorContext["time"] {
   let localHour: number;
   let isWeekend: boolean;
 
@@ -100,7 +100,7 @@ function getTimeContext(timezone?: string): VisitorContext["time"] {
 }
 
 // Extract full visitor context from Cloudflare request
-function extractVisitorContext(request: Request): VisitorContext {
+export function extractVisitorContext(request: Request): VisitorContext {
   const cf = request.cf as IncomingRequestCfProperties | undefined;
   const userAgent = request.headers.get("User-Agent");
 
@@ -127,7 +127,7 @@ function extractVisitorContext(request: Request): VisitorContext {
 }
 
 // Derive UI hints from visitor context
-function deriveUIHints(context: VisitorContext): UIHints {
+export function deriveUIHints(context: VisitorContext): UIHints {
   // Suggest dark theme for evening/night hours
   let suggestedTheme: "light" | "dark" | "system" = "system";
   if (context.time.timeOfDay === "evening" || context.time.timeOfDay === "night") {
@@ -157,7 +157,7 @@ import {
 } from "./prompts";
 
 // Extract links from generated layout for validation
-function extractLinks(layout: GeneratedLayout): string[] {
+export function extractLinks(layout: GeneratedLayout): string[] {
   const links: string[] = [];
   for (const section of layout.sections) {
     // Hero CTA
@@ -174,7 +174,7 @@ function extractLinks(layout: GeneratedLayout): string[] {
 }
 
 // Validate a link by fetching it (3 second timeout)
-async function validateLink(url: string): Promise<boolean> {
+export async function validateLink(url: string): Promise<boolean> {
   try {
     // Skip mailto: links
     if (url.startsWith("mailto:")) return true;
@@ -199,7 +199,7 @@ async function validateLink(url: string): Promise<boolean> {
 }
 
 // Remove invalid links from layout
-function sanitizeLayout(
+export function sanitizeLayout(
   layout: GeneratedLayout,
   invalidLinks: Set<string>
 ): GeneratedLayout {
@@ -224,7 +224,7 @@ function sanitizeLayout(
 }
 
 // Simple hash function for cache keys
-function hashString(str: string): string {
+export function hashString(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -235,7 +235,7 @@ function hashString(str: string): string {
 }
 
 // Get default categorization result (fallback to friend)
-function getDefaultCategorizationResult(): CategorizationResult {
+export function getDefaultCategorizationResult(): CategorizationResult {
   return {
     status: "matched",
     tagName: "friend",
@@ -247,7 +247,7 @@ function getDefaultCategorizationResult(): CategorizationResult {
 }
 
 // Validate and sanitize categorization result
-function sanitizeCategorizationResult(
+export function sanitizeCategorizationResult(
   result: CategorizationResult
 ): CategorizationResult {
   // Sanitize tag name: lowercase, alphanumeric with hyphens only, max 20 chars
@@ -289,7 +289,7 @@ function sanitizeCategorizationResult(
 }
 
 // Store a new tag in KV for future reuse
-async function storeNewTag(
+export async function storeNewTag(
   result: CategorizationResult,
   originalIntent: string,
   env: Env
@@ -317,7 +317,7 @@ async function storeNewTag(
 }
 
 // Categorize a custom intent using LLM
-async function categorizeIntent(
+export async function categorizeIntent(
   customIntent: string,
   env: Env
 ): Promise<CategorizationResult> {
@@ -798,12 +798,12 @@ async function handleGenerate(
 }
 
 // Rate limit checking helper
-interface RateLimitResult {
+export interface RateLimitResult {
   limited: boolean;
   retryAfter: number;
 }
 
-async function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   env: Env
 ): Promise<RateLimitResult> {
@@ -831,7 +831,7 @@ async function checkRateLimit(
 }
 
 // Update rate limit entry
-async function updateRateLimit(key: string, env: Env): Promise<void> {
+export async function updateRateLimit(key: string, env: Env): Promise<void> {
   if (!env.UI_CACHE) return;
 
   const entry: RateLimitEntry = {
@@ -845,18 +845,18 @@ async function updateRateLimit(key: string, env: Env): Promise<void> {
 }
 
 // Generate endpoint rate limiting (IP-based, count-based)
-interface GenerateRateLimitEntry {
+export interface GenerateRateLimitEntry {
   count: number;
   windowStart: number;
 }
 
-interface GenerateRateLimitResult {
+export interface GenerateRateLimitResult {
   limited: boolean;
   retryAfter: number;
 }
 
 // Get client IP from Cloudflare headers
-function getClientIP(request: Request): string {
+export function getClientIP(request: Request): string {
   return (
     request.headers.get("CF-Connecting-IP") ||
     request.headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
@@ -865,7 +865,7 @@ function getClientIP(request: Request): string {
 }
 
 // Check generate endpoint rate limit
-async function checkGenerateRateLimit(
+export async function checkGenerateRateLimit(
   clientIP: string,
   env: Env
 ): Promise<GenerateRateLimitResult> {
@@ -900,7 +900,7 @@ async function checkGenerateRateLimit(
 }
 
 // Update generate endpoint rate limit
-async function updateGenerateRateLimit(
+export async function updateGenerateRateLimit(
   clientIP: string,
   env: Env
 ): Promise<void> {
@@ -1020,7 +1020,7 @@ async function handleFeedback(
 }
 
 // Default layout when AI generation fails or is not configured
-function getDefaultLayout(
+export function getDefaultLayout(
   visitorTag: string,
   portfolioContent: GenerateRequest["portfolioContent"]
 ): GeneratedLayout {

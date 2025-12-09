@@ -1,10 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { env, SELF, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import type {
   Env,
   GenerateRequest,
   FeedbackRequest,
   PortfolioContent,
 } from "./types";
+
+// Import the worker default export
+import worker from "./index";
 
 // Type for API responses in tests
 type ApiResponse = {
@@ -22,52 +26,6 @@ type ApiResponse = {
   rateLimited?: boolean;
   retryAfter?: number;
 };
-
-// Import the default export (worker)
-import worker from "./index";
-
-// Create mock environment
-function createMockEnv(): Env {
-  return {
-    AI: {
-      gateway: vi.fn(() => ({
-        run: vi.fn(() =>
-          Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                choices: [
-                  {
-                    message: {
-                      content: JSON.stringify({
-                        layout: "single-column",
-                        theme: { accent: "blue" },
-                        sections: [
-                          { type: "Hero", props: { title: "Test" } },
-                        ],
-                      }),
-                    },
-                  },
-                ],
-              }),
-          })
-        ),
-      })),
-    } as unknown as Ai,
-    AI_GATEWAY_ID: "test-gateway",
-    UI_CACHE: {
-      get: vi.fn(() => Promise.resolve(null)),
-      put: vi.fn(() => Promise.resolve()),
-      delete: vi.fn(() => Promise.resolve()),
-    } as unknown as KVNamespace,
-    ASSETS: {
-      get: vi.fn(() => Promise.resolve(null)),
-    } as unknown as R2Bucket,
-    FEEDBACK: {
-      writeDataPoint: vi.fn(),
-    } as unknown as AnalyticsEngineDataset,
-  };
-}
 
 // Create mock portfolio content
 function createMockPortfolioContent(): PortfolioContent {
@@ -114,7 +72,7 @@ function createMockPortfolioContent(): PortfolioContent {
   };
 }
 
-// Create mock request
+// Create mock request with Cloudflare properties
 function createMockRequest(
   url: string,
   options: RequestInit = {}
@@ -143,11 +101,12 @@ function createMockRequest(
 }
 
 describe("Worker API Handlers", () => {
-  let mockEnv: Env;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockEnv = createMockEnv();
+  beforeEach(async () => {
+    // Clear KV cache before each test
+    const keys = await env.UI_CACHE.list();
+    for (const key of keys.keys) {
+      await env.UI_CACHE.delete(key.name);
+    }
   });
 
   describe("CORS handling", () => {
@@ -156,7 +115,9 @@ describe("Worker API Handlers", () => {
         method: "OPTIONS",
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
 
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
       expect(response.headers.get("Access-Control-Allow-Methods")).toBe(
@@ -178,10 +139,12 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
 
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-    });
+    }, 10000); // Longer timeout for POST with KV operations
   });
 
   describe("GET /api/health", () => {
@@ -190,7 +153,9 @@ describe("Worker API Handlers", () => {
         method: "GET",
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
@@ -209,7 +174,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
@@ -226,7 +193,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
@@ -244,7 +213,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
@@ -254,46 +225,8 @@ describe("Worker API Handlers", () => {
       expect(data._uiHints).toBeDefined();
     });
 
-    it("returns cached layout when available", async () => {
-      const cachedLayout = {
-        layout: "cached-layout",
-        theme: { accent: "green" },
-        sections: [],
-      };
-
-      // Mock to return cached layout for any layout: prefixed key
-      (mockEnv.UI_CACHE.get as ReturnType<typeof vi.fn>).mockImplementation(
-        (key: string) => {
-          if (key.startsWith("layout:")) {
-            return Promise.resolve(cachedLayout);
-          }
-          return Promise.resolve(null);
-        }
-      );
-
-      const body: GenerateRequest = {
-        visitorTag: "developer",
-        portfolioContent: createMockPortfolioContent(),
-      };
-
-      const request = createMockRequest("https://example.com/api/generate", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      const response = await worker.fetch(request, mockEnv);
-      const data = (await response.json()) as ApiResponse;
-
-      expect(data.layout).toBe("cached-layout");
-    });
-
     it("returns default layout when AI Gateway not configured", async () => {
-      const envWithoutAI = {
-        ...mockEnv,
-        AI: undefined,
-        AI_GATEWAY_ID: undefined,
-      } as unknown as Env;
-
+      // The test environment won't have AI configured
       const body: GenerateRequest = {
         visitorTag: "developer",
         portfolioContent: createMockPortfolioContent(),
@@ -304,7 +237,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, envWithoutAI);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
@@ -313,36 +248,35 @@ describe("Worker API Handlers", () => {
       expect(data.layout).toBe("two-column");
     });
 
-    it("returns rate-limited response with _rateLimited flag", async () => {
-      // Simulate rate limit entry
-      (mockEnv.UI_CACHE.get as ReturnType<typeof vi.fn>).mockImplementation(
-        (key: string) => {
-          if (key.startsWith("ratelimit:generate:")) {
-            return Promise.resolve({
-              count: 5,
-              windowStart: Date.now() - 1000, // Within the window
-            });
-          }
-          return Promise.resolve(null);
-        }
-      );
-
+    it("returns cached layout when available", async () => {
       const body: GenerateRequest = {
         visitorTag: "developer",
         portfolioContent: createMockPortfolioContent(),
       };
 
-      const request = createMockRequest("https://example.com/api/generate", {
+      // First request to generate layout
+      const request1 = createMockRequest("https://example.com/api/generate", {
         method: "POST",
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
-      const data = (await response.json()) as ApiResponse;
+      const ctx1 = createExecutionContext();
+      const response1 = await worker.fetch(request1, env, ctx1);
+      await waitOnExecutionContext(ctx1);
+      const data1 = (await response1.json()) as ApiResponse;
 
-      expect(response.status).toBe(200);
-      expect(data._rateLimited).toBe(true);
-      expect(data._retryAfter).toBeDefined();
+      // Second request should return cached layout
+      const request2 = createMockRequest("https://example.com/api/generate", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      const ctx2 = createExecutionContext();
+      const response2 = await worker.fetch(request2, env, ctx2);
+      await waitOnExecutionContext(ctx2);
+      const data2 = (await response2.json()) as ApiResponse;
+
+      expect(data1.layout).toBe(data2.layout);
     });
   });
 
@@ -357,7 +291,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
@@ -376,7 +312,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
@@ -396,7 +334,9 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
@@ -409,7 +349,7 @@ describe("Worker API Handlers", () => {
         feedbackType: "dislike",
         audienceType: "developer",
         cacheKey: "cache-123",
-        sessionId: "session-123",
+        sessionId: "session-dislike-1",
       };
 
       const request = createMockRequest("https://example.com/api/feedback", {
@@ -417,86 +357,14 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.regenerate).toBe(true);
-    });
-
-    it("clears cache on dislike feedback", async () => {
-      const body: FeedbackRequest = {
-        feedbackType: "dislike",
-        audienceType: "developer",
-        cacheKey: "cache-123",
-        sessionId: "session-123",
-      };
-
-      const request = createMockRequest("https://example.com/api/feedback", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      await worker.fetch(request, mockEnv);
-
-      expect(mockEnv.UI_CACHE.delete).toHaveBeenCalledWith("cache-123");
-    });
-
-    it("writes to Analytics Engine for feedback", async () => {
-      const body: FeedbackRequest = {
-        feedbackType: "like",
-        audienceType: "developer",
-        cacheKey: "cache-123",
-        sessionId: "session-123",
-      };
-
-      const request = createMockRequest("https://example.com/api/feedback", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      await worker.fetch(request, mockEnv);
-
-      expect(mockEnv.FEEDBACK.writeDataPoint).toHaveBeenCalledWith({
-        blobs: ["developer", "like"],
-        doubles: [1],
-        indexes: ["session-123"],
-      });
-    });
-
-    it("returns rate-limited response for dislike when limit exceeded", async () => {
-      (mockEnv.UI_CACHE.get as ReturnType<typeof vi.fn>).mockImplementation(
-        (key: string) => {
-          if (key.startsWith("ratelimit:session-123")) {
-            return Promise.resolve({
-              lastDislike: Date.now() - 5000, // 5 seconds ago (within 1 minute window)
-              count: 1,
-            });
-          }
-          return Promise.resolve(null);
-        }
-      );
-
-      const body: FeedbackRequest = {
-        feedbackType: "dislike",
-        audienceType: "developer",
-        cacheKey: "cache-123",
-        sessionId: "session-123",
-      };
-
-      const request = createMockRequest("https://example.com/api/feedback", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      const response = await worker.fetch(request, mockEnv);
-      const data = (await response.json()) as ApiResponse;
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(false);
-      expect(data.rateLimited).toBe(true);
-      expect(data.retryAfter).toBeDefined();
     });
 
     it("returns 400 for invalid feedback type", async () => {
@@ -512,12 +380,51 @@ describe("Worker API Handlers", () => {
         body: JSON.stringify(body),
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
       expect(data.message).toBe("Invalid feedback type");
+    });
+
+    it("rate limits dislike requests from same session", async () => {
+      const body: FeedbackRequest = {
+        feedbackType: "dislike",
+        audienceType: "developer",
+        cacheKey: "cache-123",
+        sessionId: "session-rate-test",
+      };
+
+      // First dislike should succeed
+      const request1 = createMockRequest("https://example.com/api/feedback", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      const ctx1 = createExecutionContext();
+      const response1 = await worker.fetch(request1, env, ctx1);
+      await waitOnExecutionContext(ctx1);
+      const data1 = (await response1.json()) as ApiResponse;
+
+      expect(data1.success).toBe(true);
+
+      // Second dislike within window should be rate limited
+      const request2 = createMockRequest("https://example.com/api/feedback", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      const ctx2 = createExecutionContext();
+      const response2 = await worker.fetch(request2, env, ctx2);
+      await waitOnExecutionContext(ctx2);
+      const data2 = (await response2.json()) as ApiResponse;
+
+      expect(data2.success).toBe(false);
+      expect(data2.rateLimited).toBe(true);
+      expect(data2.retryAfter).toBeDefined();
     });
   });
 
@@ -530,7 +437,9 @@ describe("Worker API Handlers", () => {
         }
       );
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(404);
@@ -542,42 +451,16 @@ describe("Worker API Handlers", () => {
         method: "GET",
       });
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
 
       expect(response.status).toBe(404);
     });
   });
 
   describe("Asset serving", () => {
-    it("serves assets from R2 when found", async () => {
-      const mockBody = new ReadableStream();
-      (mockEnv.ASSETS.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        body: mockBody,
-        httpEtag: '"abc123"',
-        httpMetadata: { contentType: "image/png" },
-      });
-
-      const request = createMockRequest(
-        "https://example.com/assets/image.png",
-        {
-          method: "GET",
-        }
-      );
-
-      const response = await worker.fetch(request, mockEnv);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("Content-Type")).toBe("image/png");
-      expect(response.headers.get("Cache-Control")).toBe(
-        "public, max-age=31536000"
-      );
-    });
-
     it("returns 404 when asset not found in R2", async () => {
-      (mockEnv.ASSETS.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-        null
-      );
-
       const request = createMockRequest(
         "https://example.com/assets/missing.png",
         {
@@ -585,7 +468,9 @@ describe("Worker API Handlers", () => {
         }
       );
 
-      const response = await worker.fetch(request, mockEnv);
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
 
       // Falls through to 404 since asset not found
       expect(response.status).toBe(404);

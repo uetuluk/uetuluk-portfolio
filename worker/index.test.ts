@@ -1,103 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  parseUserAgent,
+  getTimeContext,
+  hashString,
+  getClientIP,
+  getDefaultCategorizationResult,
+  sanitizeCategorizationResult,
+  getDefaultLayout,
+} from "./index";
+import { ALLOWED_VISITOR_TAGS, TAG_GUIDELINES } from "./prompts";
 
 /**
  * Worker Pure Functions Tests
  *
  * These tests verify the logic of pure functions in the worker.
- * Since the functions are not exported from index.ts, we recreate them here
- * to test the patterns. In production, consider exporting these functions
- * for better testability.
+ * Functions are now exported from index.ts for better testability.
  */
-
-// Recreated parseUserAgent logic (matches worker/index.ts)
-function parseUserAgent(ua: string | null): {
-  type: "mobile" | "tablet" | "desktop";
-  browser?: string;
-  os?: string;
-} {
-  if (!ua) {
-    return { type: "desktop" };
-  }
-
-  let type: "mobile" | "tablet" | "desktop" = "desktop";
-  if (/mobile|iphone|ipod|android.*mobile|windows phone|blackberry/i.test(ua)) {
-    type = "mobile";
-  } else if (/tablet|ipad|android(?!.*mobile)|kindle|silk/i.test(ua)) {
-    type = "tablet";
-  }
-
-  let browser: string | undefined;
-  if (/edg\//i.test(ua)) browser = "Edge";
-  else if (/opera|opr\//i.test(ua)) browser = "Opera";
-  else if (/chrome|crios/i.test(ua) && !/edg\//i.test(ua)) browser = "Chrome";
-  else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
-  else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = "Safari";
-
-  let os: string | undefined;
-  if (/iphone|ipad|ipod/i.test(ua)) os = "iOS";
-  else if (/android/i.test(ua)) os = "Android";
-  else if (/windows/i.test(ua)) os = "Windows";
-  else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
-  else if (/linux/i.test(ua)) os = "Linux";
-
-  return { type, browser, os };
-}
-
-// Recreated getTimeContext logic (matches worker/index.ts)
-function getTimeContext(timezone?: string): {
-  localHour: number;
-  timeOfDay: "morning" | "afternoon" | "evening" | "night";
-  isWeekend: boolean;
-} {
-  let localHour: number;
-  let isWeekend: boolean;
-
-  try {
-    if (timezone) {
-      const now = new Date();
-      const formatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: timezone,
-        hour: "numeric",
-        hour12: false,
-        weekday: "short",
-      });
-      const parts = formatter.formatToParts(now);
-      localHour = parseInt(
-        parts.find((p) => p.type === "hour")?.value || "12",
-        10
-      );
-      const weekday = parts.find((p) => p.type === "weekday")?.value || "";
-      isWeekend = weekday === "Sat" || weekday === "Sun";
-    } else {
-      const now = new Date();
-      localHour = now.getUTCHours();
-      isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
-    }
-  } catch {
-    const now = new Date();
-    localHour = now.getUTCHours();
-    isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6;
-  }
-
-  let timeOfDay: "morning" | "afternoon" | "evening" | "night";
-  if (localHour >= 5 && localHour < 12) timeOfDay = "morning";
-  else if (localHour >= 12 && localHour < 17) timeOfDay = "afternoon";
-  else if (localHour >= 17 && localHour < 21) timeOfDay = "evening";
-  else timeOfDay = "night";
-
-  return { localHour, timeOfDay, isWeekend };
-}
-
-// Simple hash function (matches worker/index.ts pattern)
-function hashString(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
-}
 
 describe("Worker Pure Functions", () => {
   describe("parseUserAgent", () => {
@@ -336,15 +254,6 @@ describe("Worker Pure Functions", () => {
   });
 
   describe("getClientIP", () => {
-    // Recreated getClientIP logic
-    function getClientIP(request: Request): string {
-      return (
-        request.headers.get("CF-Connecting-IP") ||
-        request.headers.get("X-Forwarded-For")?.split(",")[0].trim() ||
-        "unknown"
-      );
-    }
-
     it("extracts CF-Connecting-IP header when present", () => {
       const request = new Request("https://example.com", {
         headers: { "CF-Connecting-IP": "1.2.3.4" },
@@ -383,25 +292,6 @@ describe("Worker Pure Functions", () => {
   });
 
   describe("getDefaultCategorizationResult", () => {
-    // Recreated function
-    const TAG_GUIDELINES: Record<string, string> = {
-      friend: "Show personal, casual content",
-      recruiter: "Highlight professional achievements",
-      developer: "Focus on technical projects",
-      collaborator: "Emphasize collaboration opportunities",
-    };
-
-    function getDefaultCategorizationResult() {
-      return {
-        status: "matched" as const,
-        tagName: "friend",
-        displayName: "Friend",
-        guidelines: TAG_GUIDELINES.friend,
-        confidence: 1,
-        reason: "Default fallback",
-      };
-    }
-
     it("returns matched status", () => {
       const result = getDefaultCategorizationResult();
       expect(result.status).toBe("matched");
@@ -419,7 +309,7 @@ describe("Worker Pure Functions", () => {
 
     it("returns friend guidelines", () => {
       const result = getDefaultCategorizationResult();
-      expect(result.guidelines).toBe("Show personal, casual content");
+      expect(result.guidelines).toBe(TAG_GUIDELINES.friend);
     });
 
     it("returns Default fallback as reason", () => {
@@ -429,63 +319,9 @@ describe("Worker Pure Functions", () => {
   });
 
   describe("sanitizeCategorizationResult", () => {
-    const ALLOWED_VISITOR_TAGS = ["recruiter", "developer", "collaborator", "friend"];
-    const TAG_GUIDELINES: Record<string, string> = {
-      friend: "Show personal, casual content",
-      recruiter: "Highlight professional achievements",
-      developer: "Focus on technical projects",
-      collaborator: "Emphasize collaboration opportunities",
-    };
-
-    interface CategorizationResult {
-      status: "matched" | "created" | "rejected";
-      tagName: string;
-      displayName: string;
-      guidelines: string;
-      confidence: number;
-      reason: string;
-    }
-
-    function sanitizeCategorizationResult(
-      result: CategorizationResult
-    ): CategorizationResult {
-      let tagName = result.tagName
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 20);
-
-      if (!tagName) {
-        tagName = "friend";
-      }
-
-      if (result.status === "matched" && ALLOWED_VISITOR_TAGS.includes(tagName)) {
-        return {
-          ...result,
-          tagName,
-          guidelines: TAG_GUIDELINES[tagName] || result.guidelines,
-        };
-      }
-
-      if (result.status === "rejected") {
-        return {
-          ...result,
-          tagName: "friend",
-          guidelines: TAG_GUIDELINES.friend,
-        };
-      }
-
-      return {
-        ...result,
-        tagName,
-        confidence: Math.min(1, Math.max(0, result.confidence)),
-      };
-    }
-
     it("converts tag name to lowercase", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "MyTag",
         displayName: "My Tag",
         guidelines: "Some guidelines",
@@ -497,7 +333,7 @@ describe("Worker Pure Functions", () => {
 
     it("replaces special characters with hyphens", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "my@tag#here",
         displayName: "My Tag",
         guidelines: "Some guidelines",
@@ -509,7 +345,7 @@ describe("Worker Pure Functions", () => {
 
     it("collapses multiple hyphens", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "my---tag",
         displayName: "My Tag",
         guidelines: "Some guidelines",
@@ -521,7 +357,7 @@ describe("Worker Pure Functions", () => {
 
     it("removes leading and trailing hyphens", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "-mytag-",
         displayName: "My Tag",
         guidelines: "Some guidelines",
@@ -533,7 +369,7 @@ describe("Worker Pure Functions", () => {
 
     it("truncates tag name to 20 characters", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "a".repeat(30),
         displayName: "Long Tag",
         guidelines: "Some guidelines",
@@ -545,7 +381,7 @@ describe("Worker Pure Functions", () => {
 
     it("uses friend for empty tag after sanitization", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "---",
         displayName: "Invalid",
         guidelines: "Some guidelines",
@@ -564,7 +400,7 @@ describe("Worker Pure Functions", () => {
         confidence: 0.9,
         reason: "Test",
       });
-      expect(result.guidelines).toBe("Highlight professional achievements");
+      expect(result.guidelines).toBe(TAG_GUIDELINES.recruiter);
     });
 
     it("forces friend tag for rejected status", () => {
@@ -577,12 +413,12 @@ describe("Worker Pure Functions", () => {
         reason: "Looks suspicious",
       });
       expect(result.tagName).toBe("friend");
-      expect(result.guidelines).toBe("Show personal, casual content");
+      expect(result.guidelines).toBe(TAG_GUIDELINES.friend);
     });
 
     it("clamps confidence between 0 and 1 (high value)", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "custom",
         displayName: "Custom",
         guidelines: "Custom guidelines",
@@ -594,7 +430,7 @@ describe("Worker Pure Functions", () => {
 
     it("clamps confidence between 0 and 1 (negative value)", () => {
       const result = sanitizeCategorizationResult({
-        status: "created",
+        status: "new_tag",
         tagName: "custom",
         displayName: "Custom",
         guidelines: "Custom guidelines",
@@ -606,168 +442,28 @@ describe("Worker Pure Functions", () => {
   });
 
   describe("getDefaultLayout", () => {
-    interface Project {
-      id: string;
-      title: string;
-      description: string;
-    }
-
-    interface Personal {
-      name: string;
-      title: string;
-      bio: string;
-      resumeUrl?: string;
-    }
-
-    interface PortfolioContent {
-      personal: Personal;
-      projects: Project[];
-    }
-
-    interface GeneratedLayout {
-      layout: string;
-      theme: { accent: string };
-      sections: Array<{
-        type: string;
-        props: Record<string, unknown>;
-      }>;
-    }
-
-    function getDefaultLayout(
-      visitorTag: string,
-      portfolioContent: PortfolioContent
-    ): GeneratedLayout {
-      const projectIds = portfolioContent.projects.map((p) => p.id);
-      const { personal } = portfolioContent;
-
-      const baseLayout: GeneratedLayout = {
-        layout: "hero-focused",
-        theme: { accent: "blue" },
-        sections: [
-          {
-            type: "Hero",
-            props: {
-              title: personal.name,
-              subtitle: personal.title,
-              image: "/assets/profile.png",
-            },
-          },
-        ],
-      };
-
-      switch (visitorTag) {
-        case "recruiter":
-          baseLayout.sections[0].props = {
-            ...baseLayout.sections[0].props,
-            cta: personal.resumeUrl
-              ? { text: "View Resume", href: personal.resumeUrl }
-              : undefined,
-          };
-          baseLayout.sections.push(
-            {
-              type: "SkillBadges",
-              props: { title: "Technical Skills", style: "detailed" },
-            },
-            {
-              type: "Timeline",
-              props: { title: "Experience" },
-            },
-            {
-              type: "CardGrid",
-              props: {
-                title: "Featured Projects",
-                columns: 2,
-                items: projectIds.slice(0, 4),
-              },
-            }
-          );
-          break;
-
-        case "developer":
-          baseLayout.layout = "two-column";
-          baseLayout.sections.push(
-            {
-              type: "CardGrid",
-              props: { title: "Projects", columns: 3, items: projectIds },
-            },
-            {
-              type: "SkillBadges",
-              props: { title: "Tech Stack", style: "detailed" },
-            },
-            {
-              type: "ContactForm",
-              props: { title: "Connect", showGitHub: true, showEmail: true },
-            }
-          );
-          break;
-
-        case "collaborator":
-          baseLayout.sections.push(
-            {
-              type: "TextBlock",
-              props: {
-                title: "About Me",
-                content: personal.bio,
-                style: "prose",
-              },
-            },
-            {
-              type: "CardGrid",
-              props: {
-                title: "Current Projects",
-                columns: 2,
-                items: projectIds.slice(0, 2),
-              },
-            },
-            {
-              type: "ContactForm",
-              props: {
-                title: "Let's Collaborate",
-                showEmail: true,
-                showLinkedIn: true,
-                showGitHub: true,
-              },
-            }
-          );
-          break;
-
-        case "friend":
-        default:
-          baseLayout.layout = "single-column";
-          baseLayout.sections.push(
-            {
-              type: "TextBlock",
-              props: {
-                title: "About Me",
-                content: personal.bio,
-                style: "casual",
-              },
-            },
-            {
-              type: "ImageGallery",
-              props: { title: "Highlights" },
-            }
-          );
-          break;
-      }
-
-      return baseLayout;
-    }
-
-    const mockPortfolio: PortfolioContent = {
+    const mockPortfolio = {
       personal: {
         name: "Test User",
         title: "Software Engineer",
         bio: "Building cool stuff",
+        contact: {
+          email: "test@example.com",
+          linkedin: "https://linkedin.com/in/test",
+          github: "https://github.com/test",
+        },
         resumeUrl: "https://example.com/resume.pdf",
       },
       projects: [
-        { id: "proj-1", title: "Project 1", description: "Desc 1" },
-        { id: "proj-2", title: "Project 2", description: "Desc 2" },
-        { id: "proj-3", title: "Project 3", description: "Desc 3" },
-        { id: "proj-4", title: "Project 4", description: "Desc 4" },
-        { id: "proj-5", title: "Project 5", description: "Desc 5" },
+        { id: "proj-1", title: "Project 1", description: "Desc 1", technologies: [], image: "", links: {}, tags: [] },
+        { id: "proj-2", title: "Project 2", description: "Desc 2", technologies: [], image: "", links: {}, tags: [] },
+        { id: "proj-3", title: "Project 3", description: "Desc 3", technologies: [], image: "", links: {}, tags: [] },
+        { id: "proj-4", title: "Project 4", description: "Desc 4", technologies: [], image: "", links: {}, tags: [] },
+        { id: "proj-5", title: "Project 5", description: "Desc 5", technologies: [], image: "", links: {}, tags: [] },
       ],
+      experience: [],
+      skills: [],
+      education: [],
     };
 
     describe("recruiter layout", () => {
@@ -859,10 +555,10 @@ describe("Worker Pure Functions", () => {
         expect(layout.layout).toBe("single-column");
       });
 
-      it("includes TextBlock with casual style", () => {
+      it("includes TextBlock with prose style", () => {
         const layout = getDefaultLayout("friend", mockPortfolio);
         const textBlock = layout.sections.find((s) => s.type === "TextBlock");
-        expect(textBlock?.props.style).toBe("casual");
+        expect(textBlock?.props.style).toBe("prose");
       });
 
       it("includes ImageGallery", () => {

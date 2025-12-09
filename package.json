@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:worker": "vitest run --project worker",
+    "test:frontend": "vitest run --project frontend",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -43,6 +45,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.17.0",
+    "@cloudflare/vitest-pool-workers": "^0.10.14",
     "@cloudflare/workers-types": "^4.20241127.0",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
@@ -55,7 +58,7 @@
     "@types/react-dom": "^19.0.0",
     "@types/react-responsive-masonry": "^2.7.0",
     "@vitejs/plugin-react": "^5.1.2",
-    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
@@ -67,7 +70,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.1",
     "vite": "^7.2.7",
-    "vitest": "^4.0.15",
+    "vitest": "^3.2.4",
     "wrangler": "^4.53.0"
   }
 }
