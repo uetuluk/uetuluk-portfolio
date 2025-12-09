@@ -22,7 +22,11 @@ const CSS_VAR_MAP: Record<keyof ColorPalette, string> = {
   ring: '--ring',
 };
 
-function createOrUpdateStyleElement(styleId: string, selector: string, palette: ColorPalette): void {
+function createOrUpdateStyleElement(
+  styleId: string,
+  selector: string,
+  palette: ColorPalette,
+): void {
   let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
 
   if (!styleEl) {
