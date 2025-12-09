@@ -1,0 +1,85 @@
+name: Dependabot Auto-Approve
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot-auto-approve:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Check if update is minor or patch
+        id: check-semver
+        run: |
+          UPDATE_TYPE="${{ steps.dependabot-metadata.outputs.update-type }}"
+          echo "Update type: $UPDATE_TYPE"
+
+          if [[ "$UPDATE_TYPE" == "version-update:semver-minor" ]] || [[ "$UPDATE_TYPE" == "version-update:semver-patch" ]]; then
+            echo "is_minor_or_patch=true" >> $GITHUB_OUTPUT
+            echo "✅ This is a minor or patch update - eligible for auto-approve"
+          else
+            echo "is_minor_or_patch=false" >> $GITHUB_OUTPUT
+            echo "❌ This is a major update - requires manual review"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        run: npm ci
+
+      - name: Run unit tests
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        run: npm run test
+
+      - name: Install Playwright browsers
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        run: npx playwright install --with-deps
+
+      - name: Run e2e tests
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        run: npm run test:e2e
+
+      - name: Wait for CI checks to complete
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          running-workflow-name: "dependabot-auto-approve"
+          check-regexp: "^ci$"
+          wait-interval: 30
+
+      - name: Approve PR
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.check-semver.outputs.is_minor_or_patch == 'true'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
