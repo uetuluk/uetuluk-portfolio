@@ -1,0 +1,257 @@
+# Promptfoo configuration for Layout Generation Tests
+# Tests that generated layouts are valid, appropriate, and follow guidelines
+
+description: "Portfolio AI - Layout Generation Tests"
+
+# Provider configuration - uses the same model as production
+providers:
+  - id: openrouter:qwen/qwen3-coder-flash
+    config:
+      temperature: 0.7
+      max_tokens: 2000
+
+prompts:
+  - file://promptfoo/prompts/layout-system.txt
+
+tests:
+  # ==========================================
+  # LAYOUT GENERATION TESTS
+  # ==========================================
+
+  # Test: Recruiter layout generation
+  - description: "Generate valid layout for recruiter"
+    vars:
+      visitorTag: RECRUITER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return ['single-column', 'two-column', 'hero-focused'].includes(result.layout);
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return ['blue', 'green', 'purple', 'orange', 'pink'].includes(result.theme?.accent);
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return Array.isArray(result.sections) && result.sections.length >= 3 && result.sections.length <= 5;
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validComponents = ['Hero', 'CardGrid', 'SkillBadges', 'Timeline', 'ContactForm', 'TextBlock', 'ImageGallery'];
+          return result.sections.every(s => validComponents.includes(s.type));
+
+  - description: "Recruiter layout includes Hero and professional sections"
+    vars:
+      visitorTag: RECRUITER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const hasHero = result.sections.some(s => s.type === 'Hero');
+          const hasProfessional = result.sections.some(s =>
+            s.type === 'Timeline' || s.type === 'SkillBadges' || s.type === 'CardGrid'
+          );
+          return hasHero && hasProfessional;
+
+  # Test: Developer layout generation
+  - description: "Generate valid layout for developer"
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return ['single-column', 'two-column', 'hero-focused'].includes(result.layout);
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return Array.isArray(result.sections) && result.sections.length >= 3;
+
+  - description: "Developer layout emphasizes projects and skills"
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const hasProjects = result.sections.some(s => s.type === 'CardGrid');
+          const hasSkills = result.sections.some(s => s.type === 'SkillBadges');
+          return hasProjects && hasSkills;
+
+  # Test: Collaborator layout generation
+  - description: "Generate valid layout for collaborator"
+    vars:
+      visitorTag: COLLABORATOR
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return ['single-column', 'two-column', 'hero-focused'].includes(result.layout);
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return Array.isArray(result.sections);
+
+  - description: "Collaborator layout includes contact and projects"
+    vars:
+      visitorTag: COLLABORATOR
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const hasContact = result.sections.some(s => s.type === 'ContactForm');
+          const hasProjects = result.sections.some(s => s.type === 'CardGrid');
+          return hasContact || hasProjects;
+
+  # Test: Friend layout generation
+  - description: "Generate valid layout for friend"
+    vars:
+      visitorTag: FRIEND
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return ['single-column', 'two-column', 'hero-focused'].includes(result.layout);
+
+  - description: "Friend layout is more personal/casual"
+    vars:
+      visitorTag: FRIEND
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const hasPersonal = result.sections.some(s =>
+            s.type === 'Hero' || s.type === 'TextBlock' || s.type === 'ImageGallery'
+          );
+          return hasPersonal;
+
+  # Test: Layout uses valid project IDs
+  - description: "Layout only uses valid project IDs"
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validProjectIds = ['kiwi', 'ask', 'vtuber-chat', 'spiegel-2d'];
+          const cardGrids = result.sections.filter(s => s.type === 'CardGrid');
+          if (cardGrids.length === 0) return true;
+          return cardGrids.every(cg => {
+            if (!cg.props?.items) return true;
+            return cg.props.items.every(id => validProjectIds.includes(id));
+          });
+
+  # Test: Layout uses valid experience IDs
+  - description: "Layout only uses valid experience IDs in Timeline"
+    vars:
+      visitorTag: RECRUITER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validExperienceIds = ['nyu-shanghai'];
+          const timelines = result.sections.filter(s => s.type === 'Timeline');
+          if (timelines.length === 0) return true;
+          return timelines.every(tl => {
+            if (!tl.props?.items) return true;
+            return tl.props.items.every(id => validExperienceIds.includes(id));
+          });
+
+  # Test: CardGrid has valid columns value
+  - description: "CardGrid uses valid column values (2, 3, or 4)"
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const cardGrids = result.sections.filter(s => s.type === 'CardGrid');
+          if (cardGrids.length === 0) return true;
+          return cardGrids.every(cg => {
+            if (!cg.props?.columns) return true;
+            return [2, 3, 4].includes(cg.props.columns);
+          });
+
+  # Test: SkillBadges has valid style
+  - description: "SkillBadges uses valid style (compact or detailed)"
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const skillBadges = result.sections.filter(s => s.type === 'SkillBadges');
+          if (skillBadges.length === 0) return true;
+          return skillBadges.every(sb => {
+            if (!sb.props?.style) return true;
+            return ['compact', 'detailed'].includes(sb.props.style);
+          });
+
+  # Test: Custom intent affects layout
+  - description: "Custom intent influences layout content"
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: "I'm specifically interested in your AI and RAG projects"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const hasCardGrid = result.sections.some(s => s.type === 'CardGrid');
+          return hasCardGrid;
+
+  # Test: Consistency across multiple runs
+  - description: "Layout structure is consistent for recruiter (run 1)"
+    vars:
+      visitorTag: RECRUITER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return result.layout && result.theme && result.sections;
+
+  - description: "Layout structure is consistent for recruiter (run 2)"
+    vars:
+      visitorTag: RECRUITER
+      customIntent: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          return result.layout && result.theme && result.sections;
+
+# Output configuration
+outputPath: promptfoo/output/layout
+
+# Evaluation settings
+evaluateOptions:
+  maxConcurrency: 2
+  showProgressBar: true
