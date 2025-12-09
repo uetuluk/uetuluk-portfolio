@@ -5,6 +5,12 @@ import { ExperienceTimeline } from './sections/ExperienceTimeline';
 import { ContactSection } from './sections/ContactSection';
 import { TextBlock } from './sections/TextBlock';
 import { ImageGallery } from './sections/ImageGallery';
+import { AccordionSection } from './sections/AccordionSection';
+import { TabsSection } from './sections/TabsSection';
+import { StatsSection } from './sections/StatsSection';
+import { TestimonialsSection } from './sections/TestimonialsSection';
+import { FeatureListSection } from './sections/FeatureListSection';
+import { AlertSection } from './sections/AlertSection';
 
 interface SectionConfig {
   type: string;
@@ -26,6 +32,12 @@ const componentMap: Record<string, React.ComponentType<Record<string, unknown>>>
   ContactForm: ContactSection as unknown as React.ComponentType<Record<string, unknown>>,
   TextBlock: TextBlock as unknown as React.ComponentType<Record<string, unknown>>,
   ImageGallery: ImageGallery as unknown as React.ComponentType<Record<string, unknown>>,
+  Accordion: AccordionSection as unknown as React.ComponentType<Record<string, unknown>>,
+  Tabs: TabsSection as unknown as React.ComponentType<Record<string, unknown>>,
+  Stats: StatsSection as unknown as React.ComponentType<Record<string, unknown>>,
+  Testimonials: TestimonialsSection as unknown as React.ComponentType<Record<string, unknown>>,
+  FeatureList: FeatureListSection as unknown as React.ComponentType<Record<string, unknown>>,
+  Alert: AlertSection as unknown as React.ComponentType<Record<string, unknown>>,
 };
 
 export function ComponentMapper({ section }: ComponentMapperProps) {

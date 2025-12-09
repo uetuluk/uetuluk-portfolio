@@ -6,13 +6,13 @@ const MAX_CUSTOM_INTENT_LENGTH = 200;
 // Extracted guidelines for reuse in categorization
 export const TAG_GUIDELINES: Record<string, string> = {
   recruiter:
-    'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Use "hero-focused" or "single-column" layout.',
+    'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Consider Stats for achievements (years experience, projects completed). Use "hero-focused" or "single-column" layout.',
   developer:
-    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include SkillBadges (detailed style). Show Timeline briefly. Link to GitHub. Use "two-column" layout.',
+    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include SkillBadges (detailed style). Show Timeline briefly. Consider Tabs to organize skills by category (frontend, backend, tools). Consider FeatureList for open source contributions or technical highlights. Link to GitHub. Use "two-column" layout.',
   collaborator:
-    'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Use "hero-focused" layout.',
+    'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Consider Testimonials from past collaborators. Use Accordion for FAQ about collaboration process. Use "hero-focused" layout.',
   friend:
-    'Personal focus. Casual, friendly tone. Lead with Hero. Include TextBlock with bio. Add ImageGallery for photos. Show hobbies. Use "single-column" layout.',
+    'Personal focus. Casual, friendly tone. Lead with Hero. Include TextBlock with bio. Add ImageGallery for photos. Show hobbies. Consider FeatureList for fun facts or interests. Use Alert for announcements (currently available, new project launched). Use "single-column" layout.',
 };
 
 export function buildCategorizationPrompt(): string {
@@ -159,6 +159,12 @@ Available components and their props:
 - ContactForm: { title: string, showEmail?: boolean, showLinkedIn?: boolean, showGitHub?: boolean }
 - TextBlock: { title: string, content: string, style: "prose" | "highlight" }
 - ImageGallery: { title: string, images: ["/path/to/img", ...] }
+- Accordion: { title: string, items: [{ question: string, answer: string }, ...], defaultOpen?: number }
+- Tabs: { title: string, tabs: [{ label: string, content: string }, ...], defaultTab?: number }
+- Stats: { title: string, stats: [{ label: string, value: string, description?: string }, ...], columns?: 2|3|4 }
+- Testimonials: { title: string, items: [{ quote: string, author: string, role?: string, company?: string }, ...] }
+- FeatureList: { title: string, features: [{ title: string, description: string, icon?: "code" | "briefcase" | "rocket" | "star" | "heart" | "globe" }, ...], columns?: 1|2|3 }
+- Alert: { title: string, message: string, variant: "info" | "success" | "warning" | "error", dismissible?: boolean }
 
 === PORTFOLIO CONTENT (Use these exact IDs and values) ===
 Personal Information:
