@@ -16,7 +16,10 @@
     }
   ],
   "r2_buckets": [
-    { "binding": "ASSETS", "bucket_name": "portfolio-assets" }
+    {
+      "binding": "ASSETS",
+      "bucket_name": "portfolio-assets"
+    }
   ],
   "vars": {
     "AI_GATEWAY_ID": "personal-website"
@@ -26,8 +29,12 @@
   },
   // Custom domain
   "routes": [
-    { "pattern": "uetuluk.com", "custom_domain": true }
+    {
+      "pattern": "uetuluk.com",
+      "custom_domain": true
+    }
   ],
+  "workers_dev": true,
   // Analytics Engine for feedback tracking
   "analytics_engine_datasets": [
     {
