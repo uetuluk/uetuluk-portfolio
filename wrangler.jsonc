@@ -70,6 +70,13 @@
       "ai": {
         "binding": "AI"
       },
+      // Analytics Engine for feedback tracking (must be in env.test, not inherited)
+      "analytics_engine_datasets": [
+        {
+          "binding": "FEEDBACK",
+          "dataset": "feedback-test"
+        }
+      ],
       // No custom domain routes for test environment
       "routes": []
     }

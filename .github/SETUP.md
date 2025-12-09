@@ -10,14 +10,20 @@ Go to **Settings** → **Secrets and variables** → **Actions** → **New repos
 
 Create an API token with these permissions:
 - Go to [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
-- Click **Create Token**
-- Use template: **Edit Cloudflare Workers**
-- Add permissions:
-  - Account - Workers Scripts - Edit
-  - Account - Account Settings - Read
-  - Zone - Workers Routes - Edit
+- Click **Create Token** → **Create Custom Token**
+- Set Token Name: `GitHub Actions CI`
+- Add these permissions:
+  - **Account - Workers Scripts - Edit** (required for preview sessions)
+  - **Account - Workers AI - Read** (required for AI Gateway access)
+  - **Account - Account Settings - Read**
+  - Zone - Workers Routes - Edit (optional)
+- **Account Resources**: Select your account
+- **Client IP Address Filtering**: (optional) Add GitHub Actions IP ranges for extra security
+- **TTL**: Start date = now, End date = (leave blank)
 - Click **Continue to summary** → **Create Token**
 - Copy the token and add it to GitHub Secrets as `CLOUDFLARE_API_TOKEN`
+
+**Important:** The token needs **Workers Scripts - Edit** permission to start preview/test sessions, not just Read.
 
 ### 2. `CLOUDFLARE_ACCOUNT_ID`
 
