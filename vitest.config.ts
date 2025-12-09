@@ -18,7 +18,7 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", "dist", ".wrangler", "worker/**"],
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       reporter: ["text", "json", "html"],
       include: [
         "src/lib/**/*.ts",
@@ -26,7 +26,12 @@ export default defineConfig({
         "src/components/ComponentMapper.tsx",
         "worker/**/*.ts",
       ],
-      exclude: ["worker/prompts.ts", "**/*.d.ts", "**/*.test.ts", "**/*.spec.ts"],
+      exclude: [
+        "worker/prompts.ts",
+        "**/*.d.ts",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+      ],
     },
   },
 });

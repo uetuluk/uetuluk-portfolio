@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
-import { env, SELF, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
+import { describe, it, expect, beforeEach } from "vitest";
+import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import type {
-  Env,
   GenerateRequest,
   FeedbackRequest,
   PortfolioContent,

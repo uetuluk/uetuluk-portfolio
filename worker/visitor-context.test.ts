@@ -32,7 +32,6 @@ function createMockCFRequest(
       colo: "DFW",
       httpProtocol: "HTTP/2",
       region: "Texas",
-      isEUCountry: "0",
       ...cfProps,
     },
     writable: false,
@@ -113,9 +112,9 @@ describe("extractVisitorContext", () => {
       expect(context.geo.isEUCountry).toBe(true);
     });
 
-    it("detects non-EU country correctly when isEUCountry is 0", () => {
+    it("detects non-EU country correctly when isEUCountry is undefined", () => {
       const request = createMockCFRequest("https://example.com", {
-        isEUCountry: "0",
+        isEUCountry: undefined,
       });
 
       const context = extractVisitorContext(request);

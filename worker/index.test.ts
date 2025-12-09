@@ -8,7 +8,7 @@ import {
   sanitizeCategorizationResult,
   getDefaultLayout,
 } from "./index";
-import { ALLOWED_VISITOR_TAGS, TAG_GUIDELINES } from "./prompts";
+import { TAG_GUIDELINES } from "./prompts";
 
 /**
  * Worker Pure Functions Tests

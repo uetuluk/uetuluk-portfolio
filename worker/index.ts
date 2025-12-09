@@ -422,7 +422,11 @@ export async function categorizeIntent(
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    _ctx?: ExecutionContext
+  ): Promise<Response> {
     const url = new URL(request.url);
 
     // Serve public folder assets from R2
