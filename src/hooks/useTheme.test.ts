@@ -5,9 +5,11 @@ import { useTheme } from './useTheme';
 describe('useTheme', () => {
   let mockLocalStorage: Record<string, string>;
   let mockMatchMedia: ReturnType<typeof vi.fn>;
+  let mediaQueryListeners: Array<(e: MediaQueryListEvent) => void>;
 
   beforeEach(() => {
     mockLocalStorage = {};
+    mediaQueryListeners = [];
 
     // Mock localStorage
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
@@ -22,19 +24,23 @@ describe('useTheme', () => {
       matches: false,
       media: query,
       onchange: null,
-      addEventListener: vi.fn(),
+      addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+        if (event === 'change') {
+          mediaQueryListeners.push(listener);
+        }
+      }),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }));
     window.matchMedia = mockMatchMedia as typeof window.matchMedia;
 
-    // Mock document.documentElement.classList
-    vi.spyOn(document.documentElement.classList, 'add').mockImplementation(() => undefined);
-    vi.spyOn(document.documentElement.classList, 'remove').mockImplementation(() => undefined);
+    // Clean up document classes before each test
+    document.documentElement.classList.remove('light', 'dark');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    document.documentElement.classList.remove('light', 'dark');
   });
 
   it('returns default system preference when no stored value', () => {
@@ -138,11 +144,131 @@ describe('useTheme', () => {
     expect(result.current.isSystem).toBe(false);
   });
 
-  it('applies theme class to document', () => {
-    const addSpy = vi.spyOn(document.documentElement.classList, 'add');
+  // NEW TESTS: Real DOM manipulation verification
+
+  it('applies dark class to document.documentElement when theme is dark', () => {
+    mockLocalStorage['theme-preference'] = 'dark';
 
     renderHook(() => useTheme());
 
-    expect(addSpy).toHaveBeenCalled();
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
+  });
+
+  it('applies light class to document.documentElement when theme is light', () => {
+    mockLocalStorage['theme-preference'] = 'light';
+
+    renderHook(() => useTheme());
+
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('toggleTheme actually changes DOM classes', () => {
+    // Start with system preference (light)
+    const { result } = renderHook(() => useTheme());
+
+    // Initial state: system=light, so light class should be applied
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+
+    // Toggle to dark
+    act(() => {
+      result.current.toggleTheme();
+    });
+
+    // DOM should now have dark class
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('light')).toBe(false);
+  });
+
+  it('multiple toggles correctly update DOM classes', () => {
+    const { result } = renderHook(() => useTheme());
+
+    // Initial: system (light)
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(result.current.preference).toBe('system');
+
+    // First toggle: system -> dark
+    act(() => {
+      result.current.toggleTheme();
+    });
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(result.current.preference).toBe('dark');
+
+    // Second toggle: dark -> system (light)
+    act(() => {
+      result.current.toggleTheme();
+    });
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(result.current.preference).toBe('system');
+
+    // Third toggle: system -> dark again
+    act(() => {
+      result.current.toggleTheme();
+    });
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(result.current.preference).toBe('dark');
+  });
+
+  it('setTheme actually changes DOM classes', () => {
+    const { result } = renderHook(() => useTheme());
+
+    // Set to dark
+    act(() => {
+      result.current.setTheme('dark');
+    });
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+
+    // Set to light
+    act(() => {
+      result.current.setTheme('light');
+    });
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+
+    // Set back to system (which is light)
+    act(() => {
+      result.current.setTheme('system');
+    });
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+  });
+
+  it('responds to system theme changes when preference is system', () => {
+    const { result } = renderHook(() => useTheme());
+
+    // Initially light (system preference)
+    expect(result.current.theme).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+
+    // Simulate system theme change to dark
+    act(() => {
+      mediaQueryListeners.forEach((listener) => {
+        listener({ matches: true } as MediaQueryListEvent);
+      });
+    });
+
+    // Theme should update to dark
+    expect(result.current.theme).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+  });
+
+  it('ignores system theme changes when explicit preference is set', () => {
+    mockLocalStorage['theme-preference'] = 'light';
+
+    const { result } = renderHook(() => useTheme());
+
+    expect(result.current.theme).toBe('light');
+    expect(result.current.preference).toBe('light');
+
+    // Simulate system theme change to dark
+    act(() => {
+      mediaQueryListeners.forEach((listener) => {
+        listener({ matches: true } as MediaQueryListEvent);
+      });
+    });
+
+    // Theme should remain light because explicit preference overrides system
+    expect(result.current.theme).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
   });
 });

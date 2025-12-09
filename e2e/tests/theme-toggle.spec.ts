@@ -13,20 +13,75 @@ test.describe('Theme Toggle', () => {
     await expect(themeButton).toBeVisible();
   });
 
-  test('clicking theme toggle changes theme class on document', async ({ page }) => {
+  test('clicking theme toggle actually changes DOM class', async ({ page }) => {
+    await page.goto('/');
+
+    // Clear any existing preference to start fresh
+    await page.evaluate(() => localStorage.removeItem('theme-preference'));
+    await page.reload();
+
+    // Get initial state - should be system default (light in most cases)
+    const initialHasDark = await page.evaluate(() =>
+      document.documentElement.classList.contains('dark')
+    );
+
+    // Find and click theme button
+    const themeButton = getThemeButton(page);
+    await themeButton.click();
+
+    // Wait for DOM to update
+    await page.waitForTimeout(100);
+
+    // Verify DOM class actually changed
+    const afterClickHasDark = await page.evaluate(() =>
+      document.documentElement.classList.contains('dark')
+    );
+
+    // The class should have toggled
+    expect(afterClickHasDark).not.toBe(initialHasDark);
+
+    // Also verify localStorage was saved
+    const preference = await page.evaluate(() => localStorage.getItem('theme-preference'));
+    expect(preference).toBeTruthy();
+  });
+
+  test('multiple clicks cycle through theme states with DOM changes', async ({ page }) => {
     await page.goto('/');
 
     // Clear any existing preference
     await page.evaluate(() => localStorage.removeItem('theme-preference'));
     await page.reload();
 
-    // Find and click theme button
     const themeButton = getThemeButton(page);
-    await themeButton.click();
 
-    // Preference should be saved
-    const preference = await page.evaluate(() => localStorage.getItem('theme-preference'));
-    expect(preference).toBeTruthy();
+    // First click: system -> explicit (opposite of system)
+    await themeButton.click();
+    await page.waitForTimeout(100);
+
+    const afterFirstClick = await page.evaluate(() =>
+      document.documentElement.classList.contains('dark')
+    );
+
+    // Second click: explicit -> system
+    await themeButton.click();
+    await page.waitForTimeout(100);
+
+    const afterSecondClick = await page.evaluate(() =>
+      document.documentElement.classList.contains('dark')
+    );
+
+    // Third click: system -> explicit again
+    await themeButton.click();
+    await page.waitForTimeout(100);
+
+    const afterThirdClick = await page.evaluate(() =>
+      document.documentElement.classList.contains('dark')
+    );
+
+    // First and third should be the same (both explicit)
+    expect(afterFirstClick).toBe(afterThirdClick);
+    // Second should be different (back to system)
+    expect(afterSecondClick).not.toBe(afterFirstClick);
   });
 
   test('theme preference persists across page reload', async ({ page }) => {
