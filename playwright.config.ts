@@ -16,7 +16,7 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'npm run dev',
+    command: 'vite --config vite.config.e2e.ts',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
