@@ -1,6 +1,8 @@
 {
   "name": "uetuluk-portfolio",
   "compatibility_date": "2024-12-01",
+  // Enable workers.dev subdomain for preview URL
+  "workers_dev": true,
   "main": "worker/index.ts",
   "assets": {
     "directory": "./dist",
