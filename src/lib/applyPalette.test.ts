@@ -48,37 +48,41 @@ const mockPalettes: ThemePalettes = {
 };
 
 describe('applyPaletteToRoot', () => {
-  const styleId = 'dynamic-palette-dark';
+  const lightStyleId = 'dynamic-palette-light';
+  const darkStyleId = 'dynamic-palette-dark';
 
   beforeEach(() => {
     // Clear any existing style elements
-    const existing = document.getElementById(styleId);
-    if (existing) existing.remove();
-    // Reset inline styles on root
-    document.documentElement.style.cssText = '';
+    const existingLight = document.getElementById(lightStyleId);
+    if (existingLight) existingLight.remove();
+    const existingDark = document.getElementById(darkStyleId);
+    if (existingDark) existingDark.remove();
   });
 
   afterEach(() => {
     // Cleanup
-    const existing = document.getElementById(styleId);
-    if (existing) existing.remove();
-    document.documentElement.style.cssText = '';
+    const existingLight = document.getElementById(lightStyleId);
+    if (existingLight) existingLight.remove();
+    const existingDark = document.getElementById(darkStyleId);
+    if (existingDark) existingDark.remove();
   });
 
-  it('sets light mode CSS variables on document root', () => {
+  it('sets light mode CSS variables via style element', () => {
     applyPaletteToRoot(mockPalettes);
 
-    const style = document.documentElement.style;
-    expect(style.getPropertyValue('--background')).toBe('175 10% 99%');
-    expect(style.getPropertyValue('--foreground')).toBe('175 30% 10%');
-    expect(style.getPropertyValue('--primary')).toBe('175 70% 40%');
-    expect(style.getPropertyValue('--secondary')).toBe('175 25% 92%');
+    const styleEl = document.getElementById(lightStyleId) as HTMLStyleElement;
+    expect(styleEl?.textContent).toContain(':root {');
+    expect(styleEl?.textContent).toContain('--background: 175 10% 99%;');
+    expect(styleEl?.textContent).toContain('--foreground: 175 30% 10%;');
+    expect(styleEl?.textContent).toContain('--primary: 175 70% 40%;');
+    expect(styleEl?.textContent).toContain('--secondary: 175 25% 92%;');
   });
 
-  it('sets all 19 CSS custom properties', () => {
+  it('sets all 19 CSS custom properties in style elements', () => {
     applyPaletteToRoot(mockPalettes);
 
-    const style = document.documentElement.style;
+    const lightStyleEl = document.getElementById(lightStyleId) as HTMLStyleElement;
+    const darkStyleEl = document.getElementById(darkStyleId) as HTMLStyleElement;
     const expectedVars = [
       '--background',
       '--foreground',
@@ -102,40 +106,48 @@ describe('applyPaletteToRoot', () => {
     ];
 
     expectedVars.forEach((varName) => {
-      expect(style.getPropertyValue(varName)).not.toBe('');
+      expect(lightStyleEl?.textContent).toContain(`${varName}:`);
+      expect(darkStyleEl?.textContent).toContain(`${varName}:`);
     });
   });
 
-  it('creates style element with id for dark mode', () => {
+  it('creates style elements with ids for both light and dark modes', () => {
     applyPaletteToRoot(mockPalettes);
 
-    const styleEl = document.getElementById(styleId);
-    expect(styleEl).not.toBeNull();
-    expect(styleEl?.tagName.toLowerCase()).toBe('style');
+    const lightStyleEl = document.getElementById(lightStyleId);
+    const darkStyleEl = document.getElementById(darkStyleId);
+    expect(lightStyleEl).not.toBeNull();
+    expect(darkStyleEl).not.toBeNull();
+    expect(lightStyleEl?.tagName.toLowerCase()).toBe('style');
+    expect(darkStyleEl?.tagName.toLowerCase()).toBe('style');
   });
 
-  it('appends style element to document head', () => {
+  it('appends style elements to document head', () => {
     applyPaletteToRoot(mockPalettes);
 
-    const styleEl = document.getElementById(styleId);
-    expect(styleEl?.parentNode).toBe(document.head);
+    const lightStyleEl = document.getElementById(lightStyleId);
+    const darkStyleEl = document.getElementById(darkStyleId);
+    expect(lightStyleEl?.parentNode).toBe(document.head);
+    expect(darkStyleEl?.parentNode).toBe(document.head);
   });
 
   it('generates correct .dark CSS ruleset', () => {
     applyPaletteToRoot(mockPalettes);
 
-    const styleEl = document.getElementById(styleId) as HTMLStyleElement;
+    const styleEl = document.getElementById(darkStyleId) as HTMLStyleElement;
     expect(styleEl?.textContent).toContain('.dark {');
     expect(styleEl?.textContent).toContain('--background: 175 20% 6%;');
     expect(styleEl?.textContent).toContain('--primary: 175 60% 65%;');
   });
 
-  it('re-uses existing style element on subsequent calls', () => {
+  it('re-uses existing style elements on subsequent calls', () => {
     applyPaletteToRoot(mockPalettes);
     applyPaletteToRoot(mockPalettes);
 
-    const styleElements = document.querySelectorAll(`#${styleId}`);
-    expect(styleElements.length).toBe(1);
+    const lightStyleElements = document.querySelectorAll(`#${lightStyleId}`);
+    const darkStyleElements = document.querySelectorAll(`#${darkStyleId}`);
+    expect(lightStyleElements.length).toBe(1);
+    expect(darkStyleElements.length).toBe(1);
   });
 
   it('updates values when called multiple times with different palettes', () => {
@@ -155,10 +167,10 @@ describe('applyPaletteToRoot', () => {
 
     applyPaletteToRoot(updatedPalettes);
 
-    const style = document.documentElement.style;
-    expect(style.getPropertyValue('--primary')).toBe('210 70% 50%');
+    const lightStyleEl = document.getElementById(lightStyleId) as HTMLStyleElement;
+    expect(lightStyleEl?.textContent).toContain('--primary: 210 70% 50%;');
 
-    const styleEl = document.getElementById(styleId) as HTMLStyleElement;
-    expect(styleEl?.textContent).toContain('--primary: 210 60% 70%;');
+    const darkStyleEl = document.getElementById(darkStyleId) as HTMLStyleElement;
+    expect(darkStyleEl?.textContent).toContain('--primary: 210 60% 70%;');
   });
 });
