@@ -38,9 +38,9 @@ export function MosaicBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden z-0">
       {/* Rotation wrapper - rotates and scales to cover corners */}
-      <div className="absolute inset-0 rotate-[30deg] scale-150 origin-center">
+      <div className="absolute inset-0 rotate-30 scale-150 origin-center">
         {/* Animation wrapper - floats upward */}
-        <div className="animate-float-up blur-sm opacity-20">
+        <div className="animate-float-up blur-xs opacity-20">
           {/* Two identical grids stacked for seamless looping */}
           <MasonryGrid keyPrefix="grid1" />
           <MasonryGrid keyPrefix="grid2" />

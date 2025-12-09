@@ -33,7 +33,7 @@ export function ImageGallery({ title, images, className }: ImageGalleryProps) {
           <button
             key={index}
             onClick={() => setSelectedImage(image)}
-            className="aspect-square rounded-lg overflow-hidden bg-muted hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+            className="aspect-square rounded-lg overflow-hidden bg-muted hover:opacity-90 transition-opacity focus:outline-hidden focus:ring-2 focus:ring-primary"
           >
             <img
               src={image}

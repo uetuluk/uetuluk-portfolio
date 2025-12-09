@@ -29,11 +29,11 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-linear-to-br from-background to-muted p-4">
       <MosaicBackground />
       <div className="relative z-10 max-w-2xl w-full">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-4 bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             {t('welcome.title')}
           </h1>
           <p className="text-lg text-muted-foreground">{t('welcome.subtitle')}</p>
@@ -47,7 +47,7 @@ export function WelcomeModal({ onSelect }: WelcomeModalProps) {
               value={customIntent}
               onChange={(e) => setCustomIntent(e.target.value)}
               placeholder={t('welcome.placeholder')}
-              className="w-full px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-3 rounded-lg border bg-background resize-none focus:outline-hidden focus:ring-2 focus:ring-primary"
               rows={3}
             />
             <button

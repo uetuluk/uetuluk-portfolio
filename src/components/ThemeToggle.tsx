@@ -28,7 +28,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         'w-12 h-12 rounded-full',
         'bg-card border border-border shadow-lg',
         'hover:bg-accent hover:scale-110',
-        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+        'focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2',
         'transition-all duration-200 ease-in-out',
         'flex items-center justify-center',
         className,

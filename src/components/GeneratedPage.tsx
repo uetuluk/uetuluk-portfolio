@@ -54,7 +54,7 @@ export function GeneratedPage({
       {visitorTypeLabel && <SEO title={`${t('seo.portfolioFor')} ${visitorTypeLabel}`} />}
 
       {/* Navigation bar */}
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b">
+      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-xs border-b">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <span className="font-semibold">{t('navigation.portfolio')}</span>
           <div className="flex items-center gap-4">
