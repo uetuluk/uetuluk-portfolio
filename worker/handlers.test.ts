@@ -225,7 +225,13 @@ describe("Worker API Handlers", () => {
     });
 
     it("returns default layout when AI Gateway not configured", async () => {
-      // The test environment won't have AI configured
+      // Create env without AI Gateway to test fallback behavior
+      const envWithoutAI = {
+        ...env,
+        AI: undefined as unknown as Ai,
+        AI_GATEWAY_ID: undefined as unknown as string,
+      };
+
       const body: GenerateRequest = {
         visitorTag: "developer",
         portfolioContent: createMockPortfolioContent(),
@@ -237,7 +243,7 @@ describe("Worker API Handlers", () => {
       });
 
       const ctx = createExecutionContext();
-      const response = await worker.fetch(request, env, ctx);
+      const response = await worker.fetch(request, envWithoutAI, ctx);
       await waitOnExecutionContext(ctx);
       const data = (await response.json()) as ApiResponse;
 
@@ -474,5 +480,44 @@ describe("Worker API Handlers", () => {
       // Falls through to 404 since asset not found
       expect(response.status).toBe(404);
     });
+
+  });
+
+  describe("Rate limiting", () => {
+    it("returns rate limited response when generate endpoint limit reached", async () => {
+      const body: GenerateRequest = {
+        visitorTag: "developer",
+        portfolioContent: createMockPortfolioContent(),
+      };
+
+      // Make 3 requests to hit the rate limit
+      for (let i = 0; i < 3; i++) {
+        const request = createMockRequest("https://example.com/api/generate", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+
+        const ctx = createExecutionContext();
+        await worker.fetch(request, env, ctx);
+        await waitOnExecutionContext(ctx);
+      }
+
+      // Fourth request should be rate limited
+      const request = createMockRequest("https://example.com/api/generate", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      // Response should include rate limited flag but still return valid layout
+      expect(response.status).toBe(200);
+      expect(data._rateLimited).toBe(true);
+      expect(data._retryAfter).toBeDefined();
+      expect(data.layout).toBeDefined();
+    }, 30000);
   });
 });

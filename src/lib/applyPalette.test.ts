@@ -173,4 +173,31 @@ describe('applyPaletteToRoot', () => {
     const darkStyleEl = document.getElementById(darkStyleId) as HTMLStyleElement;
     expect(darkStyleEl?.textContent).toContain('--primary: 210 60% 70%;');
   });
+
+  it('ignores unknown palette keys that are not in CSS_VAR_MAP', () => {
+    // Create palette with an extra unknown key
+    const paletteWithUnknownKey = {
+      light: {
+        ...mockPalettes.light,
+        unknownKey: '123 45% 67%',
+      } as typeof mockPalettes.light,
+      dark: {
+        ...mockPalettes.dark,
+        anotherUnknown: '200 50% 50%',
+      } as typeof mockPalettes.dark,
+    };
+
+    applyPaletteToRoot(paletteWithUnknownKey);
+
+    const lightStyleEl = document.getElementById(lightStyleId) as HTMLStyleElement;
+    const darkStyleEl = document.getElementById(darkStyleId) as HTMLStyleElement;
+
+    // Should not contain the unknown key
+    expect(lightStyleEl?.textContent).not.toContain('unknownKey');
+    expect(darkStyleEl?.textContent).not.toContain('anotherUnknown');
+
+    // Should still contain valid keys
+    expect(lightStyleEl?.textContent).toContain('--background:');
+    expect(darkStyleEl?.textContent).toContain('--background:');
+  });
 });

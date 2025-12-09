@@ -271,4 +271,17 @@ describe('useTheme', () => {
     expect(result.current.theme).toBe('light');
     expect(document.documentElement.classList.contains('light')).toBe(true);
   });
+
+  it('returns system preference when localStorage throws an error', () => {
+    // Mock localStorage.getItem to throw an error
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('localStorage is not available');
+    });
+
+    const { result } = renderHook(() => useTheme());
+
+    // Should fall back to system preference when localStorage throws
+    expect(result.current.preference).toBe('system');
+    expect(result.current.isSystem).toBe(true);
+  });
 });

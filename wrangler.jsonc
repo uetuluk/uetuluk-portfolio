@@ -41,5 +41,37 @@
       "binding": "FEEDBACK",
       "dataset": "feedback"
     }
-  ]
+  ],
+  // Test environment - uses local Miniflare emulation
+  // Run tests with: npm run test (uses vitest with miniflare)
+  // Deploy to test: wrangler deploy --env test
+  "env": {
+    "test": {
+      "name": "uetuluk-portfolio-test",
+      "workers_dev": true,
+      // Use preview namespace for testing (local Miniflare will create in-memory)
+      "kv_namespaces": [
+        {
+          "binding": "UI_CACHE",
+          "id": "bf2c226b1a254f92a7980aa1cb1a1e73",
+          "preview_id": "test-ui-cache-preview"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "ASSETS",
+          "bucket_name": "portfolio-assets-test"
+        }
+      ],
+      "vars": {
+        // Create a separate AI Gateway in Cloudflare dashboard for testing
+        "AI_GATEWAY_ID": "personal-website-test"
+      },
+      "ai": {
+        "binding": "AI"
+      },
+      // No custom domain routes for test environment
+      "routes": []
+    }
+  }
 }

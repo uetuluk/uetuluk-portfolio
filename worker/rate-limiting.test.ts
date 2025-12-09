@@ -10,6 +10,7 @@ import {
   GENERATE_RATE_LIMIT_MAX,
   GENERATE_RATE_LIMIT_WINDOW_MS,
 } from "./index";
+import type { Env } from "./types";
 
 /**
  * Rate Limiting Tests
@@ -264,6 +265,56 @@ describe("Rate Limiting", () => {
 
     it("RATE_LIMIT_KEY_PREFIX is ratelimit:", () => {
       expect(RATE_LIMIT_KEY_PREFIX).toBe("ratelimit:");
+    });
+  });
+
+  describe("Rate Limiting without cache", () => {
+    it("checkGenerateRateLimit returns not limited when UI_CACHE is undefined", async () => {
+      const envWithoutCache = {
+        AI: {} as Ai,
+        AI_GATEWAY_ID: "test",
+      } as unknown as Env;
+
+      const result = await checkGenerateRateLimit("1.2.3.4", envWithoutCache);
+
+      expect(result.limited).toBe(false);
+      expect(result.retryAfter).toBe(0);
+    });
+
+    it("checkRateLimit returns not limited when UI_CACHE is undefined", async () => {
+      const envWithoutCache = {
+        AI: {} as Ai,
+        AI_GATEWAY_ID: "test",
+      } as unknown as Env;
+
+      const result = await checkRateLimit("test-key", envWithoutCache);
+
+      expect(result.limited).toBe(false);
+      expect(result.retryAfter).toBe(0);
+    });
+
+    it("updateRateLimit returns early when UI_CACHE is undefined", async () => {
+      const envWithoutCache = {
+        AI: {} as Ai,
+        AI_GATEWAY_ID: "test",
+      } as unknown as Env;
+
+      // Should not throw, just return early
+      await expect(
+        updateRateLimit("test-key", envWithoutCache)
+      ).resolves.toBeUndefined();
+    });
+
+    it("updateGenerateRateLimit returns early when UI_CACHE is undefined", async () => {
+      const envWithoutCache = {
+        AI: {} as Ai,
+        AI_GATEWAY_ID: "test",
+      } as unknown as Env;
+
+      // Should not throw, just return early
+      await expect(
+        updateGenerateRateLimit("1.2.3.4", envWithoutCache)
+      ).resolves.toBeUndefined();
     });
   });
 });

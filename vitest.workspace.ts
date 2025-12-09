@@ -22,13 +22,17 @@ export default defineWorkspace([
     },
   },
   // Cloudflare Worker tests (Workers runtime via Miniflare)
+  // Uses the "test" environment from wrangler.jsonc
   defineWorkersProject({
     test: {
       name: "worker",
       include: ["worker/**/*.{test,spec}.ts"],
       poolOptions: {
         workers: {
-          wrangler: { configPath: "./wrangler.jsonc" },
+          wrangler: {
+            configPath: "./wrangler.jsonc",
+            environment: "test",
+          },
           miniflare: {
             kvNamespaces: ["UI_CACHE"],
             r2Buckets: ["ASSETS"],
