@@ -141,10 +141,10 @@ describe('MosaicBackground', () => {
   });
 
   describe('animation wrapper', () => {
-    it('has blur effect for background aesthetics', () => {
+    it('has blur-sm effect for background aesthetics', () => {
       const { container } = render(<MosaicBackground />);
       const animationWrapper = container.querySelector('.animate-float-up');
-      expect(animationWrapper?.className).toContain('blur-sm');
+      expect(animationWrapper?.className).toContain('blur-xs');
     });
 
     it('has reduced opacity for subtle background', () => {
@@ -163,7 +163,7 @@ describe('MosaicBackground', () => {
   describe('rotation wrapper', () => {
     it('has rotation transform applied', () => {
       const { container } = render(<MosaicBackground />);
-      const rotationWrapper = container.querySelector('.rotate-\\[30deg\\]');
+      const rotationWrapper = container.querySelector('.rotate-30');
       expect(rotationWrapper).not.toBeNull();
     });
 

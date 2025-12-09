@@ -15,7 +15,7 @@ export function HeroSection({ title, subtitle, image, cta, className }: HeroSect
   return (
     <section className={cn('flex flex-col md:flex-row items-center gap-8 py-12', className)}>
       {image && (
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden bg-muted border-4 border-background shadow-xl">
             <img
               src={image}
@@ -32,7 +32,7 @@ export function HeroSection({ title, subtitle, image, cta, className }: HeroSect
       )}
 
       <div className="text-center md:text-left">
-        <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+        <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text">
           {title}
         </h1>
         <p className="text-xl text-muted-foreground mb-6">{subtitle}</p>

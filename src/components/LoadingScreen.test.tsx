@@ -153,7 +153,7 @@ describe('LoadingScreen', () => {
     it('has gradient background classes', () => {
       const { container } = render(<LoadingScreen visitorType="recruiter" />);
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv.className).toContain('bg-gradient-to-br');
+      expect(mainDiv.className).toContain('bg-linear-to-br');
     });
 
     it('is centered on the page', () => {

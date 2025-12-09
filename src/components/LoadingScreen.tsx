@@ -14,7 +14,7 @@ export function LoadingScreen({ visitorType }: LoadingScreenProps) {
     : [];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background to-muted">
       <div className="text-center max-w-md mx-auto px-4">
         {/* Animated logo/spinner */}
         <div className="mb-8">
