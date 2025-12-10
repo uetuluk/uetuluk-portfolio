@@ -59,7 +59,9 @@ export default class WranglerWorkerProvider implements IProvider {
       // Get platform proxy for Cloudflare bindings
       if (!this.platformProxy) {
         const { getPlatformProxy } = await import('wrangler');
-        this.platformProxy = (await getPlatformProxy()) as PlatformProxy;
+        this.platformProxy = (await getPlatformProxy({
+          environment: 'test',  // Use env.test from wrangler.jsonc
+        })) as PlatformProxy;
       }
 
       const { env } = this.platformProxy;
@@ -82,7 +84,7 @@ export default class WranglerWorkerProvider implements IProvider {
       // Create environment object
       const workerEnv: Env = {
         AI: env.AI,
-        AI_GATEWAY_ID: 'personal-website-test',
+        AI_GATEWAY_ID: env.AI_GATEWAY_ID,  // Use value from wrangler.jsonc env.test
         UI_CACHE: env.KV as KVNamespace, // Optional - may be undefined
         ASSETS: undefined as any, // Not needed for API routes
         FEEDBACK: undefined as any, // Not needed for prompt tests
