@@ -44,7 +44,7 @@ export function loadTestsFromYaml(testsPath: string): any[] {
  */
 export async function runEvaluation(
   config: EvalConfig,
-  promptfooModule: typeof promptfoo
+  promptfooModule: typeof promptfoo,
 ): Promise<any> {
   console.log(`🔄 Running ${config.name} evaluation...\n`);
 
@@ -62,7 +62,7 @@ export async function runEvaluation(
     {
       maxConcurrency: config.maxConcurrency || 2,
       showProgressBar: true,
-    }
+    },
   );
 
   return results;

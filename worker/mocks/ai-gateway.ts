@@ -5,11 +5,7 @@
  * responses for testing categorization and layout generation code paths.
  */
 
-import type {
-  AIGatewayResponse,
-  CategorizationResult,
-  GeneratedLayout,
-} from "../types";
+import type { AIGatewayResponse, CategorizationResult, GeneratedLayout } from '../types';
 
 /**
  * Configuration for creating a mock AI Gateway
@@ -43,13 +39,7 @@ export interface MockAIConfig {
  * ```
  */
 export function createMockAI(config: MockAIConfig = {}): Ai {
-  const {
-    ok = true,
-    status = 200,
-    response,
-    responseText,
-    throwError,
-  } = config;
+  const { ok = true, status = 200, response, responseText, throwError } = config;
 
   return {
     gateway: (_gatewayId: string) => ({
@@ -62,8 +52,7 @@ export function createMockAI(config: MockAIConfig = {}): Ai {
           ok,
           status,
           json: async () => response,
-          text: async () =>
-            responseText ?? (response ? JSON.stringify(response) : ""),
+          text: async () => responseText ?? (response ? JSON.stringify(response) : ''),
         } as Response;
       },
     }),
@@ -172,7 +161,7 @@ export function createMockInvalidJsonAI(): Ai {
   return createMockAI({
     ok: true,
     status: 200,
-    response: createAIResponse("{ invalid json }"),
+    response: createAIResponse('{ invalid json }'),
   });
 }
 
@@ -202,9 +191,9 @@ export function createMockInvalidLayoutAI(): Ai {
     status: 200,
     response: createAIResponse(
       JSON.stringify({
-        theme: { accent: "blue" },
+        theme: { accent: 'blue' },
         // Missing 'layout' and 'sections' fields
-      })
+      }),
     ),
   });
 }
@@ -220,7 +209,7 @@ export function createMockInvalidLayoutAI(): Ai {
 export function createEnvWithMockAI<T extends { AI?: Ai; AI_GATEWAY_ID?: string }>(
   baseEnv: T,
   mockAI: Ai,
-  gatewayId: string = "test-gateway"
+  gatewayId: string = 'test-gateway',
 ): T & { AI: Ai; AI_GATEWAY_ID: string } {
   return {
     ...baseEnv,

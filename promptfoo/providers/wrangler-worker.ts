@@ -6,7 +6,6 @@ import type {
   WorkerModule,
 } from '../types/provider';
 import type { Env, GenerateRequest } from '../../worker/types';
-import { KVNamespace } from '@cloudflare/workers-types/experimental/index.js';
 
 // Declare module for CJS compatibility
 declare const module: any;
@@ -164,7 +163,7 @@ class WranglerWorkerProviderCategorization extends WranglerWorkerProvider {
     return 'wrangler-worker-categorization';
   }
 
-  async callApi(prompt: string, context: ProviderContext): Promise<ProviderResponse> {
+  async callApi(_prompt: string, context: ProviderContext): Promise<ProviderResponse> {
     try {
       // Lazy load the worker module to get categorizeIntent function
       if (!this.workerModule) {
