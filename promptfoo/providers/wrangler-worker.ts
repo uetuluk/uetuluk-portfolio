@@ -36,8 +36,8 @@ const DUMMY_PORTFOLIO = {
  * This provides true integration testing of the production code path
  */
 export default class WranglerWorkerProvider implements IProvider {
-  private workerModule: WorkerModule | null = null;
-  private platformProxy: PlatformProxy | null = null;
+  protected workerModule: WorkerModule | null = null;
+  protected platformProxy: PlatformProxy | null = null;
 
   /**
    * Provider identifier
@@ -60,15 +60,16 @@ export default class WranglerWorkerProvider implements IProvider {
       if (!this.platformProxy) {
         const { getPlatformProxy } = await import('wrangler');
         this.platformProxy = (await getPlatformProxy({
-          environment: 'test',  // Use env.test from wrangler.jsonc
+          environment: 'test', // Use env.test from wrangler.jsonc
         })) as PlatformProxy;
       }
 
       const { env } = this.platformProxy;
 
       // Build request to /api/generate
+      // For categorization-only tests, visitorTag might not be provided
       const requestBody: GenerateRequest = {
-        visitorTag: context.vars?.visitorTag || 'friend',
+        visitorTag: (context.vars?.visitorTag as string) || 'friend',
         customIntent: context.vars?.customIntent,
         portfolioContent: context.vars?.portfolioContent || DUMMY_PORTFOLIO,
       };
@@ -84,7 +85,7 @@ export default class WranglerWorkerProvider implements IProvider {
       // Create environment object
       const workerEnv: Env = {
         AI: env.AI,
-        AI_GATEWAY_ID: env.AI_GATEWAY_ID,  // Use value from wrangler.jsonc env.test
+        AI_GATEWAY_ID: env.AI_GATEWAY_ID, // Use value from wrangler.jsonc env.test
         UI_CACHE: env.KV as KVNamespace, // Optional - may be undefined
         ASSETS: undefined as any, // Not needed for API routes
         FEEDBACK: undefined as any, // Not needed for prompt tests
@@ -101,22 +102,10 @@ export default class WranglerWorkerProvider implements IProvider {
 
       const data = (await response.json()) as any;
 
-      // Extract appropriate field based on what's present
-      let output: any;
-      if (data._categorization) {
-        // For categorization tests, return just the _categorization field
-        // This matches what the test assertions expect
-        output = data._categorization;
-      } else if (data.layout) {
-        // For layout tests, return the complete layout object
-        output = data;
-      } else {
-        // Fallback - return whole response
-        output = data;
-      }
-
+      // Base provider returns raw worker response
+      // Specialized subclasses will extract what they need
       return {
-        output: JSON.stringify(output),
+        output: JSON.stringify(data),
         tokenUsage: {
           total: data._tokenUsage?.total || 0,
           prompt: data._tokenUsage?.prompt || 0,
@@ -143,7 +132,91 @@ export default class WranglerWorkerProvider implements IProvider {
   }
 }
 
+/**
+ * Layout-specific provider - always returns full layout object
+ * Used by layout generation tests
+ */
+class WranglerWorkerProviderLayout extends WranglerWorkerProvider {
+  id(): string {
+    return 'wrangler-worker-layout';
+  }
+
+  async callApi(prompt: string, context: ProviderContext): Promise<ProviderResponse> {
+    const response = await super.callApi(prompt, context);
+
+    // Parse and ensure we return the full layout object
+    const data = JSON.parse(response.output);
+    if (data.layout) {
+      // Layout test: return full object (includes _categorization as metadata)
+      return response;
+    }
+
+    throw new Error('Expected layout object but got: ' + response.output);
+  }
+}
+
+/**
+ * Categorization-specific provider - calls categorizeIntent() directly
+ * Used by intent categorization tests
+ */
+class WranglerWorkerProviderCategorization extends WranglerWorkerProvider {
+  id(): string {
+    return 'wrangler-worker-categorization';
+  }
+
+  async callApi(prompt: string, context: ProviderContext): Promise<ProviderResponse> {
+    try {
+      // Lazy load the worker module to get categorizeIntent function
+      if (!this.workerModule) {
+        this.workerModule = (await import('../../worker/index.js')) as WorkerModule;
+      }
+
+      // Get platform proxy for Cloudflare bindings
+      if (!this.platformProxy) {
+        const { getPlatformProxy } = await import('wrangler');
+        this.platformProxy = (await getPlatformProxy({
+          environment: 'test',
+        })) as PlatformProxy;
+      }
+
+      const { env } = this.platformProxy;
+      const workerEnv: Env = {
+        AI: env.AI,
+        AI_GATEWAY_ID: env.AI_GATEWAY_ID,
+        UI_CACHE: env.KV as KVNamespace,
+        ASSETS: undefined as any,
+        FEEDBACK: undefined as any,
+      };
+
+      // Call categorizeIntent directly
+      const customIntent = context.vars?.customIntent || '';
+      const { categorizeIntent } = this.workerModule;
+      const result = await categorizeIntent(customIntent, workerEnv);
+
+      return {
+        output: JSON.stringify(result),
+        tokenUsage: {
+          total: 0,
+          prompt: 0,
+          completion: 0,
+        },
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        error: `Categorization error: ${errorMessage}`,
+        output: '',
+      };
+    }
+  }
+}
+
+// ES module exports
+export { WranglerWorkerProviderLayout, WranglerWorkerProviderCategorization };
+
 // CJS compatibility for promptfoo
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = WranglerWorkerProvider;
+  module.exports.WranglerWorkerProviderLayout = WranglerWorkerProviderLayout;
+  module.exports.WranglerWorkerProviderCategorization = WranglerWorkerProviderCategorization;
 }

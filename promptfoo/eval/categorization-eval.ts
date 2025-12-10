@@ -1,11 +1,11 @@
 import promptfoo from 'promptfoo';
-import WranglerWorkerProvider from '../providers/wrangler-worker';
+import WranglerWorkerProviderCategorization from '../providers/wrangler-worker-categorization';
 import { runEvaluation, displayResults, saveResults, exitWithCode } from '../utils/base-eval';
 
 async function main() {
   console.log('🚀 Starting Categorization Evaluation\n');
 
-  const provider = new WranglerWorkerProvider();
+  const provider = new WranglerWorkerProviderCategorization();
 
   try {
     const results = await runEvaluation(
