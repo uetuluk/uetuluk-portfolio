@@ -3,15 +3,22 @@
 
 description: "Portfolio AI - Intent Categorization and Layout Generation Tests"
 
-# Provider configuration - uses the same model as production (Qwen via OpenRouter)
+# Provider configuration - uses Wrangler Worker (integration test)
 providers:
-  - id: openrouter:qwen/qwen3-coder-flash
+  - id: file://promptfoo/providers/wrangler-worker.js
     config:
       temperature: 0.3
       max_tokens: 500
 
+# Note: Prompts are now embedded in the worker, not used directly
 prompts:
-  - file://promptfoo/prompts/categorization-system.txt
+  - "Categorization via worker"
+
+# Default variables for all tests
+defaultTest:
+  vars:
+    visitorTag: "friend"  # Default tag for categorization tests
+    portfolioContent: {}   # Minimal portfolio content
 
 tests:
   # ==========================================

@@ -38,5 +38,10 @@ coverage/
 /playwright/.cache/
 
 # Promptfoo
-promptfoo/output/*
+promptfoo/output/
 !promptfoo/output/.gitkeep
+
+# Promptfoo TypeScript outputs
+promptfoo/**/*.js
+promptfoo/**/*.js.map
+!promptfoo/output/**
