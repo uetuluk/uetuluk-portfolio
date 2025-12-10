@@ -1,4 +1,4 @@
-import type { Env } from '../../worker/types';
+import type { Env, CategorizationResult } from '../../worker/types';
 
 /**
  * Promptfoo provider response type
@@ -43,9 +43,9 @@ export interface PlatformProxy {
  */
 export interface WorkerModule {
   default: {
-    fetch: (request: Request, env: Env) => Promise<Response>;
-    categorizeIntent: (intent: string, env: Env) => Promise<Response>;
+    fetch: (request: Request, env: Env, _ctx?: ExecutionContext) => Promise<Response>;
   };
+  categorizeIntent: (customIntent: string, env: Env) => Promise<CategorizationResult>;
 }
 
 /**

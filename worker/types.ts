@@ -68,7 +68,7 @@ export interface PortfolioContent {
 }
 
 export interface GeneratedLayout {
-  layout: "single-column" | "two-column" | "hero-focused";
+  layout: 'single-column' | 'two-column' | 'hero-focused';
   theme: { accent: string };
   sections: Array<{
     type: string;
@@ -88,7 +88,7 @@ export interface AIGatewayResponse {
 }
 
 export interface CategorizationResult {
-  status: "matched" | "new_tag" | "rejected";
+  status: 'matched' | 'new_tag' | 'rejected';
   tagName: string;
   displayName: string;
   guidelines: string;
@@ -107,7 +107,7 @@ export interface StoredTag {
 
 // Feedback types for like/dislike functionality
 export interface FeedbackRequest {
-  feedbackType: "like" | "dislike";
+  feedbackType: 'like' | 'dislike';
   audienceType: string;
   cacheKey: string;
   sessionId: string;
@@ -137,13 +137,13 @@ export interface VisitorContext {
     isEUCountry: boolean;
   };
   device: {
-    type: "mobile" | "tablet" | "desktop";
+    type: 'mobile' | 'tablet' | 'desktop';
     browser?: string; // e.g., "Chrome", "Safari"
     os?: string; // e.g., "iOS", "macOS"
   };
   time: {
     localHour: number; // 0-23
-    timeOfDay: "morning" | "afternoon" | "evening" | "night";
+    timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
     isWeekend: boolean;
   };
   network: {
@@ -154,6 +154,6 @@ export interface VisitorContext {
 
 // UI hints derived from visitor context
 export interface UIHints {
-  suggestedTheme: "light" | "dark" | "system";
+  suggestedTheme: 'light' | 'dark' | 'system';
   preferCompactLayout: boolean;
 }

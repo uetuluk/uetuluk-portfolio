@@ -1,6 +1,6 @@
-import type { PortfolioContent, VisitorContext } from "./types";
+import type { PortfolioContent, VisitorContext } from './types';
 
-export const ALLOWED_VISITOR_TAGS = ["recruiter", "developer", "collaborator", "friend"];
+export const ALLOWED_VISITOR_TAGS = ['recruiter', 'developer', 'collaborator', 'friend'];
 const MAX_CUSTOM_INTENT_LENGTH = 200;
 
 // Extracted guidelines for reuse in categorization
@@ -69,7 +69,7 @@ export function buildCategorizationUserPrompt(customIntent: string): string {
   // Sanitize and truncate the intent
   const sanitized = customIntent
     .slice(0, MAX_CUSTOM_INTENT_LENGTH)
-    .replace(/[<>{}[\]]/g, "") // Remove potential injection characters
+    .replace(/[<>{}[\]]/g, '') // Remove potential injection characters
     .trim();
 
   return `Analyze this visitor intent: "${sanitized}"`;
@@ -78,24 +78,24 @@ export function buildCategorizationUserPrompt(customIntent: string): string {
 export function buildSystemPrompt(
   portfolioContent: PortfolioContent,
   customGuidelines?: { tagName: string; guidelines: string },
-  visitorContext?: VisitorContext
+  visitorContext?: VisitorContext,
 ): string {
   const { personal, projects, experience, skills, education, hobbies, photos } = portfolioContent;
 
   const projectsList = projects
     .map(
       (p) =>
-        `- ${p.id}: "${p.title}" - ${p.description} [${p.tags.join(", ")}]${p.featured ? " (FEATURED)" : ""}`
+        `- ${p.id}: "${p.title}" - ${p.description} [${p.tags.join(', ')}]${p.featured ? ' (FEATURED)' : ''}`,
     )
-    .join("\n");
+    .join('\n');
 
   const experienceList = experience
     .map((e) => `- ${e.id}: ${e.role} at ${e.company} (${e.period})`)
-    .join("\n");
+    .join('\n');
 
   const educationList = education
     .map((e) => `- ${e.id}: ${e.degree} from ${e.institution} (${e.period})`)
-    .join("\n");
+    .join('\n');
 
   // Build personalization guidelines section
   let personalizationSection = `Visitor personalization guidelines:
@@ -110,18 +110,16 @@ export function buildSystemPrompt(
   }
 
   // Build visitor context section for subtle personalization
-  let visitorContextSection = "";
+  let visitorContextSection = '';
   if (visitorContext) {
     const deviceInfo = visitorContext.device.os
       ? `${visitorContext.device.type} (${visitorContext.device.os})`
       : visitorContext.device.type;
-    const timeInfo = `${visitorContext.time.timeOfDay} (${visitorContext.time.localHour}:00)${visitorContext.time.isWeekend ? " - Weekend" : ""}`;
-    const regionInfo = [
-      visitorContext.geo.city,
-      visitorContext.geo.region || visitorContext.geo.country,
-    ]
-      .filter(Boolean)
-      .join(", ") || "Unknown";
+    const timeInfo = `${visitorContext.time.timeOfDay} (${visitorContext.time.localHour}:00)${visitorContext.time.isWeekend ? ' - Weekend' : ''}`;
+    const regionInfo =
+      [visitorContext.geo.city, visitorContext.geo.region || visitorContext.geo.country]
+        .filter(Boolean)
+        .join(', ') || 'Unknown';
 
     visitorContextSection = `
 === VISITOR CONTEXT (use subtly, do NOT explicitly mention) ===
@@ -168,8 +166,8 @@ Personal Information:
 - Name: ${personal.name}
 - Title: ${personal.title}
 - Bio: ${personal.bio}
-- Location: ${personal.location || "Not specified"}
-- Resume URL: ${personal.resumeUrl || "Not available"}
+- Location: ${personal.location || 'Not specified'}
+- Resume URL: ${personal.resumeUrl || 'Not available'}
 - Profile Image: "/assets/profile.png"
 
 Contact:
@@ -191,7 +189,7 @@ ${educationList}
 Hobbies: ${JSON.stringify(hobbies || [])}
 
 Photos (use these paths in ImageGallery):
-${photos?.map((p) => `- ${p.path}: ${p.description}`).join("\n") || "No photos available"}
+${photos?.map((p) => `- ${p.path}: ${p.description}`).join('\n') || 'No photos available'}
 === END PORTFOLIO CONTENT ===
 
 ${personalizationSection}
@@ -206,7 +204,7 @@ Rules:
 export function buildUserPrompt(
   visitorTag: string,
   customIntent: string | undefined,
-  visitorContext?: VisitorContext
+  visitorContext?: VisitorContext,
 ): string {
   // Use the tag as-is (it's already validated/categorized)
   const displayTag = visitorTag.toUpperCase();
@@ -223,21 +221,18 @@ export function buildUserPrompt(
   if (visitorContext) {
     const hints: string[] = [];
 
-    if (visitorContext.device.type === "mobile") {
-      hints.push("on mobile device");
+    if (visitorContext.device.type === 'mobile') {
+      hints.push('on mobile device');
     }
-    if (
-      visitorContext.time.timeOfDay === "evening" ||
-      visitorContext.time.timeOfDay === "night"
-    ) {
-      hints.push("browsing during evening hours");
+    if (visitorContext.time.timeOfDay === 'evening' || visitorContext.time.timeOfDay === 'night') {
+      hints.push('browsing during evening hours');
     }
     if (visitorContext.time.isWeekend) {
-      hints.push("visiting on a weekend");
+      hints.push('visiting on a weekend');
     }
 
     if (hints.length > 0) {
-      prompt += `\nContext: Visitor is ${hints.join(", ")}.`;
+      prompt += `\nContext: Visitor is ${hints.join(', ')}.`;
     }
   }
 

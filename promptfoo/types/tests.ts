@@ -28,7 +28,14 @@ export interface LayoutTestResult {
     accent: 'blue' | 'green' | 'purple' | 'orange' | 'pink';
   };
   sections: Array<{
-    type: 'Hero' | 'CardGrid' | 'SkillBadges' | 'Timeline' | 'ContactForm' | 'TextBlock' | 'ImageGallery';
+    type:
+      | 'Hero'
+      | 'CardGrid'
+      | 'SkillBadges'
+      | 'Timeline'
+      | 'ContactForm'
+      | 'TextBlock'
+      | 'ImageGallery';
     props: Record<string, any>;
   }>;
 }
