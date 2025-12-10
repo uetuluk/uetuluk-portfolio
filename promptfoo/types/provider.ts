@@ -33,6 +33,7 @@ export interface PlatformProxy {
   env: {
     AI: Ai;
     KV?: KVNamespace;
+    AI_GATEWAY_ID: string;
   };
   dispose: () => Promise<void>;
 }
@@ -43,6 +44,7 @@ export interface PlatformProxy {
 export interface WorkerModule {
   default: {
     fetch: (request: Request, env: Env) => Promise<Response>;
+    categorizeIntent: (intent: string, env: Env) => Promise<Response>;
   };
 }
 

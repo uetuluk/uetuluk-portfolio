@@ -1,16 +1,11 @@
 import promptfoo from 'promptfoo';
-import WranglerWorkerProvider from '../providers/wrangler-worker';
-import {
-  runEvaluation,
-  displayResults,
-  saveResults,
-  exitWithCode,
-} from '../utils/base-eval';
+import WranglerWorkerProviderLayout from '../providers/wrangler-worker-layout';
+import { runEvaluation, displayResults, saveResults, exitWithCode } from '../utils/base-eval';
 
 async function main() {
   console.log('🚀 Starting Layout Evaluation\n');
 
-  const provider = new WranglerWorkerProvider();
+  const provider = new WranglerWorkerProviderLayout();
 
   try {
     const results = await runEvaluation(
@@ -25,7 +20,7 @@ async function main() {
         outputPath: 'promptfoo/output/layout/results.json',
         maxConcurrency: 2,
       },
-      promptfoo
+      promptfoo,
     );
 
     displayResults(results);
