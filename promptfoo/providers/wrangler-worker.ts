@@ -106,8 +106,8 @@ export default class WranglerWorkerProvider implements IProvider {
         // This matches what the test assertions expect
         output = data._categorization;
       } else if (data.layout) {
-        // For layout tests, return just the layout field
-        output = data.layout;
+        // For layout tests, return the complete layout object
+        output = data;
       } else {
         // Fallback - return whole response
         output = data;
