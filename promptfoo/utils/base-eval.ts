@@ -4,10 +4,36 @@ import * as yaml from 'yaml';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import type promptfoo from 'promptfoo';
+import type { ProviderContext, ProviderResponse } from '../types/provider';
 
 // ESM compatibility: Get __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+/**
+ * Table row structure for evaluation results
+ */
+interface TableRow {
+  outputs?: Array<{
+    pass?: boolean;
+  }>;
+}
+
+/**
+ * Evaluation result structure (simplified from promptfoo's Eval class)
+ * Uses index signature to handle dynamic promptfoo response structure
+ */
+interface EvalResults {
+  results?: {
+    table?: {
+      body?: TableRow[];
+    };
+  };
+  table?: {
+    body?: TableRow[];
+  };
+  [key: string]: unknown;
+}
 
 /**
  * Evaluation configuration
@@ -15,9 +41,9 @@ const __dirname = dirname(__filename);
 export interface EvalConfig {
   name: string;
   testsPath?: string;
-  tests?: any[];
+  tests?: unknown[];
   promptTemplate: string;
-  provider: (prompt: string, context?: any) => Promise<any>;
+  provider: (prompt: string, context?: ProviderContext) => Promise<ProviderResponse>;
   resultsFilename: string;
   maxConcurrency?: number;
   outputPath?: string;
@@ -27,7 +53,7 @@ export interface EvalConfig {
 /**
  * Load test cases from YAML file
  */
-export function loadTestsFromYaml(testsPath: string): any[] {
+export function loadTestsFromYaml(testsPath: string): unknown[] {
   const fullPath = path.resolve(__dirname, '..', testsPath);
   const testsContent = fs.readFileSync(fullPath, 'utf8');
   const parsed = yaml.parse(testsContent);
@@ -45,33 +71,35 @@ export function loadTestsFromYaml(testsPath: string): any[] {
 export async function runEvaluation(
   config: EvalConfig,
   promptfooModule: typeof promptfoo,
-): Promise<any> {
+): Promise<EvalResults> {
   console.log(`🔄 Running ${config.name} evaluation...\n`);
 
   const tests = config.tests || loadTestsFromYaml(config.testsPath!);
 
-  const results = await promptfooModule.evaluate(
-    {
-      prompts: [config.promptTemplate],
-      providers: [config.provider],
-      tests,
-      writeLatestResults: config.writeLatestResults ?? true,
-      outputPath: config.outputPath || path.join(__dirname, '..', 'output', 'latest.json'),
-      description: config.name,
-    },
-    {
-      maxConcurrency: config.maxConcurrency || 2,
-      showProgressBar: true,
-    },
-  );
+  // Cast to promptfoo's expected types at the API boundary
+  // Our internal types are simpler but compatible at runtime
+  type EvaluateTestSuite = Parameters<typeof promptfooModule.evaluate>[0];
+  const evalConfig = {
+    prompts: [config.promptTemplate],
+    providers: [config.provider],
+    tests,
+    writeLatestResults: config.writeLatestResults ?? true,
+    outputPath: config.outputPath || path.join(__dirname, '..', 'output', 'latest.json'),
+    description: config.name,
+  } as unknown as EvaluateTestSuite;
 
-  return results;
+  const results = await promptfooModule.evaluate(evalConfig, {
+    maxConcurrency: config.maxConcurrency || 2,
+    showProgressBar: true,
+  });
+
+  return results as unknown as EvalResults;
 }
 
 /**
  * Display evaluation results
  */
-export function displayResults(results: any): void {
+export function displayResults(results: EvalResults): void {
   console.log('\n✅ Evaluation complete!\n');
   console.log('📊 Results Summary:');
 
@@ -86,18 +114,22 @@ export function displayResults(results: any): void {
 /**
  * Calculate test statistics
  */
-export function calculateStats(results: any) {
+export function calculateStats(results: EvalResults) {
+  // Navigate the results structure to find the table data
   const resultsData = results.results || results;
-  const table = resultsData.table || resultsData;
+  const tableData = resultsData.table;
 
-  if (!table || !Array.isArray(table.body)) {
+  // Get body from table if it exists
+  const body = tableData?.body;
+
+  if (!body || !Array.isArray(body)) {
     return { passed: 0, failed: 0, total: 0, successRate: 0 };
   }
 
   let passed = 0;
   let failed = 0;
 
-  for (const row of table.body) {
+  for (const row of body) {
     const outputs = row.outputs || [];
     for (const output of outputs) {
       if (output.pass) {
@@ -117,7 +149,7 @@ export function calculateStats(results: any) {
 /**
  * Save evaluation results to file
  */
-export function saveResults(results: any, filename: string): void {
+export function saveResults(results: EvalResults, filename: string): void {
   const outputPath = path.join(__dirname, '..', 'output', filename);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
@@ -129,7 +161,7 @@ export function saveResults(results: any, filename: string): void {
 /**
  * Exit with appropriate code
  */
-export function exitWithCode(results: any): void {
+export function exitWithCode(results: EvalResults): void {
   const stats = calculateStats(results);
   process.exit(stats.failed > 0 ? 1 : 0);
 }

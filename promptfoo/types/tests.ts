@@ -1,10 +1,12 @@
+import type { PortfolioContent } from '../../worker/types';
+
 /**
  * Test variable configuration
  */
 export interface TestVars {
   visitorTag?: 'RECRUITER' | 'DEVELOPER' | 'COLLABORATOR' | 'FRIEND' | string;
   customIntent?: string;
-  portfolioContent?: any;
+  portfolioContent?: PortfolioContent;
 }
 
 /**
@@ -36,6 +38,6 @@ export interface LayoutTestResult {
       | 'ContactForm'
       | 'TextBlock'
       | 'ImageGallery';
-    props: Record<string, any>;
+    props: Record<string, unknown>;
   }>;
 }

@@ -8,7 +8,11 @@ import type {
 import type { Env, GenerateRequest } from '../../worker/types';
 
 // Declare module for CJS compatibility
-declare const module: any;
+declare const module:
+  | {
+      exports: Record<string, unknown>;
+    }
+  | undefined;
 
 // Minimal portfolio content for testing
 const DUMMY_PORTFOLIO = {
@@ -86,8 +90,8 @@ export default class WranglerWorkerProvider implements IProvider {
         AI: env.AI,
         AI_GATEWAY_ID: env.AI_GATEWAY_ID, // Use value from wrangler.jsonc env.test
         UI_CACHE: env.KV as KVNamespace, // Optional - may be undefined
-        ASSETS: undefined as any, // Not needed for API routes
-        FEEDBACK: undefined as any, // Not needed for prompt tests
+        ASSETS: undefined as unknown as R2Bucket, // Not needed for API routes
+        FEEDBACK: undefined as unknown as AnalyticsEngineDataset, // Not needed for prompt tests
       };
 
       // Invoke worker
@@ -99,7 +103,10 @@ export default class WranglerWorkerProvider implements IProvider {
         throw new Error(`Worker returned ${response.status}: ${errorText}`);
       }
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as Record<string, unknown> & {
+        _tokenUsage?: { total?: number; prompt?: number; completion?: number };
+        layout?: unknown;
+      };
 
       // Base provider returns raw worker response
       // Specialized subclasses will extract what they need
@@ -183,8 +190,8 @@ class WranglerWorkerProviderCategorization extends WranglerWorkerProvider {
         AI: env.AI,
         AI_GATEWAY_ID: env.AI_GATEWAY_ID,
         UI_CACHE: env.KV as KVNamespace,
-        ASSETS: undefined as any,
-        FEEDBACK: undefined as any,
+        ASSETS: undefined as unknown as R2Bucket,
+        FEEDBACK: undefined as unknown as AnalyticsEngineDataset,
       };
 
       // Call categorizeIntent directly
@@ -214,8 +221,10 @@ class WranglerWorkerProviderCategorization extends WranglerWorkerProvider {
 export { WranglerWorkerProviderLayout, WranglerWorkerProviderCategorization };
 
 // CJS compatibility for promptfoo
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = WranglerWorkerProvider;
-  module.exports.WranglerWorkerProviderLayout = WranglerWorkerProviderLayout;
-  module.exports.WranglerWorkerProviderCategorization = WranglerWorkerProviderCategorization;
+if (typeof module !== 'undefined' && module?.exports) {
+  (module.exports as Record<string, unknown>)['default'] = WranglerWorkerProvider;
+  (module.exports as Record<string, unknown>)['WranglerWorkerProviderLayout'] =
+    WranglerWorkerProviderLayout;
+  (module.exports as Record<string, unknown>)['WranglerWorkerProviderCategorization'] =
+    WranglerWorkerProviderCategorization;
 }

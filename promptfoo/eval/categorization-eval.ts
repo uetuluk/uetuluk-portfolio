@@ -1,6 +1,7 @@
 import promptfoo from 'promptfoo';
 import WranglerWorkerProviderCategorization from '../providers/wrangler-worker-categorization';
 import { runEvaluation, displayResults, saveResults, exitWithCode } from '../utils/base-eval';
+import type { ProviderContext } from '../types/provider';
 
 async function main() {
   console.log('🚀 Starting Categorization Evaluation\n');
@@ -13,8 +14,8 @@ async function main() {
         name: 'Intent Categorization',
         testsPath: 'promptfooconfig.eval.yaml',
         promptTemplate: 'Categorization via worker',
-        provider: async (prompt: string, context?: any) => {
-          return await provider.callApi(prompt, context);
+        provider: async (prompt: string, context?: ProviderContext) => {
+          return await provider.callApi(prompt, context ?? {});
         },
         resultsFilename: 'categorization-results.json',
         outputPath: 'promptfoo/output/categorization/results.json',

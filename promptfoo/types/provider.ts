@@ -1,4 +1,4 @@
-import type { Env, CategorizationResult } from '../../worker/types';
+import type { Env, CategorizationResult, PortfolioContent } from '../../worker/types';
 
 /**
  * Promptfoo provider response type
@@ -10,7 +10,7 @@ export interface ProviderResponse {
     prompt: number;
     completion: number;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: string;
 }
 
@@ -21,7 +21,7 @@ export interface ProviderContext {
   vars?: {
     visitorTag?: string;
     customIntent?: string;
-    portfolioContent?: any;
+    portfolioContent?: PortfolioContent;
   };
   prompt?: string;
 }
