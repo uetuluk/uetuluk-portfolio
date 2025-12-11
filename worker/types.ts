@@ -176,3 +176,62 @@ export interface GitHubActivityResponse {
   totalCommits: number;
   recentActivity: number; // commits in last 30 days
 }
+
+// Weather API types (Open-Meteo)
+export type WeatherMetric = 'temperature' | 'humidity' | 'precipitation' | 'wind';
+
+export interface WeatherDataPoint {
+  time: string;
+  value: number;
+}
+
+export interface WeatherResponse {
+  data: WeatherDataPoint[];
+  unit: string;
+  metric: WeatherMetric;
+  location: {
+    lat: number;
+    lon: number;
+  };
+}
+
+// Open-Meteo API response structure
+export interface OpenMeteoResponse {
+  latitude: number;
+  longitude: number;
+  hourly: {
+    time: string[];
+    temperature_2m?: number[];
+    relative_humidity_2m?: number[];
+    precipitation?: number[];
+    wind_speed_10m?: number[];
+  };
+  hourly_units: {
+    temperature_2m?: string;
+    relative_humidity_2m?: string;
+    precipitation?: string;
+    wind_speed_10m?: string;
+  };
+}
+
+// Geocoding API types (Open-Meteo)
+export interface GeocodingResult {
+  lat: number;
+  lon: number;
+  name: string;
+  country: string;
+  timezone: string;
+}
+
+export interface OpenMeteoGeocodingResponse {
+  results?: Array<{
+    id: number;
+    name: string;
+    latitude: number;
+    longitude: number;
+    country: string;
+    timezone: string;
+    country_code: string;
+    admin1?: string;
+  }>;
+}

@@ -43,7 +43,7 @@ tests:
       - type: javascript
         value: |
           const result = JSON.parse(output);
-          const validComponents = ['Hero', 'CardGrid', 'SkillBadges', 'Timeline', 'ContactForm', 'TextBlock', 'ImageGallery'];
+          const validComponents = ['Hero', 'CardGrid', 'SkillBadges', 'Timeline', 'ContactForm', 'TextBlock', 'ImageGallery', 'StatsCounter', 'TechLogos', 'DataChart'];
           return result.sections.every(s => validComponents.includes(s.type));
 
   - description: 'Recruiter layout includes Hero and professional sections'
@@ -250,6 +250,134 @@ tests:
         value: |
           const result = JSON.parse(output);
           return !!(result.layout && result.theme && result.sections);
+
+  # ==========================================
+  # DataChart COMPONENT TESTS
+  # ==========================================
+
+  - description: 'DataChart uses valid chart types'
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: 'Show me github activity charts'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validTypes = ['area', 'bar', 'line', 'pie', 'radar', 'radial'];
+          const dataCharts = result.sections.filter(s => s.type === 'DataChart');
+          if (dataCharts.length === 0) return true;
+          return dataCharts.every(dc =>
+            dc.props?.charts?.every(c => validTypes.includes(c.type))
+          );
+
+  - description: 'DataChart uses valid data sources'
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validSources = ['github', 'weather'];
+          const dataCharts = result.sections.filter(s => s.type === 'DataChart');
+          if (dataCharts.length === 0) return true;
+          return dataCharts.every(dc =>
+            dc.props?.charts?.every(c => validSources.includes(c.source))
+          );
+
+  - description: 'DataChart uses valid aggregation options'
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validAggregations = ['hourly', 'daily', 'weekly', 'monthly', 'byDayOfWeek'];
+          const dataCharts = result.sections.filter(s => s.type === 'DataChart');
+          if (dataCharts.length === 0) return true;
+          return dataCharts.every(dc =>
+            dc.props?.charts?.every(c =>
+              !c.aggregation || validAggregations.includes(c.aggregation)
+            )
+          );
+
+  - description: 'Weather DataChart has valid metrics'
+    vars:
+      visitorTag: FRIEND
+      customIntent: 'Show local weather'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validMetrics = ['temperature', 'humidity', 'precipitation', 'wind'];
+          const dataCharts = result.sections.filter(s => s.type === 'DataChart');
+          if (dataCharts.length === 0) return true;
+          return dataCharts.every(dc =>
+            dc.props?.charts?.every(c =>
+              c.source !== 'weather' || !c.weatherMetric || validMetrics.includes(c.weatherMetric)
+            )
+          );
+
+  # ==========================================
+  # StatsCounter COMPONENT TESTS
+  # ==========================================
+
+  - description: 'StatsCounter has valid stats structure'
+    vars:
+      visitorTag: RECRUITER
+      customIntent: 'Show key metrics'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const statsCounters = result.sections.filter(s => s.type === 'StatsCounter');
+          if (statsCounters.length === 0) return true;
+          return statsCounters.every(sc =>
+            Array.isArray(sc.props?.stats) &&
+            sc.props.stats.every(s => typeof s.label === 'string' && typeof s.value === 'number')
+          );
+
+  # ==========================================
+  # TechLogos COMPONENT TESTS
+  # ==========================================
+
+  - description: 'TechLogos has valid style option'
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: 'Show tech stack'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validStyles = ['grid', 'marquee'];
+          const techLogos = result.sections.filter(s => s.type === 'TechLogos');
+          if (techLogos.length === 0) return true;
+          return techLogos.every(tl =>
+            !tl.props?.style || validStyles.includes(tl.props.style)
+          );
+
+  - description: 'TechLogos has valid size option'
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const validSizes = ['sm', 'md', 'lg'];
+          const techLogos = result.sections.filter(s => s.type === 'TechLogos');
+          if (techLogos.length === 0) return true;
+          return techLogos.every(tl =>
+            !tl.props?.size || validSizes.includes(tl.props.size)
+          );
 
 # Output configuration
 outputPath: promptfoo/output/layout

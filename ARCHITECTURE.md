@@ -36,6 +36,9 @@ flowchart TD
     Mapper --> Contact[ContactSection]
     Mapper --> Text[TextBlock]
     Mapper --> Gallery[ImageGallery]
+    Mapper --> Stats[StatsCounter]
+    Mapper --> TechLogo[TechLogos]
+    Mapper --> Chart[DataChart]
 ```
 
 **Flow:**
