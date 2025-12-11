@@ -126,3 +126,15 @@ Edit `worker/prompts.ts`:
 - Visitor personalization guidelines
 - Component schemas
 - Layout options
+
+### Data Sources
+
+The portfolio supports external data visualization through the DataChart component:
+
+| Source | Endpoint | Description |
+|--------|----------|-------------|
+| GitHub Activity | `/api/github/activity` | Commit history from GitHub Events API |
+| Weather | `/api/weather` | Weather forecasts from Open-Meteo API |
+| Geocoding | `/api/geocode` | City name to coordinates conversion |
+
+These APIs are cached in Cloudflare KV for performance.

@@ -12,6 +12,11 @@ import type {
   UIHints,
   GitHubEvent,
   GitHubActivityResponse,
+  WeatherMetric,
+  WeatherResponse,
+  OpenMeteoResponse,
+  GeocodingResult,
+  OpenMeteoGeocodingResponse,
 } from './types';
 
 // Rate limiting configuration
@@ -475,6 +480,16 @@ async function handleApiRequest(request: Request, env: Env, url: URL): Promise<R
     // GET /api/github/activity - GitHub contribution data
     if (url.pathname === '/api/github/activity' && request.method === 'GET') {
       return handleGitHubActivity(request, env, corsHeaders, url);
+    }
+
+    // GET /api/weather - Weather data from Open-Meteo
+    if (url.pathname === '/api/weather' && request.method === 'GET') {
+      return handleWeather(request, env, corsHeaders, url);
+    }
+
+    // GET /api/geocode - City name to coordinates
+    if (url.pathname === '/api/geocode' && request.method === 'GET') {
+      return handleGeocode(request, env, corsHeaders, url);
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -1209,5 +1224,205 @@ async function handleGitHubActivity(
     return new Response(JSON.stringify(emptyResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
+}
+
+// Handle weather data requests using Open-Meteo API
+async function handleWeather(
+  _request: Request,
+  env: Env,
+  corsHeaders: Record<string, string>,
+  url: URL,
+): Promise<Response> {
+  const lat = url.searchParams.get('lat');
+  const lon = url.searchParams.get('lon');
+  const metric = url.searchParams.get('metric') as WeatherMetric | null;
+
+  // Validate required parameters
+  if (!lat || !lon) {
+    return new Response(
+      JSON.stringify({ error: 'Missing required parameters: lat and lon' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const latitude = parseFloat(lat);
+  const longitude = parseFloat(lon);
+
+  if (isNaN(latitude) || isNaN(longitude)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid lat/lon values' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Default to temperature if no metric specified
+  const weatherMetric: WeatherMetric = metric || 'temperature';
+
+  // Map metric to Open-Meteo parameter
+  const metricMapping: Record<WeatherMetric, { param: string; unitKey: string }> = {
+    temperature: { param: 'temperature_2m', unitKey: 'temperature_2m' },
+    humidity: { param: 'relative_humidity_2m', unitKey: 'relative_humidity_2m' },
+    precipitation: { param: 'precipitation', unitKey: 'precipitation' },
+    wind: { param: 'wind_speed_10m', unitKey: 'wind_speed_10m' },
+  };
+
+  const { param, unitKey } = metricMapping[weatherMetric];
+
+  // Check cache first (1 hour TTL)
+  const cacheKey = `weather:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${weatherMetric}`;
+  if (env.UI_CACHE) {
+    const cached = await env.UI_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  try {
+    // Fetch from Open-Meteo API (free, no key required)
+    const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=${param}&forecast_days=7`;
+
+    const response = await fetch(openMeteoUrl, {
+      headers: { 'User-Agent': 'Portfolio-Site' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Open-Meteo API returned ${response.status}`);
+    }
+
+    const openMeteoData = (await response.json()) as OpenMeteoResponse;
+
+    // Extract the data based on the metric
+    const values = openMeteoData.hourly[param as keyof typeof openMeteoData.hourly] as
+      | number[]
+      | undefined;
+    const times = openMeteoData.hourly.time;
+    const unit =
+      openMeteoData.hourly_units[unitKey as keyof typeof openMeteoData.hourly_units] || '';
+
+    if (!values || !times) {
+      throw new Error('Invalid response from Open-Meteo');
+    }
+
+    // Transform to our response format
+    const result: WeatherResponse = {
+      data: times.map((time, i) => ({
+        time,
+        value: values[i],
+      })),
+      unit,
+      metric: weatherMetric,
+      location: { lat: latitude, lon: longitude },
+    };
+
+    // Cache the result
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 3600, // 1 hour
+      });
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Weather API error:', error);
+
+    // Return empty data on error
+    const emptyResult: WeatherResponse = {
+      data: [],
+      unit: '',
+      metric: weatherMetric,
+      location: { lat: latitude, lon: longitude },
+    };
+
+    return new Response(JSON.stringify(emptyResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// Handle geocoding requests using Open-Meteo Geocoding API
+async function handleGeocode(
+  _request: Request,
+  env: Env,
+  corsHeaders: Record<string, string>,
+  url: URL,
+): Promise<Response> {
+  const city = url.searchParams.get('city');
+
+  // Validate required parameter
+  if (!city || city.trim().length < 2) {
+    return new Response(
+      JSON.stringify({ error: 'Missing or invalid city parameter (min 2 characters)' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const cityName = city.trim().toLowerCase();
+
+  // Check cache first (1 year TTL - cities don't move)
+  const cacheKey = `geocode:${cityName}`;
+  if (env.UI_CACHE) {
+    const cached = await env.UI_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  try {
+    // Fetch from Open-Meteo Geocoding API (free, no key required)
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en`;
+
+    const response = await fetch(geocodeUrl, {
+      headers: { 'User-Agent': 'Portfolio-Site' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Geocoding API returned ${response.status}`);
+    }
+
+    const geocodeData = (await response.json()) as OpenMeteoGeocodingResponse;
+
+    // Check if we got any results
+    if (!geocodeData.results || geocodeData.results.length === 0) {
+      return new Response(
+        JSON.stringify({ error: `City not found: ${city}` }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const firstResult = geocodeData.results[0];
+
+    // Transform to our response format
+    const result: GeocodingResult = {
+      lat: firstResult.latitude,
+      lon: firstResult.longitude,
+      name: firstResult.name,
+      country: firstResult.country,
+      timezone: firstResult.timezone,
+    };
+
+    // Cache the result for 1 year (cities don't move)
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 31536000, // 1 year in seconds
+      });
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Geocoding API error:', error);
+
+    return new Response(
+      JSON.stringify({ error: 'Failed to geocode city' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   }
 }

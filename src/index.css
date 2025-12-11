@@ -77,6 +77,13 @@
     --input: 175 15% 85%;
     --ring: 175 70% 40%;
     --radius: 0.5rem;
+
+    /* Chart colors - teal-based */
+    --chart-1: 175 70% 40%;
+    --chart-2: 175 50% 55%;
+    --chart-3: 175 60% 30%;
+    --chart-4: 195 65% 45%;
+    --chart-5: 155 55% 45%;
   }
 
   .dark {
@@ -100,6 +107,13 @@
     --border: 175 20% 20%;
     --input: 175 20% 20%;
     --ring: 175 60% 70%;
+
+    /* Chart colors - dark mode */
+    --chart-1: 175 60% 65%;
+    --chart-2: 175 45% 50%;
+    --chart-3: 175 55% 75%;
+    --chart-4: 195 55% 60%;
+    --chart-5: 155 50% 55%;
   }
 }
 

@@ -8,7 +8,7 @@ export const TAG_GUIDELINES: Record<string, string> = {
   recruiter:
     'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Consider StatsCounter for key metrics. Use "hero-focused" or "single-column" layout.',
   developer:
-    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include GitHubActivity (heatmap style) to show coding activity. Show TechLogos (grid style) for tech stack visualization. Use SkillBadges (detailed style). Link to GitHub. Use "two-column" layout.',
+    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include DataChart with github commits (use area/bar/line for trends, or radar for weekly patterns). Show TechLogos (grid style) for tech stack visualization. Use SkillBadges (detailed style). Link to GitHub. Use "two-column" layout.',
   collaborator:
     'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Consider StatsCounter for project metrics. Use "hero-focused" layout.',
   friend:
@@ -161,7 +161,7 @@ Available components and their props:
 - TextBlock: { title: string, content: string, style: "prose" | "highlight" }
 - ImageGallery: { title: string, images: ["/path/to/img", ...] }
 - StatsCounter: { title: string, stats: [{ label: string, value: number, suffix?: string }], animated?: boolean }
-- GitHubActivity: { title: string, username?: string, style: "heatmap" | "chart" }
+- DataChart: { title: string, charts: Array<{ source: "github"|"weather", type: "area"|"bar"|"line"|"pie"|"radar"|"radial", aggregation?: "hourly"|"daily"|"weekly"|"monthly"|"byDayOfWeek", githubUsername?: string, githubMetric?: "commits", weatherMetric?: "temperature"|"humidity"|"precipitation"|"wind", weatherLocation?: {lat: number, lon: number}|"visitor"|"CityName", title?: string, height?: number, color?: string }>, layout?: "stack"|"grid" } -- weatherLocation can be a city name string like "Tokyo" or "New York"
 - TechLogos: { title: string, technologies?: string[], style: "grid" | "marquee", size?: "sm" | "md" | "lg" }
 
 === PORTFOLIO CONTENT (Use these exact IDs and values) ===

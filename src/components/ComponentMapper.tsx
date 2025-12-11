@@ -7,7 +7,7 @@ import { TextBlock } from './sections/TextBlock';
 import { ImageGallery } from './sections/ImageGallery';
 import { StatsCounter } from './sections/StatsCounter';
 import { TechLogos } from './sections/TechLogos';
-import { GitHubActivity } from './sections/GitHubActivity';
+import { DataChart } from './sections/DataChart';
 
 interface SectionConfig {
   type: string;
@@ -31,7 +31,7 @@ const componentMap: Record<string, React.ComponentType<Record<string, unknown>>>
   ImageGallery: ImageGallery as unknown as React.ComponentType<Record<string, unknown>>,
   StatsCounter: StatsCounter as unknown as React.ComponentType<Record<string, unknown>>,
   TechLogos: TechLogos as unknown as React.ComponentType<Record<string, unknown>>,
-  GitHubActivity: GitHubActivity as unknown as React.ComponentType<Record<string, unknown>>,
+  DataChart: DataChart as unknown as React.ComponentType<Record<string, unknown>>,
 };
 
 export function ComponentMapper({ section }: ComponentMapperProps) {

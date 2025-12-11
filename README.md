@@ -53,6 +53,9 @@ The AI can use these pre-built section components:
 | `ContactForm` | Contact links (email, LinkedIn, GitHub) |
 | `TextBlock` | Rich text content block |
 | `ImageGallery` | Photo gallery with lightbox |
+| `StatsCounter` | Animated statistics display with counters |
+| `TechLogos` | Technology logos in grid or marquee layout |
+| `DataChart` | Data visualization with GitHub activity or weather data |
 
 ## Fallback Behavior
 
