@@ -11,7 +11,9 @@ import {
   createMockThrowingAI,
   createMockAI,
   createAIResponse,
+  createSequentialMockAI,
 } from './mocks/ai-gateway';
+import type { CategorizationResult } from './types';
 
 /**
  * AI Gateway Layout Generation Tests
@@ -391,6 +393,120 @@ describe('AI Gateway Layout Generation', () => {
       expect(response.status).toBe(200);
       // Categorization info should be included
       expect(data._categorization).toBeDefined();
+    });
+
+    it('passes custom guidelines for new_tag status to layout generation', async () => {
+      // First response: categorization returns new_tag
+      const categorizationResult: CategorizationResult = {
+        status: 'new_tag',
+        tagName: 'investor',
+        displayName: 'Angel Investor',
+        guidelines: 'Focus on investment potential, startup ROI metrics, and market opportunity.',
+        confidence: 0.88,
+        reason: 'New professional audience type',
+      };
+
+      // Second response: layout generation
+      const layoutResult: GeneratedLayout = {
+        layout: 'hero-focused',
+        theme: { accent: 'green' },
+        sections: [
+          { type: 'Hero', props: { title: 'Investment Portfolio', subtitle: 'ROI-focused' } },
+          { type: 'CardGrid', props: { title: 'Featured Projects', columns: 2, items: ['project-1'] } },
+        ],
+      };
+
+      const mockAI = createSequentialMockAI([
+        createAIResponse(JSON.stringify(categorizationResult)),
+        createAIResponse(JSON.stringify(layoutResult)),
+      ]);
+
+      const testEnv: Env = {
+        ...env,
+        AI: mockAI,
+        AI_GATEWAY_ID: 'test-gateway',
+      };
+
+      const body: GenerateRequest = {
+        visitorTag: 'developer',
+        customIntent: 'I am an angel investor looking for tech startups',
+        portfolioContent: createMockPortfolioContent(),
+      };
+
+      const request = createMockRequest('https://example.com/api/generate', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, testEnv, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(200);
+      expect(data._categorization).toBeDefined();
+      // Should have investor tag from categorization
+      const categorization = data._categorization as { tagName: string };
+      expect(categorization.tagName).toBe('investor');
+    });
+
+    it('logs warning for rejected intents', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      // First response: categorization returns rejected
+      const categorizationResult: CategorizationResult = {
+        status: 'rejected',
+        tagName: 'friend',
+        displayName: 'Friend',
+        guidelines: 'Personal focus. Casual, friendly tone.',
+        confidence: 0.3,
+        reason: 'Inappropriate intent detected',
+      };
+
+      // Second response: layout generation
+      const layoutResult: GeneratedLayout = {
+        layout: 'single-column',
+        theme: { accent: 'blue' },
+        sections: [{ type: 'Hero', props: { title: 'Welcome' } }],
+      };
+
+      const mockAI = createSequentialMockAI([
+        createAIResponse(JSON.stringify(categorizationResult)),
+        createAIResponse(JSON.stringify(layoutResult)),
+      ]);
+
+      const testEnv: Env = {
+        ...env,
+        AI: mockAI,
+        AI_GATEWAY_ID: 'test-gateway',
+      };
+
+      const body: GenerateRequest = {
+        visitorTag: 'developer',
+        customIntent: 'some potentially problematic intent',
+        portfolioContent: createMockPortfolioContent(),
+      };
+
+      const request = createMockRequest('https://example.com/api/generate', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, testEnv, ctx);
+      await waitOnExecutionContext(ctx);
+      await response.json(); // Consume response
+
+      expect(response.status).toBe(200);
+      // Warning should have been logged for rejected intent
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Rejected intent:',
+        expect.any(String),
+        'Reason:',
+        expect.any(String),
+      );
+
+      consoleSpy.mockRestore();
     });
   });
 

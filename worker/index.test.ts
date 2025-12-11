@@ -410,6 +410,21 @@ describe('Worker Pure Functions', () => {
       expect(result.guidelines).toBe(TAG_GUIDELINES.friend);
     });
 
+    it('preserves guidelines for new_tag status', () => {
+      const customGuidelines = 'Focus on investment potential, market opportunities, and startup ROI metrics';
+      const result = sanitizeCategorizationResult({
+        status: 'new_tag',
+        tagName: 'investor',
+        displayName: 'Investor',
+        guidelines: customGuidelines,
+        confidence: 0.85,
+        reason: 'New audience type identified',
+      });
+      expect(result.status).toBe('new_tag');
+      expect(result.tagName).toBe('investor');
+      expect(result.guidelines).toBe(customGuidelines);
+    });
+
     it('clamps confidence between 0 and 1 (high value)', () => {
       const result = sanitizeCategorizationResult({
         status: 'new_tag',

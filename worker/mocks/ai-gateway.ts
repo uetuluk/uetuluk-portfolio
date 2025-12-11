@@ -217,3 +217,35 @@ export function createEnvWithMockAI<T extends { AI?: Ai; AI_GATEWAY_ID?: string 
     AI_GATEWAY_ID: gatewayId,
   };
 }
+
+/**
+ * Creates a mock AI that returns different responses for sequential calls.
+ * Useful for testing flows that make multiple AI calls (e.g., categorization then layout).
+ *
+ * @example
+ * ```ts
+ * const mockAI = createSequentialMockAI([
+ *   createAIResponse(JSON.stringify(categorizationResult)),
+ *   createAIResponse(JSON.stringify(layoutResult)),
+ * ]);
+ * ```
+ */
+export function createSequentialMockAI(responses: AIGatewayResponse[]): Ai {
+  let callIndex = 0;
+
+  return {
+    gateway: (_gatewayId: string) => ({
+      run: async (_options: unknown) => {
+        const response = responses[callIndex] ?? responses[responses.length - 1];
+        callIndex++;
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => response,
+          text: async () => JSON.stringify(response),
+        } as Response;
+      },
+    }),
+  } as Ai;
+}
