@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import type { GenerateRequest, FeedbackRequest, PortfolioContent } from './types';
+import type { GenerateRequest, FeedbackRequest, PortfolioContent, GitHubActivityResponse } from './types';
 
 // Import the worker default export
 import worker from './index';
@@ -501,5 +501,168 @@ describe('Worker API Handlers', () => {
       expect(data._retryAfter).toBeDefined();
       expect(data.layout).toBeDefined();
     }, 30000);
+  });
+
+  describe('GET /api/github/activity', () => {
+    const mockGitHubEvents = [
+      {
+        type: 'PushEvent',
+        created_at: new Date().toISOString(),
+        payload: {
+          commits: [{ sha: 'abc123' }, { sha: 'def456' }],
+        },
+      },
+      {
+        type: 'PushEvent',
+        created_at: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+        payload: {
+          commits: [{ sha: 'ghi789' }],
+        },
+      },
+      {
+        type: 'WatchEvent', // Non-push event, should be ignored
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns activity data for valid username', async () => {
+      // Mock the global fetch for GitHub API
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.github.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockGitHubEvents),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/github/activity?username=testuser', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as GitHubActivityResponse;
+
+      expect(response.status).toBe(200);
+      expect(data.contributions).toBeDefined();
+      expect(Array.isArray(data.contributions)).toBe(true);
+      expect(data.totalCommits).toBe(3); // 2 + 1 from mock events
+      expect(data.recentActivity).toBeDefined();
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('uses default username when not provided', async () => {
+      const originalFetch = globalThis.fetch;
+      let capturedUrl = '';
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.github.com')) {
+          capturedUrl = url;
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/github/activity', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(capturedUrl).toContain('uetuluk'); // Default username
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns cached data when available', async () => {
+      // Pre-populate cache
+      const cachedData: GitHubActivityResponse = {
+        contributions: [{ date: '2024-01-01', count: 5 }],
+        totalCommits: 5,
+        recentActivity: 5,
+      };
+      await env.UI_CACHE.put('github:activity:cacheduser', JSON.stringify(cachedData));
+
+      const request = createMockRequest('https://example.com/api/github/activity?username=cacheduser', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as GitHubActivityResponse;
+
+      expect(response.status).toBe(200);
+      expect(data.totalCommits).toBe(5);
+      expect(data.contributions).toEqual([{ date: '2024-01-01', count: 5 }]);
+    });
+
+    it('returns empty data on GitHub API error', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.github.com')) {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/github/activity?username=nonexistent', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as GitHubActivityResponse;
+
+      expect(response.status).toBe(200);
+      expect(data.contributions).toEqual([]);
+      expect(data.totalCommits).toBe(0);
+      expect(data.recentActivity).toBe(0);
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('includes CORS headers in response', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.github.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/github/activity', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(response.headers.get('Content-Type')).toBe('application/json');
+
+      globalThis.fetch = originalFetch;
+    });
   });
 });
