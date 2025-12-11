@@ -10,6 +10,8 @@ import type {
   RateLimitEntry,
   VisitorContext,
   UIHints,
+  GitHubEvent,
+  GitHubActivityResponse,
 } from './types';
 
 // Rate limiting configuration
@@ -468,6 +470,11 @@ async function handleApiRequest(request: Request, env: Env, url: URL): Promise<R
     // POST /api/feedback - Handle like/dislike feedback
     if (url.pathname === '/api/feedback' && request.method === 'POST') {
       return handleFeedback(request, env, corsHeaders);
+    }
+
+    // GET /api/github/activity - GitHub contribution data
+    if (url.pathname === '/api/github/activity' && request.method === 'GET') {
+      return handleGitHubActivity(request, env, corsHeaders, url);
     }
 
     return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -1111,4 +1118,96 @@ export function getDefaultLayout(
   }
 
   return baseLayout;
+}
+
+// Handle GitHub activity data requests
+async function handleGitHubActivity(
+  _request: Request,
+  env: Env,
+  corsHeaders: Record<string, string>,
+  url: URL,
+): Promise<Response> {
+  const username = url.searchParams.get('username') || 'uetuluk';
+
+  // Check cache first (1 hour TTL)
+  const cacheKey = `github:activity:${username}`;
+  if (env.UI_CACHE) {
+    const cached = await env.UI_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  try {
+    // Fetch events from GitHub API (returns last 90 days of public events)
+    const response = await fetch(`https://api.github.com/users/${username}/events?per_page=100`, {
+      headers: {
+        'User-Agent': 'Portfolio-Site',
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API returned ${response.status}`);
+    }
+
+    const events = (await response.json()) as GitHubEvent[];
+
+    // Process events into daily contribution counts
+    const contributionMap = new Map<string, number>();
+    let totalCommits = 0;
+
+    for (const event of events) {
+      if (event.type === 'PushEvent' && event.payload?.commits) {
+        const date = event.created_at.split('T')[0];
+        const commitCount = event.payload.commits.length;
+        contributionMap.set(date, (contributionMap.get(date) || 0) + commitCount);
+        totalCommits += commitCount;
+      }
+    }
+
+    // Convert to sorted array
+    const contributions = Array.from(contributionMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calculate recent activity (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentActivity = contributions
+      .filter((c) => new Date(c.date) >= thirtyDaysAgo)
+      .reduce((sum, c) => sum + c.count, 0);
+
+    const result: GitHubActivityResponse = {
+      contributions,
+      totalCommits,
+      recentActivity,
+    };
+
+    // Cache the result
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 3600, // 1 hour
+      });
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('GitHub API error:', error);
+
+    // Return empty data on error
+    const emptyResult: GitHubActivityResponse = {
+      contributions: [],
+      totalCommits: 0,
+      recentActivity: 0,
+    };
+
+    return new Response(JSON.stringify(emptyResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 }

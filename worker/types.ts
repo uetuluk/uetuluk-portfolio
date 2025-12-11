@@ -157,3 +157,22 @@ export interface UIHints {
   suggestedTheme: 'light' | 'dark' | 'system';
   preferCompactLayout: boolean;
 }
+
+// GitHub Activity API types
+export interface GitHubEvent {
+  type: string;
+  created_at: string;
+  payload?: {
+    commits?: Array<{ sha: string }>;
+    size?: number;
+  };
+}
+
+export interface GitHubActivityResponse {
+  contributions: Array<{
+    date: string;
+    count: number;
+  }>;
+  totalCommits: number;
+  recentActivity: number; // commits in last 30 days
+}

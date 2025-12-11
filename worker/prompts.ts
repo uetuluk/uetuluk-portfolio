@@ -6,11 +6,11 @@ const MAX_CUSTOM_INTENT_LENGTH = 200;
 // Extracted guidelines for reuse in categorization
 export const TAG_GUIDELINES: Record<string, string> = {
   recruiter:
-    'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Use "hero-focused" or "single-column" layout.',
+    'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Consider StatsCounter for key metrics. Use "hero-focused" or "single-column" layout.',
   developer:
-    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include SkillBadges (detailed style). Show Timeline briefly. Link to GitHub. Use "two-column" layout.',
+    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include GitHubActivity (heatmap style) to show coding activity. Show TechLogos (grid style) for tech stack visualization. Use SkillBadges (detailed style). Link to GitHub. Use "two-column" layout.',
   collaborator:
-    'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Use "hero-focused" layout.',
+    'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Consider StatsCounter for project metrics. Use "hero-focused" layout.',
   friend:
     'Personal focus. Casual, friendly tone. Lead with Hero. Include TextBlock with bio. Add ImageGallery for photos. Show hobbies. Use "single-column" layout.',
 };
@@ -160,6 +160,9 @@ Available components and their props:
 - ContactForm: { title: string, showEmail?: boolean, showLinkedIn?: boolean, showGitHub?: boolean }
 - TextBlock: { title: string, content: string, style: "prose" | "highlight" }
 - ImageGallery: { title: string, images: ["/path/to/img", ...] }
+- StatsCounter: { title: string, stats: [{ label: string, value: number, suffix?: string }], animated?: boolean }
+- GitHubActivity: { title: string, username?: string, style: "heatmap" | "chart" }
+- TechLogos: { title: string, technologies?: string[], style: "grid" | "marquee", size?: "sm" | "md" | "lg" }
 
 === PORTFOLIO CONTENT (Use these exact IDs and values) ===
 Personal Information:
