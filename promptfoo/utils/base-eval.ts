@@ -11,12 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
- * Table row structure for evaluation results
+ * Individual test result from promptfoo
  */
-interface TableRow {
-  outputs?: Array<{
+interface TestResult {
+  gradingResult?: {
     pass?: boolean;
-  }>;
+  };
 }
 
 /**
@@ -24,14 +24,7 @@ interface TableRow {
  * Uses index signature to handle dynamic promptfoo response structure
  */
 interface EvalResults {
-  results?: {
-    table?: {
-      body?: TableRow[];
-    };
-  };
-  table?: {
-    body?: TableRow[];
-  };
+  results?: TestResult[];
   [key: string]: unknown;
 }
 
@@ -115,28 +108,17 @@ export function displayResults(results: EvalResults): void {
  * Calculate test statistics
  */
 export function calculateStats(results: EvalResults) {
-  // Navigate the results structure to find the table data
-  const resultsData = results.results || results;
-  const tableData = resultsData.table;
-
-  // Get body from table if it exists
-  const body = tableData?.body;
-
-  if (!body || !Array.isArray(body)) {
-    return { passed: 0, failed: 0, total: 0, successRate: 0 };
-  }
+  // Handle promptfoo's actual structure: results.results is an array of test results
+  const resultsArray = Array.isArray(results.results) ? results.results : [];
 
   let passed = 0;
   let failed = 0;
 
-  for (const row of body) {
-    const outputs = row.outputs || [];
-    for (const output of outputs) {
-      if (output.pass) {
-        passed++;
-      } else if (output.pass === false) {
-        failed++;
-      }
+  for (const result of resultsArray) {
+    if (result.gradingResult?.pass === true) {
+      passed++;
+    } else if (result.gradingResult?.pass === false) {
+      failed++;
     }
   }
 
