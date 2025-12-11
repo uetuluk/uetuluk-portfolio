@@ -54,7 +54,7 @@ export function StructuredData() {
     '@type': 'ProfilePage',
     '@id': `${SITE_URL}/#profilepage`,
     mainEntity: { '@id': `${SITE_URL}/#person` },
-    dateModified: new Date().toISOString().split('T')[0],
+    dateModified: new Date().toISOString(),
     inLanguage: i18n.language,
   };
 

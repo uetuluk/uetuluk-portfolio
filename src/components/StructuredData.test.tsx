@@ -304,11 +304,11 @@ describe('StructuredData', () => {
       expect(mainEntity?.['@id']).toBe('https://uetuluk.com/#person');
     });
 
-    it('includes dateModified in YYYY-MM-DD format', () => {
+    it('includes dateModified in ISO 8601 format', () => {
       render(<StructuredData />);
       const profilePage = getSchemaByType(useHeadCalls[0].script, 'ProfilePage');
       const dateModified = profilePage?.dateModified as string;
-      expect(dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(dateModified).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
 
     it('includes inLanguage from i18n', () => {
