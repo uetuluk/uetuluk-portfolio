@@ -35,6 +35,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       )}
       aria-label={tooltipText}
       title={tooltipText}
+      data-testid="theme-toggle"
     >
       <Icon className="w-5 h-5 text-foreground transition-transform duration-200" />
     </button>

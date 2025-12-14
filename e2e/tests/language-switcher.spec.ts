@@ -4,41 +4,41 @@ test.describe('Language Switcher', () => {
   test('language switcher button is visible', async ({ page }) => {
     await page.goto('/');
 
-    // Language button has a globe icon and "Change language" title
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    // Use data-testid for reliable selection
+    const languageButton = page.getByTestId('language-switcher');
     await expect(languageButton).toBeVisible();
   });
 
   test('clicking language button opens dropdown', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
     // Dropdown should appear with language options
-    await expect(page.getByText('English')).toBeVisible();
+    await expect(page.getByTestId('language-option-en')).toBeVisible();
   });
 
   test('dropdown shows all supported languages', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
-    // Check all 4 supported languages
-    await expect(page.getByRole('button', { name: 'English' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '中文' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '日本語' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Türkçe' })).toBeVisible();
+    // Check all 4 supported languages using data-testid
+    await expect(page.getByTestId('language-option-en')).toBeVisible();
+    await expect(page.getByTestId('language-option-zh')).toBeVisible();
+    await expect(page.getByTestId('language-option-ja')).toBeVisible();
+    await expect(page.getByTestId('language-option-tr')).toBeVisible();
   });
 
   test('selecting Chinese changes UI text', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
-    await page.getByRole('button', { name: '中文' }).click();
+    await page.getByTestId('language-option-zh').click();
 
     // Welcome title should now be in Chinese
     await expect(page.locator('h1')).toContainText('欢迎');
@@ -47,10 +47,10 @@ test.describe('Language Switcher', () => {
   test('selecting Japanese changes UI text', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
-    await page.getByRole('button', { name: '日本語' }).click();
+    await page.getByTestId('language-option-ja').click();
 
     // Wait for text to change
     await expect(page.locator('h1')).toContainText('ポートフォリオ');
@@ -59,10 +59,10 @@ test.describe('Language Switcher', () => {
   test('selecting Turkish changes UI text', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
-    await page.getByRole('button', { name: 'Türkçe' }).click();
+    await page.getByTestId('language-option-tr').click();
 
     // Wait for text to change - Turkish welcome text
     await expect(page.locator('h1')).toContainText('Hoş Geldiniz');
@@ -71,10 +71,10 @@ test.describe('Language Switcher', () => {
   test('document lang attribute updates with language change', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
-    await page.getByRole('button', { name: '日本語' }).click();
+    await page.getByTestId('language-option-ja').click();
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
   });
@@ -96,16 +96,16 @@ test.describe('Language Switcher', () => {
   test('dropdown closes after selecting language', async ({ page }) => {
     await page.goto('/');
 
-    const languageButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    const languageButton = page.getByTestId('language-switcher');
     await languageButton.click();
 
     // Dropdown should be visible
-    await expect(page.getByRole('button', { name: 'English' })).toBeVisible();
+    await expect(page.getByTestId('language-option-en')).toBeVisible();
 
     // Select a language
-    await page.getByRole('button', { name: '中文' }).click();
+    await page.getByTestId('language-option-zh').click();
 
     // Dropdown should close - English option should not be visible
-    await expect(page.getByRole('button', { name: 'English' })).not.toBeVisible();
+    await expect(page.getByTestId('language-option-en')).not.toBeVisible();
   });
 });

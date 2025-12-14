@@ -20,12 +20,13 @@ export class GeneratedPage {
     this.navbar = page.locator('nav');
     this.portfolioTitle = page.getByText('Portfolio').first();
     this.changePerspectiveButton = page.getByRole('button', { name: /change perspective/i });
-    this.likeButton = page.locator('button[title*="like"], button[title*="Like"]').first();
-    this.dislikeButton = page.locator('button[title*="Regenerate"], button[title*="dislike"]').first();
-    this.shareButton = page.getByRole('button', { name: /share/i });
-    this.thanksMessage = page.getByText('Thanks!');
-    this.regeneratingMessage = page.getByText('Regenerating...');
-    this.rateLimitMessage = page.getByText(/Wait \d+s/);
+    // Use data-testid selectors for more reliable element selection
+    this.likeButton = page.getByTestId('like-button');
+    this.dislikeButton = page.getByTestId('dislike-button');
+    this.shareButton = page.getByTestId('share-button');
+    this.thanksMessage = page.getByTestId('thanks-message');
+    this.regeneratingMessage = page.getByTestId('regenerating-message');
+    this.rateLimitMessage = page.getByTestId('rate-limit-message');
     this.footer = page.locator('footer');
     this.fallbackNotice = page.getByText(/fallback layout/i);
     this.mainContent = page.locator('main');

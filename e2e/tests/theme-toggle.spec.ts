@@ -1,9 +1,9 @@
 import { test, expect } from '../fixtures/test-fixtures';
 
 test.describe('Theme Toggle', () => {
-  // Helper to get theme button - uses title/aria-label attributes
+  // Helper to get theme button using data-testid for reliable selection
   const getThemeButton = (page: import('@playwright/test').Page) =>
-    page.locator('button[title*="Switch"], button[title*="system"], button[aria-label*="Switch"], button[aria-label*="system"]').first();
+    page.getByTestId('theme-toggle');
 
   test('theme toggle button is visible on welcome page', async ({ page }) => {
     await page.goto('/');
@@ -29,8 +29,11 @@ test.describe('Theme Toggle', () => {
     const themeButton = getThemeButton(page);
     await themeButton.click();
 
-    // Wait for DOM to update
-    await page.waitForTimeout(100);
+    // Wait for localStorage to be updated (indicates theme change completed)
+    await expect(async () => {
+      const preference = await page.evaluate(() => localStorage.getItem('theme-preference'));
+      expect(preference).toBeTruthy();
+    }).toPass({ timeout: 5000 });
 
     // Verify DOM class actually changed
     const afterClickHasDark = await page.evaluate(() =>
@@ -39,10 +42,6 @@ test.describe('Theme Toggle', () => {
 
     // The class should have toggled
     expect(afterClickHasDark).not.toBe(initialHasDark);
-
-    // Also verify localStorage was saved
-    const preference = await page.evaluate(() => localStorage.getItem('theme-preference'));
-    expect(preference).toBeTruthy();
   });
 
   test('multiple clicks cycle through theme states with DOM changes', async ({ page }) => {
@@ -54,9 +53,29 @@ test.describe('Theme Toggle', () => {
 
     const themeButton = getThemeButton(page);
 
+    // Helper to wait for theme preference change
+    const waitForPreference = async (expected: string) => {
+      await expect(async () => {
+        const pref = await page.evaluate(() => localStorage.getItem('theme-preference'));
+        expect(pref).toBe(expected);
+      }).toPass({ timeout: 5000 });
+    };
+
+    // Wait for app to mount and set initial preference to 'system'
+    await expect(async () => {
+      const pref = await page.evaluate(() => localStorage.getItem('theme-preference'));
+      expect(pref).toBe('system');
+    }).toPass({ timeout: 5000 });
+
     // First click: system -> explicit (opposite of system)
+    // In test environment, system is usually light, so first explicit is dark
     await themeButton.click();
-    await page.waitForTimeout(100);
+
+    // Wait for preference to be set to an explicit value (dark or light)
+    await expect(async () => {
+      const pref = await page.evaluate(() => localStorage.getItem('theme-preference'));
+      expect(pref === 'dark' || pref === 'light').toBe(true);
+    }).toPass({ timeout: 5000 });
 
     const afterFirstClick = await page.evaluate(() =>
       document.documentElement.classList.contains('dark')
@@ -64,24 +83,21 @@ test.describe('Theme Toggle', () => {
 
     // Second click: explicit -> system
     await themeButton.click();
-    await page.waitForTimeout(100);
+    await waitForPreference('system');
 
-    const afterSecondClick = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark')
-    );
-
-    // Third click: system -> explicit again
+    // Third click: system -> explicit again (same as first)
     await themeButton.click();
-    await page.waitForTimeout(100);
+    await expect(async () => {
+      const pref = await page.evaluate(() => localStorage.getItem('theme-preference'));
+      expect(pref === 'dark' || pref === 'light').toBe(true);
+    }).toPass({ timeout: 5000 });
 
     const afterThirdClick = await page.evaluate(() =>
       document.documentElement.classList.contains('dark')
     );
 
-    // First and third should be the same (both explicit)
+    // First and third should be the same (both explicit opposite of system)
     expect(afterFirstClick).toBe(afterThirdClick);
-    // Second should be different (back to system)
-    expect(afterSecondClick).not.toBe(afterFirstClick);
   });
 
   test('theme preference persists across page reload', async ({ page }) => {

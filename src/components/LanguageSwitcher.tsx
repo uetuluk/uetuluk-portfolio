@@ -41,6 +41,7 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
         )}
         aria-label={t('language.changeLanguage')}
         title={t('language.changeLanguage')}
+        data-testid="language-switcher"
       >
         <Globe className="w-5 h-5 text-foreground" />
       </button>
@@ -62,6 +63,7 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-accent',
                 )}
+                data-testid={`language-option-${lang}`}
               >
                 {languageNames[lang]}
               </button>

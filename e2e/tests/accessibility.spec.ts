@@ -25,8 +25,8 @@ test.describe('Accessibility', () => {
   test('theme toggle button has accessible label', async ({ page }) => {
     await page.goto('/');
 
-    // Theme toggle uses title/aria-label attributes (no text content)
-    const themeButton = page.locator('button[title*="Switch"], button[title*="system"], button[aria-label*="Switch"], button[aria-label*="system"]').first();
+    // Use data-testid for reliable selection
+    const themeButton = page.getByTestId('theme-toggle');
 
     const title = await themeButton.getAttribute('title');
     const ariaLabel = await themeButton.getAttribute('aria-label');
@@ -36,8 +36,8 @@ test.describe('Accessibility', () => {
   test('language switcher button has accessible label', async ({ page }) => {
     await page.goto('/');
 
-    // Language button should have accessible label
-    const langButton = page.locator('button[title*="language"], button[aria-label*="language"]').first();
+    // Use data-testid for reliable selection
+    const langButton = page.getByTestId('language-switcher');
 
     const title = await langButton.getAttribute('title');
     const ariaLabel = await langButton.getAttribute('aria-label');
