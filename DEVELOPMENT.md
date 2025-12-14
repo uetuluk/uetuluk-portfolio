@@ -71,20 +71,48 @@ Development server runs at `http://localhost:5173` with hot reload.
 ```
 src/
 ├── components/
-│   ├── sections/        # Portfolio section components
-│   ├── ComponentMapper  # Maps AI JSON to components
-│   ├── GeneratedPage    # Renders AI layout
-│   └── WelcomeModal     # Visitor intent selection
+│   ├── sections/           # Portfolio section components
+│   │   ├── HeroSection     # Profile header
+│   │   ├── ProjectCardGrid # Project showcase
+│   │   ├── SkillBadgeList  # Skills display
+│   │   ├── ExperienceTimeline # Work history
+│   │   ├── ContactSection  # Contact links
+│   │   ├── TextBlock       # Rich text
+│   │   ├── ImageGallery    # Photo gallery
+│   │   ├── StatsCounter    # Animated stats
+│   │   ├── TechLogos       # Tech logos
+│   │   └── DataChart       # Data visualization
+│   ├── ComponentMapper     # Maps AI JSON to components
+│   ├── GeneratedPage       # Renders AI layout
+│   ├── WelcomeModal        # Visitor intent selection
+│   ├── ThemeToggle         # Dark/light mode toggle
+│   ├── LanguageSwitcher    # i18n language selection
+│   ├── FeedbackButtons     # User feedback
+│   ├── LoadingScreen       # Loading state UI
+│   ├── SEO                 # SEO meta tags
+│   ├── StructuredData      # JSON-LD structured data
+│   └── MosaicBackground    # Background visual
 ├── content/
-│   └── portfolio.json   # Your portfolio data
-├── hooks/               # React hooks
-├── lib/                 # Utilities
-└── App.tsx              # Main component
+│   └── portfolio.json      # Your portfolio data
+├── hooks/
+│   ├── useTheme            # Theme management
+│   ├── useSessionId        # Session tracking
+│   └── useTranslatedPortfolio # i18n portfolio hook
+├── i18n/
+│   └── locales/            # Language files (en, zh)
+├── lib/
+│   ├── utils               # General utilities
+│   ├── palette             # Color palette utilities
+│   ├── applyPalette        # Theme application
+│   └── head                # Document head utilities
+├── test/
+│   └── setup.ts            # Global test setup
+└── App.tsx                 # Main component
 
 worker/
-├── index.ts             # API routes
-├── prompts.ts           # AI prompts
-└── types.ts             # TypeScript types
+├── index.ts                # API routes and handlers
+├── prompts.ts              # AI prompts
+└── types.ts                # TypeScript types
 ```
 
 ## Configuration

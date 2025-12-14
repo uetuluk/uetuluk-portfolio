@@ -30,6 +30,8 @@ A portfolio website that uses AI (Qwen 3 via OpenRouter/Cloudflare AI Gateway) t
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and data flow diagrams |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Development setup and workflow |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment prerequisites and process |
+| [TESTING.md](TESTING.md) | Testing guide and coverage configuration |
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
 
 ## Quick Start
 

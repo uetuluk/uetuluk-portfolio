@@ -64,6 +64,8 @@ GitHub Actions workflows in `.github/workflows/`:
 | `ci.yml` | Push, PR | Build, lint, test, coverage |
 | `e2e.yml` | Push, PR | Playwright E2E tests |
 | `promptfoo.yml` | Push, PR, weekly | AI prompt evaluation |
+| `claude.yml` | Issues, PR comments | Claude AI assistant |
+| `claude-code-review.yml` | PR | Automated code review |
 
 ### Required Secrets
 
