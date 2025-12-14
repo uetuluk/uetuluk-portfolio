@@ -39,7 +39,7 @@ describe('prompts', () => {
 
     it('has guidelines for developer tag', () => {
       expect(TAG_GUIDELINES.developer).toContain('Technical');
-      expect(TAG_GUIDELINES.developer).toContain('GitHub');
+      expect(TAG_GUIDELINES.developer).toContain('github');
     });
 
     it('has guidelines for collaborator tag', () => {
@@ -202,9 +202,7 @@ describe('prompts', () => {
         },
       ],
       hobbies: ['Coding', 'Reading'],
-      photos: [
-        { path: '/photos/photo1.jpg', description: 'Photo 1' },
-      ],
+      photos: [{ path: '/photos/photo1.jpg', description: 'Photo 1' }],
     };
 
     it('includes all TAG_GUIDELINES in personalization section', () => {
