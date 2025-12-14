@@ -206,7 +206,7 @@ export function createMockInvalidLayoutAI(): Ai {
  * const testEnv = createEnvWithMockAI(baseEnv, createMockCategorizationAI(result));
  * ```
  */
-export function createEnvWithMockAI<T extends { AI?: Ai; AI_GATEWAY_ID?: string }>(
+export function createEnvWithMockAI<T extends object>(
   baseEnv: T,
   mockAI: Ai,
   gatewayId: string = 'test-gateway',
