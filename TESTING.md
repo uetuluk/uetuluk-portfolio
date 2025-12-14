@@ -20,18 +20,52 @@ npm run test:coverage
 ```
 src/
 ├── test/
-│   └── setup.ts              # Global test setup and mocks
+│   └── setup.ts                    # Global test setup and mocks
+├── App.test.tsx                    # Main app tests
 ├── lib/
-│   ├── palette.test.ts       # Color palette utility tests
-│   └── utils.test.ts         # cn() utility tests
+│   ├── palette.test.ts             # Color palette utility tests
+│   ├── utils.test.ts               # cn() utility tests
+│   ├── applyPalette.test.ts        # Theme application tests
+│   └── head.test.ts                # Document head utility tests
 ├── hooks/
-│   ├── useTheme.test.ts      # Theme hook tests
-│   └── useSessionId.test.ts  # Session ID hook tests
+│   ├── useTheme.test.ts            # Theme hook tests
+│   ├── useSessionId.test.ts        # Session ID hook tests
+│   └── useTranslatedPortfolio.test.ts # i18n hook tests
+├── i18n/
+│   └── index.test.ts               # i18n setup tests
 └── components/
-    └── ComponentMapper.test.tsx  # Component rendering tests
+    ├── ComponentMapper.test.tsx    # Component rendering tests
+    ├── WelcomeModal.test.tsx       # Welcome modal tests
+    ├── ThemeToggle.test.tsx        # Theme toggle tests
+    ├── LanguageSwitcher.test.tsx   # Language switcher tests
+    ├── FeedbackButtons.test.tsx    # Feedback buttons tests
+    ├── GeneratedPage.test.tsx      # Generated page tests
+    ├── SEO.test.tsx                # SEO component tests
+    ├── StructuredData.test.tsx     # Structured data tests
+    ├── LoadingScreen.test.tsx      # Loading screen tests
+    ├── MosaicBackground.test.tsx   # Background tests
+    └── sections/
+        ├── HeroSection.test.tsx    # Hero section tests
+        ├── ProjectCardGrid.test.tsx # Project grid tests
+        ├── SkillBadgeList.test.tsx # Skills tests
+        ├── ExperienceTimeline.test.tsx # Timeline tests
+        ├── ContactSection.test.tsx # Contact tests
+        ├── TextBlock.test.tsx      # Text block tests
+        ├── ImageGallery.test.tsx   # Gallery tests
+        ├── StatsCounter.test.tsx   # Stats counter tests
+        ├── TechLogos.test.tsx      # Tech logos tests
+        └── DataChart.test.tsx      # Data chart tests
 
 worker/
-└── index.test.ts             # Worker pure function tests
+├── index.test.ts                   # Worker function tests
+├── handlers.test.ts                # API handler tests
+├── ai-generation.test.ts           # AI generation tests
+├── ai-categorization.test.ts       # AI categorization tests
+├── categorization.test.ts          # Categorization logic tests
+├── rate-limiting.test.ts           # Rate limiting tests
+├── visitor-context.test.ts         # Visitor context tests
+├── link-validation.test.ts         # Link validation tests
+└── prompts.test.ts                 # Prompt generation tests
 ```
 
 ## Writing Tests
@@ -208,7 +242,7 @@ The Vitest configuration includes:
 - **Environment**: `jsdom` for DOM APIs
 - **Setup File**: `src/test/setup.ts` for global mocks
 - **Globals**: Test APIs available without imports
-- **Coverage**: V8 provider with text/json/html reporters
+- **Coverage**: Istanbul provider with text/json/html reporters
 
 ### Coverage
 
