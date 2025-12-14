@@ -73,6 +73,7 @@ function createMockRequest(url: string, options: RequestInit = {}): Request {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'CF-Connecting-IP': '1.2.3.4', // Required for rate limiting
       ...(options.headers as Record<string, string>),
     },
   });
@@ -614,7 +615,7 @@ describe('AI Gateway Layout Generation', () => {
 
       expect(data._visitorContext).toBeDefined();
       expect(data._uiHints).toBeDefined();
-      expect(data._cacheKey).toBeDefined();
+      // Note: _cacheKey was removed for security (information disclosure)
     });
   });
 

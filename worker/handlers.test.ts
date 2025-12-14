@@ -135,6 +135,7 @@ function createMockRequest(url: string, options: RequestInit = {}): Request {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'CF-Connecting-IP': '1.2.3.4', // Required for rate limiting
       ...(options.headers as Record<string, string>),
     },
   });
@@ -167,13 +168,15 @@ describe('Worker API Handlers', () => {
     it('returns correct CORS headers for OPTIONS request', async () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'OPTIONS',
+        headers: { Origin: 'https://uetuluk.com' },
       });
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
 
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      // Security: CORS now validates origins instead of allowing all
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://uetuluk.com');
       expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, OPTIONS');
       expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type');
     });
@@ -187,13 +190,18 @@ describe('Worker API Handlers', () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: {
+          Origin: 'https://uetuluk.com',
+          'CF-Connecting-IP': '1.2.3.4',
+        },
       });
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
 
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      // Security: CORS now validates origins instead of allowing all
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://uetuluk.com');
     }, 10000); // Longer timeout for POST with KV operations
   });
 
@@ -222,6 +230,7 @@ describe('Worker API Handlers', () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '1.2.3.4' },
       });
 
       const ctx = createExecutionContext();
@@ -230,7 +239,8 @@ describe('Worker API Handlers', () => {
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Missing required fields');
+      // Security: New validation returns specific field errors
+      expect(data.error).toBe('Invalid visitorTag');
     });
 
     it('returns 400 for missing portfolioContent', async () => {
@@ -241,6 +251,7 @@ describe('Worker API Handlers', () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '1.2.3.4' },
       });
 
       const ctx = createExecutionContext();
@@ -249,7 +260,8 @@ describe('Worker API Handlers', () => {
       const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Missing required fields');
+      // Security: New validation returns specific field errors
+      expect(data.error).toBe('Invalid portfolioContent');
     });
 
     it('returns generated layout with visitor context', async () => {
@@ -261,6 +273,7 @@ describe('Worker API Handlers', () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '1.2.3.4' },
       });
 
       const ctx = createExecutionContext();
@@ -291,6 +304,7 @@ describe('Worker API Handlers', () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '1.2.3.4' },
       });
 
       const ctx = createExecutionContext();
@@ -314,6 +328,7 @@ describe('Worker API Handlers', () => {
       const request1 = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '1.2.3.4' },
       });
 
       const ctx1 = createExecutionContext();
@@ -325,6 +340,7 @@ describe('Worker API Handlers', () => {
       const request2 = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '1.2.3.4' },
       });
 
       const ctx2 = createExecutionContext();
@@ -334,12 +350,35 @@ describe('Worker API Handlers', () => {
 
       expect(data1.layout).toBe(data2.layout);
     });
+
+    it('returns 400 when client IP is not identifiable', async () => {
+      const body: GenerateRequest = {
+        visitorTag: 'developer',
+        portfolioContent: createMockPortfolioContent(),
+      };
+
+      // Create request manually without CF-Connecting-IP header
+      const request = new Request('https://example.com/api/generate', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Unable to identify client');
+    });
   });
 
   describe('POST /api/feedback', () => {
     it('returns 400 for missing required fields', async () => {
       const body = {
         feedbackType: 'like',
+        // Missing audienceType and sessionId
       };
 
       const request = createMockRequest('https://example.com/api/feedback', {
@@ -354,7 +393,8 @@ describe('Worker API Handlers', () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.message).toBe('Missing required fields');
+      // Security: New validation returns specific field errors
+      expect(data.message).toBe('Invalid audienceType');
     });
 
     it('returns 400 for missing feedbackType', async () => {
@@ -443,7 +483,8 @@ describe('Worker API Handlers', () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.message).toBe('Invalid feedback type');
+      // Security: New validation returns specific field errors
+      expect(data.message).toBe('Invalid feedbackType');
     });
 
     it('rate limits dislike requests from same session', async () => {
@@ -534,11 +575,12 @@ describe('Worker API Handlers', () => {
         portfolioContent: createMockPortfolioContent(),
       };
 
-      // Make 3 requests to hit the rate limit
+      // Make 3 requests to hit the rate limit (need CF-Connecting-IP for rate limiting)
       for (let i = 0; i < 3; i++) {
         const request = createMockRequest('https://example.com/api/generate', {
           method: 'POST',
           body: JSON.stringify(body),
+          headers: { 'CF-Connecting-IP': '5.5.5.5' },
         });
 
         const ctx = createExecutionContext();
@@ -550,6 +592,7 @@ describe('Worker API Handlers', () => {
       const request = createMockRequest('https://example.com/api/generate', {
         method: 'POST',
         body: JSON.stringify(body),
+        headers: { 'CF-Connecting-IP': '5.5.5.5' },
       });
 
       const ctx = createExecutionContext();
@@ -735,13 +778,17 @@ describe('Worker API Handlers', () => {
 
       const request = createMockRequest('https://example.com/api/github/activity', {
         method: 'GET',
+        headers: {
+          Origin: 'https://uetuluk.com',
+        },
       });
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
 
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      // Security: CORS now validates origins instead of allowing all
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://uetuluk.com');
       expect(response.headers.get('Content-Type')).toBe('application/json');
 
       globalThis.fetch = originalFetch;

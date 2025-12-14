@@ -26,6 +26,143 @@ import type {
 export const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 export const RATE_LIMIT_KEY_PREFIX = 'ratelimit:';
 
+// Security: Maximum payload size (50KB)
+export const MAX_BODY_SIZE = 50 * 1024;
+
+// Security: Allowed CORS origins
+const ALLOWED_ORIGINS = [
+  'https://uetuluk.com',
+  'https://www.uetuluk.com',
+];
+
+// Check if origin is allowed (supports wildcards for workers.dev and localhost)
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return false;
+
+  // Exact match for production domains
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+
+  // Wildcard match for *.uetuluk.workers.dev
+  if (/^https:\/\/[a-z0-9-]+\.uetuluk\.workers\.dev$/.test(origin)) return true;
+
+  // Allow localhost with any port for development
+  if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
+
+  return false;
+}
+
+// Get CORS headers with origin validation
+function getCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('Origin');
+  const allowedOrigin = isOriginAllowed(origin) ? origin! : ALLOWED_ORIGINS[0];
+
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+}
+
+// Security: Validate GitHub username format
+// GitHub usernames: alphanumeric, hyphens, max 39 chars, can't start/end with hyphen
+function isValidGitHubUsername(username: string): boolean {
+  if (!username || username.length > 39) return false;
+  return /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/.test(username);
+}
+
+// Security: Validate session ID format (UUID or alphanumeric, max 64 chars)
+function isValidSessionId(sessionId: string): boolean {
+  if (!sessionId || sessionId.length > 64) return false;
+  // Accept UUIDs or alphanumeric strings with hyphens/underscores
+  return /^[a-zA-Z0-9_-]+$/.test(sessionId);
+}
+
+// Security: Runtime validation for GenerateRequest
+interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+function validateGenerateRequest(body: unknown): ValidationResult {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: 'Invalid request body' };
+  }
+
+  const req = body as Record<string, unknown>;
+
+  // Check visitorTag
+  if (typeof req.visitorTag !== 'string' || req.visitorTag.length > 50) {
+    return { valid: false, error: 'Invalid visitorTag' };
+  }
+
+  // Check optional customIntent
+  if (req.customIntent !== undefined && typeof req.customIntent !== 'string') {
+    return { valid: false, error: 'Invalid customIntent' };
+  }
+
+  // Check portfolioContent exists and is an object
+  if (!req.portfolioContent || typeof req.portfolioContent !== 'object') {
+    return { valid: false, error: 'Invalid portfolioContent' };
+  }
+
+  const portfolio = req.portfolioContent as Record<string, unknown>;
+
+  // Validate required portfolioContent fields
+  if (!portfolio.personal || typeof portfolio.personal !== 'object') {
+    return { valid: false, error: 'Invalid portfolioContent.personal' };
+  }
+
+  if (!Array.isArray(portfolio.projects)) {
+    return { valid: false, error: 'Invalid portfolioContent.projects' };
+  }
+
+  if (!Array.isArray(portfolio.experience)) {
+    return { valid: false, error: 'Invalid portfolioContent.experience' };
+  }
+
+  if (!Array.isArray(portfolio.skills)) {
+    return { valid: false, error: 'Invalid portfolioContent.skills' };
+  }
+
+  if (!Array.isArray(portfolio.education)) {
+    return { valid: false, error: 'Invalid portfolioContent.education' };
+  }
+
+  return { valid: true };
+}
+
+// Security: Runtime validation for FeedbackRequest
+function validateFeedbackRequest(body: unknown): ValidationResult {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: 'Invalid request body' };
+  }
+
+  const req = body as Record<string, unknown>;
+
+  // Check feedbackType is valid enum
+  if (req.feedbackType !== 'like' && req.feedbackType !== 'dislike') {
+    return { valid: false, error: 'Invalid feedbackType' };
+  }
+
+  // Check audienceType
+  if (typeof req.audienceType !== 'string' || req.audienceType.length > 50) {
+    return { valid: false, error: 'Invalid audienceType' };
+  }
+
+  // Check sessionId
+  if (typeof req.sessionId !== 'string') {
+    return { valid: false, error: 'Invalid sessionId' };
+  }
+
+  // cacheKey is optional
+  if (req.cacheKey !== undefined && typeof req.cacheKey !== 'string') {
+    return { valid: false, error: 'Invalid cacheKey' };
+  }
+
+  return { valid: true };
+}
+
 // Generate endpoint rate limiting (stricter)
 export const GENERATE_RATE_LIMIT_MAX = 3; // 3 requests per window
 export const GENERATE_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
@@ -180,6 +317,65 @@ export function extractLinks(layout: GeneratedLayout): string[] {
   return links;
 }
 
+// Security: Check if a URL is safe to fetch (SSRF protection)
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block localhost and loopback
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '0.0.0.0' ||
+      hostname.endsWith('.localhost')
+    ) {
+      return false;
+    }
+
+    // Block private IP ranges (RFC 1918)
+    // 10.0.0.0 - 10.255.255.255
+    // 172.16.0.0 - 172.31.255.255
+    // 192.168.0.0 - 192.168.255.255
+    // 169.254.0.0 - 169.254.255.255 (link-local)
+    const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4Match) {
+      const [, a, b] = ipv4Match.map(Number);
+      if (
+        a === 10 || // 10.x.x.x
+        (a === 172 && b >= 16 && b <= 31) || // 172.16-31.x.x
+        (a === 192 && b === 168) || // 192.168.x.x
+        (a === 169 && b === 254) || // 169.254.x.x (link-local)
+        a === 127 // 127.x.x.x
+      ) {
+        return false;
+      }
+    }
+
+    // Block internal/cloud metadata endpoints
+    const blockedHosts = [
+      'metadata.google.internal',
+      'metadata.google',
+      '169.254.169.254', // AWS/GCP metadata
+      'metadata',
+    ];
+    if (blockedHosts.includes(hostname)) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Validate a link by fetching it (3 second timeout)
 export async function validateLink(url: string): Promise<boolean> {
   try {
@@ -189,17 +385,33 @@ export async function validateLink(url: string): Promise<boolean> {
     // Skip relative paths (internal assets)
     if (url.startsWith('/')) return true;
 
+    // Security: SSRF protection - validate URL before fetching
+    if (!isSafeUrl(url)) {
+      console.warn('Blocked unsafe URL:', url);
+      return false;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     const response = await fetch(url, {
       method: 'HEAD',
-      redirect: 'follow',
+      redirect: 'manual', // Don't follow redirects automatically (could redirect to internal)
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
-    return response.ok;
+
+    // For redirects, validate the redirect target as well
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('Location');
+      if (location && !isSafeUrl(location)) {
+        console.warn('Blocked redirect to unsafe URL:', location);
+        return false;
+      }
+    }
+
+    return response.ok || (response.status >= 300 && response.status < 400);
   } catch {
     return false;
   }
@@ -450,16 +662,23 @@ export default {
 };
 
 async function handleApiRequest(request: Request, env: Env, url: URL): Promise<Response> {
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+  // CORS headers with origin validation
+  const corsHeaders = getCorsHeaders(request);
 
   // Handle preflight requests
   if (request.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Security: Check payload size for POST requests
+  if (request.method === 'POST') {
+    const contentLength = parseInt(request.headers.get('Content-Length') || '0');
+    if (contentLength > MAX_BODY_SIZE) {
+      return new Response(JSON.stringify({ error: 'Payload too large' }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   try {
@@ -500,12 +719,10 @@ async function handleApiRequest(request: Request, env: Env, url: URL): Promise<R
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    // Log full error server-side, return generic message to client
     console.error('API error:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      }),
+      JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -519,18 +736,38 @@ async function handleGenerate(
   env: Env,
   corsHeaders: Record<string, string>,
 ): Promise<Response> {
-  const body = (await request.json()) as GenerateRequest;
-  const { visitorTag, customIntent, portfolioContent } = body;
-
-  if (!visitorTag || !portfolioContent) {
-    return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
+  // Security: Validate request structure
+  const validation = validateGenerateRequest(body);
+  if (!validation.valid) {
+    return new Response(JSON.stringify({ error: validation.error }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { visitorTag, customIntent, portfolioContent } = body as GenerateRequest;
+
   // Check rate limit (IP-based, 3 requests per minute)
   const clientIP = getClientIP(request);
+
+  // Security: Reject requests without identifiable IP
+  if (!clientIP) {
+    return new Response(JSON.stringify({ error: 'Unable to identify client' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const rateLimitResult = await checkGenerateRateLimit(clientIP, env);
 
   if (rateLimitResult.limited) {
@@ -620,7 +857,6 @@ async function handleGenerate(
         JSON.stringify({
           ...(cachedLayout as GeneratedLayout),
           _categorization: categorizationInfo,
-          _cacheKey: cacheKey,
           _visitorContext: {
             geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
             device: { type: visitorContext.device.type },
@@ -642,7 +878,6 @@ async function handleGenerate(
       JSON.stringify({
         ...getDefaultLayout(effectiveTag, portfolioContent),
         _categorization: categorizationInfo,
-        _cacheKey: cacheKey,
         _visitorContext: {
           geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
           device: { type: visitorContext.device.type },
@@ -775,11 +1010,10 @@ async function handleGenerate(
       });
     }
 
-    // Include categorization info, cache key, visitor context, and UI hints in response
+    // Include categorization info, visitor context, and UI hints in response
     const responsePayload = {
       ...generatedLayout,
       _categorization: categorizationInfo,
-      _cacheKey: cacheKey,
       _visitorContext: {
         geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
         device: { type: visitorContext.device.type },
@@ -799,7 +1033,6 @@ async function handleGenerate(
       JSON.stringify({
         ...getDefaultLayout(effectiveTag, portfolioContent),
         _categorization: categorizationInfo,
-        _cacheKey: cacheKey,
         _visitorContext: {
           geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
           device: { type: visitorContext.device.type },
@@ -868,12 +1101,18 @@ export interface GenerateRateLimitResult {
 }
 
 // Get client IP from Cloudflare headers
-export function getClientIP(request: Request): string {
-  return (
-    request.headers.get('CF-Connecting-IP') ||
-    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-    'unknown'
-  );
+// Security: Get client IP, returns null if not available (to reject unidentifiable requests)
+export function getClientIP(request: Request): string | null {
+  const cfIP = request.headers.get('CF-Connecting-IP');
+  if (cfIP) return cfIP;
+
+  const xForwardedFor = request.headers.get('X-Forwarded-For');
+  if (xForwardedFor) {
+    const firstIP = xForwardedFor.split(',')[0].trim();
+    if (firstIP) return firstIP;
+  }
+
+  return null;
 }
 
 // Check generate endpoint rate limit
@@ -944,14 +1183,32 @@ async function handleFeedback(
   env: Env,
   corsHeaders: Record<string, string>,
 ): Promise<Response> {
-  const body = (await request.json()) as FeedbackRequest;
-  const { feedbackType, audienceType, cacheKey, sessionId } = body;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ success: false, message: 'Invalid JSON' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
-  // Validate required fields
-  if (!feedbackType || !audienceType || !sessionId) {
+  // Security: Validate request structure
+  const validation = validateFeedbackRequest(body);
+  if (!validation.valid) {
+    return new Response(JSON.stringify({ success: false, message: validation.error }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { feedbackType, audienceType, cacheKey, sessionId } = body as FeedbackRequest;
+
+  // Security: Validate session ID format
+  if (!isValidSessionId(sessionId)) {
     const response: FeedbackResponse = {
       success: false,
-      message: 'Missing required fields',
+      message: 'Invalid session ID format',
     };
     return new Response(JSON.stringify(response), {
       status: 400,
@@ -1228,6 +1485,11 @@ export async function fetchGitHubSummary(
   username: string,
   env: Env,
 ): Promise<GitHubDataSummary> {
+  // Security: Validate username format
+  if (!isValidGitHubUsername(username)) {
+    return { available: false, username, totalCommits: 0, recentActivity: 0 };
+  }
+
   const cacheKey = `github:activity:${username}`;
 
   // Check cache first
@@ -1433,6 +1695,15 @@ async function handleGitHubActivity(
   url: URL,
 ): Promise<Response> {
   const username = url.searchParams.get('username') || 'uetuluk';
+
+  // Security: Validate GitHub username format
+  if (!isValidGitHubUsername(username)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid username format' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   console.log('[Worker] GitHub activity request for username:', username);
 
   // Check cache first (1 hour TTL)
