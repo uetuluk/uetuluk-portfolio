@@ -180,7 +180,7 @@ const ChartTooltipContent = React.forwardRef<
               (
                 item: {
                   dataKey?: string | number;
-                  name?: string;
+                  name?: string | number;
                   value?: number;
                   color?: string;
                   payload?: Record<string, unknown>;
