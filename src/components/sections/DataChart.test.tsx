@@ -86,27 +86,17 @@ describe('DataChart', () => {
       }),
     });
 
-    render(
-      <DataChart
-        title="Activity Dashboard"
-        charts={[{ source: 'github', type: 'area' }]}
-      />
-    );
+    render(<DataChart title="Activity Dashboard" charts={[{ source: 'github', type: 'area' }]} />);
 
     expect(screen.getByText('Activity Dashboard')).toBeInTheDocument();
   });
 
   it('shows loading state initially', () => {
     mockFetch.mockImplementation(
-      () => new Promise(() => {}) // Never resolves
+      () => new Promise(() => {}), // Never resolves
     );
 
-    render(
-      <DataChart
-        title="Test"
-        charts={[{ source: 'github', type: 'bar' }]}
-      />
-    );
+    render(<DataChart title="Test" charts={[{ source: 'github', type: 'bar' }]} />);
 
     expect(screen.getByText('Loading data...')).toBeInTheDocument();
   });
@@ -121,12 +111,7 @@ describe('DataChart', () => {
       }),
     });
 
-    render(
-      <DataChart
-        title="GitHub Activity"
-        charts={[{ source: 'github', type: 'area' }]}
-      />
-    );
+    render(<DataChart title="GitHub Activity" charts={[{ source: 'github', type: 'area' }]} />);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/github/activity?username=testuser');
@@ -147,7 +132,7 @@ describe('DataChart', () => {
       <DataChart
         title="GitHub Activity"
         charts={[{ source: 'github', type: 'bar', githubUsername: 'customuser' }]}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -155,14 +140,13 @@ describe('DataChart', () => {
     });
   });
 
-  it('fetches weather data', async () => {
+  it('fetches weather data with visitor location by default', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ time: '2024-01-01T00:00', value: 20 }],
-        unit: '°C',
-        metric: 'temperature',
-        location: { lat: 31.23, lon: 121.47 },
+        data: [{ date: '2024-01-01', minTemp: 15, maxTemp: 25 }],
+        unit: 'C',
+        location: { lat: 31.23, lon: 121.47, name: 'Shanghai' },
       }),
     });
 
@@ -170,21 +154,21 @@ describe('DataChart', () => {
       <DataChart
         title="Weather"
         charts={[{ source: 'weather', type: 'line', weatherMetric: 'temperature' }]}
-      />
+      />,
     );
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/weather?lat=31.23&lon=121.47&metric=temperature');
+      // Default behavior uses visitor=true
+      expect(mockFetch).toHaveBeenCalledWith('/api/weather?visitor=true');
     });
   });
 
-  it('fetches weather data with custom location', async () => {
+  it('fetches weather data with custom lat/lon location', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [],
-        unit: '°C',
-        metric: 'temperature',
+        data: [{ date: '2024-01-01', minTemp: 10, maxTemp: 20 }],
+        unit: 'C',
         location: { lat: 40.71, lon: -74.01 },
       }),
     });
@@ -192,17 +176,19 @@ describe('DataChart', () => {
     render(
       <DataChart
         title="NYC Weather"
-        charts={[{
-          source: 'weather',
-          type: 'area',
-          weatherMetric: 'humidity',
-          weatherLocation: { lat: 40.71, lon: -74.01 },
-        }]}
-      />
+        charts={[
+          {
+            source: 'weather',
+            type: 'area',
+            weatherMetric: 'temperature',
+            weatherLocation: { lat: 40.71, lon: -74.01 },
+          },
+        ]}
+      />,
     );
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/weather?lat=40.71&lon=-74.01&metric=humidity');
+      expect(mockFetch).toHaveBeenCalledWith('/api/weather?lat=40.71&lon=-74.01');
     });
   });
 
@@ -219,12 +205,7 @@ describe('DataChart', () => {
       }),
     });
 
-    render(
-      <DataChart
-        title="Activity"
-        charts={[{ source: 'github', type: 'area' }]}
-      />
-    );
+    render(<DataChart title="Activity" charts={[{ source: 'github', type: 'area' }]} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('area-chart')).toBeInTheDocument();
@@ -241,12 +222,7 @@ describe('DataChart', () => {
       }),
     });
 
-    render(
-      <DataChart
-        title="Activity"
-        charts={[{ source: 'github', type: 'bar' }]}
-      />
-    );
+    render(<DataChart title="Activity" charts={[{ source: 'github', type: 'bar' }]} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
@@ -257,19 +233,13 @@ describe('DataChart', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        data: [{ time: '2024-01-01T00:00', value: 20 }],
-        unit: '°C',
-        metric: 'temperature',
-        location: { lat: 31.23, lon: 121.47 },
+        data: [{ date: '2024-01-01', minTemp: 15, maxTemp: 25 }],
+        unit: 'C',
+        location: { lat: 31.23, lon: 121.47, name: 'Shanghai' },
       }),
     });
 
-    render(
-      <DataChart
-        title="Temperature"
-        charts={[{ source: 'weather', type: 'line' }]}
-      />
-    );
+    render(<DataChart title="Temperature" charts={[{ source: 'weather', type: 'line' }]} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('line-chart')).toBeInTheDocument();
@@ -293,7 +263,7 @@ describe('DataChart', () => {
       <DataChart
         title="Distribution"
         charts={[{ source: 'github', type: 'pie', aggregation: 'byDayOfWeek' }]}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -315,7 +285,7 @@ describe('DataChart', () => {
       <DataChart
         title="Weekly Pattern"
         charts={[{ source: 'github', type: 'radar', aggregation: 'byDayOfWeek' }]}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -333,12 +303,7 @@ describe('DataChart', () => {
       }),
     });
 
-    render(
-      <DataChart
-        title="Progress"
-        charts={[{ source: 'github', type: 'radial' }]}
-      />
-    );
+    render(<DataChart title="Progress" charts={[{ source: 'github', type: 'radial' }]} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('radial-bar-chart')).toBeInTheDocument();
@@ -358,10 +323,9 @@ describe('DataChart', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          data: [{ time: '2024-01-01T00:00', value: 20 }],
-          unit: '°C',
-          metric: 'temperature',
-          location: { lat: 31.23, lon: 121.47 },
+          data: [{ date: '2024-01-01', minTemp: 15, maxTemp: 25 }],
+          unit: 'C',
+          location: { lat: 31.23, lon: 121.47, name: 'Shanghai' },
         }),
       });
 
@@ -373,7 +337,7 @@ describe('DataChart', () => {
           { source: 'weather', type: 'line' },
         ]}
         layout="grid"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -385,12 +349,7 @@ describe('DataChart', () => {
   it('shows error state when fetch fails', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    render(
-      <DataChart
-        title="Activity"
-        charts={[{ source: 'github', type: 'area' }]}
-      />
-    );
+    render(<DataChart title="Activity" charts={[{ source: 'github', type: 'area' }]} />);
 
     await waitFor(() => {
       expect(screen.getByText('Unable to load chart data')).toBeInTheDocument();
@@ -412,7 +371,7 @@ describe('DataChart', () => {
         title="Test"
         charts={[{ source: 'github', type: 'bar' }]}
         className="custom-class"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -434,7 +393,7 @@ describe('DataChart', () => {
       <DataChart
         title="Dashboard"
         charts={[{ source: 'github', type: 'area', title: 'My Commits' }]}
-      />
+      />,
     );
 
     await waitFor(() => {

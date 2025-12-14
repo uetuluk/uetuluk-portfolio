@@ -27,7 +27,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartLegend,
-  ChartLegendContent,
 } from '@/components/ui/chart';
 import portfolioContent from '@/content/portfolio.json';
 
@@ -35,7 +34,8 @@ import portfolioContent from '@/content/portfolio.json';
 type DataSource = 'github' | 'weather';
 type ChartType = 'area' | 'bar' | 'line' | 'pie' | 'radar' | 'radial';
 type Aggregation = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'byDayOfWeek';
-type WeatherMetric = 'temperature' | 'humidity' | 'precipitation' | 'wind';
+// Weather only supports temperature min/max now
+type WeatherMetric = 'temperature';
 
 interface ChartItemConfig {
   source: DataSource;
@@ -44,9 +44,9 @@ interface ChartItemConfig {
   // GitHub-specific
   githubUsername?: string;
   githubMetric?: 'commits';
-  // Weather-specific
+  // Weather-specific - only temperature min/max is supported
   weatherMetric?: WeatherMetric;
-  weatherLocation?: { lat: number; lon: number } | 'visitor';
+  weatherLocation?: { lat: number; lon: number } | 'visitor' | string;
   // Chart styling
   title?: string;
   height?: number;
@@ -67,11 +67,11 @@ interface GitHubActivityData {
   recentActivity: number;
 }
 
-interface WeatherData {
-  data: Array<{ time: string; value: number }>;
+// New weather API response (min/max temperature only)
+interface WeatherMinMaxData {
+  data: Array<{ date: string; minTemp: number; maxTemp: number }>;
   unit: string;
-  metric: WeatherMetric;
-  location: { lat: number; lon: number };
+  location: { lat: number; lon: number; name?: string };
 }
 
 // Normalized data point for charts
@@ -137,7 +137,10 @@ function aggregateByMonth(data: DataPoint[]): DataPoint[] {
     if (existing) {
       existing.total += point.value;
     } else {
-      monthMap.set(monthKey, { total: point.value, date: new Date(date.getFullYear(), date.getMonth(), 1) });
+      monthMap.set(monthKey, {
+        total: point.value,
+        date: new Date(date.getFullYear(), date.getMonth(), 1),
+      });
     }
   }
 
@@ -223,7 +226,8 @@ function SingleChart({
 
   const chartConfig: ChartConfig = {
     value: {
-      label: config.title || (config.source === 'github' ? 'Commits' : config.weatherMetric || 'Value'),
+      label:
+        config.title || (config.source === 'github' ? 'Commits' : config.weatherMetric || 'Value'),
       color,
     },
   };
@@ -248,13 +252,7 @@ function SingleChart({
         return (
           <AreaChart data={aggregatedData} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              fontSize={10}
-            />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
             <YAxis tickLine={false} axisLine={false} width={30} fontSize={10} />
             <ChartTooltip content={<ChartTooltipContent />} />
             <defs>
@@ -277,13 +275,7 @@ function SingleChart({
         return (
           <BarChart data={aggregatedData} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              fontSize={10}
-            />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
             <YAxis tickLine={false} axisLine={false} width={30} fontSize={10} />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
@@ -294,22 +286,10 @@ function SingleChart({
         return (
           <LineChart data={aggregatedData} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              fontSize={10}
-            />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
             <YAxis tickLine={false} axisLine={false} width={30} fontSize={10} />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke={color}
-              strokeWidth={2}
-              dot={false}
-            />
+            <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={false} />
           </LineChart>
         );
 
@@ -318,19 +298,21 @@ function SingleChart({
           <PieChart accessibilityLayer>
             <ChartTooltip content={<ChartTooltipContent />} />
             <Pie
-              data={aggregatedData}
+              data={
+                aggregatedData as Array<{ label: string; value: number; [key: string]: unknown }>
+              }
               dataKey="value"
               nameKey="label"
               cx="50%"
               cy="50%"
               outerRadius={80}
-              label={({ label }) => label}
+              label={({ name }) => name}
             >
               {aggregatedData.map((_, i) => (
                 <Cell key={`cell-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Pie>
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend />
           </PieChart>
         );
 
@@ -351,7 +333,7 @@ function SingleChart({
           </RadarChart>
         );
 
-      case 'radial':
+      case 'radial': {
         // For radial, we'll show the most recent value as a percentage of max
         const maxValue = Math.max(...aggregatedData.map((d) => d.value));
         const latestValue = aggregatedData[aggregatedData.length - 1]?.value || 0;
@@ -367,13 +349,10 @@ function SingleChart({
             outerRadius="100%"
           >
             <ChartTooltip content={<ChartTooltipContent />} />
-            <RadialBar
-              dataKey="value"
-              background
-              cornerRadius={10}
-            />
+            <RadialBar dataKey="value" background cornerRadius={10} />
           </RadialBarChart>
         );
+      }
 
       default:
         return <div>Unknown chart type</div>;
@@ -400,61 +379,120 @@ function useChartData(config: ChartItemConfig) {
 
   useEffect(() => {
     async function fetchData() {
+      console.log('[DataChart] useChartData called with config:', config);
       setLoading(true);
       setError(null);
 
       try {
         if (config.source === 'github') {
           const username = config.githubUsername || getDefaultUsername();
-          const response = await fetch(`/api/github/activity?username=${username}`);
-          if (!response.ok) throw new Error('Failed to fetch GitHub data');
+          const url = `/api/github/activity?username=${username}`;
+          console.log('[DataChart] Fetching GitHub data:', url);
+
+          const response = await fetch(url);
+          console.log('[DataChart] GitHub response:', {
+            status: response.status,
+            ok: response.ok,
+            statusText: response.statusText,
+          });
+
+          if (!response.ok) {
+            console.error('[DataChart] GitHub fetch failed:', response.status, response.statusText);
+            throw new Error('Failed to fetch GitHub data');
+          }
 
           const result = (await response.json()) as GitHubActivityData;
+          console.log('[DataChart] GitHub raw response:', result);
+          console.log('[DataChart] GitHub data received:', {
+            contributionsCount: result.contributions?.length,
+            totalCommits: result.totalCommits,
+            recentActivity: result.recentActivity,
+          });
+
+          // Defensive check for missing contributions array
+          if (!result.contributions || !Array.isArray(result.contributions)) {
+            console.error('[DataChart] Invalid response: contributions is missing or not an array');
+            throw new Error('Invalid GitHub data format');
+          }
+
           const points: DataPoint[] = result.contributions.map((c) => ({
             label: c.date,
             value: c.count,
             rawDate: new Date(c.date),
           }));
+          console.log('[DataChart] Processed points:', points.length);
           setData(points);
         } else if (config.source === 'weather') {
-          // Get location - supports lat/lon object, city name string, or 'visitor'
-          let lat = 31.23; // Default: Shanghai
-          let lon = 121.47;
+          let response: Response;
+          console.log('[DataChart] Fetching weather data, location config:', config.weatherLocation);
 
-          if (config.weatherLocation && config.weatherLocation !== 'visitor') {
-            if (typeof config.weatherLocation === 'string') {
-              // City name - use geocoding API
-              const geocodeResponse = await fetch(`/api/geocode?city=${encodeURIComponent(config.weatherLocation)}`);
-              if (!geocodeResponse.ok) {
-                throw new Error(`Failed to geocode city: ${config.weatherLocation}`);
-              }
-              const geocodeResult = await geocodeResponse.json() as { lat: number; lon: number; name: string; country: string };
-              lat = geocodeResult.lat;
-              lon = geocodeResult.lon;
-            } else {
-              // Lat/lon object
-              lat = config.weatherLocation.lat;
-              lon = config.weatherLocation.lon;
+          // Handle different location options
+          if (config.weatherLocation === 'visitor') {
+            // Use visitor's location from Cloudflare headers
+            console.log('[DataChart] Using visitor location');
+            response = await fetch('/api/weather?visitor=true');
+          } else if (typeof config.weatherLocation === 'string') {
+            // City name - use geocoding API first
+            const geocodeResponse = await fetch(
+              `/api/geocode?city=${encodeURIComponent(config.weatherLocation)}`,
+            );
+            if (!geocodeResponse.ok) {
+              throw new Error(`Failed to geocode city: ${config.weatherLocation}`);
             }
+            const geocodeResult = (await geocodeResponse.json()) as {
+              lat: number;
+              lon: number;
+              name: string;
+              country: string;
+            };
+            response = await fetch(
+              `/api/weather?lat=${geocodeResult.lat}&lon=${geocodeResult.lon}`,
+            );
+          } else if (config.weatherLocation && typeof config.weatherLocation === 'object') {
+            // Lat/lon object
+            response = await fetch(
+              `/api/weather?lat=${config.weatherLocation.lat}&lon=${config.weatherLocation.lon}`,
+            );
+          } else {
+            // Default: use visitor location
+            response = await fetch('/api/weather?visitor=true');
           }
 
-          const metric = config.weatherMetric || 'temperature';
-          const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}&metric=${metric}`);
+          console.log('[DataChart] Weather response:', {
+            status: response.status,
+            ok: response.ok,
+            statusText: response.statusText,
+          });
+
           if (!response.ok) throw new Error('Failed to fetch weather data');
 
-          const result = (await response.json()) as WeatherData;
-          const points: DataPoint[] = result.data.map((d) => ({
-            label: new Date(d.time).toLocaleString('en-US', {
+          const result = (await response.json()) as WeatherMinMaxData & {
+            weeklyForecast?: Array<{ date: string; minTemp: number; maxTemp: number }>;
+          };
+          console.log('[DataChart] Weather raw response:', result);
+
+          // Handle both response formats: 'data' (from handleWeather) or 'weeklyForecast' (from fetchWeatherSummary cache)
+          const weatherData = result.data || result.weeklyForecast;
+
+          // Defensive check for missing data array
+          if (!weatherData || !Array.isArray(weatherData)) {
+            console.error('[DataChart] Invalid weather response: data/weeklyForecast is missing or not an array');
+            throw new Error('Invalid weather data format');
+          }
+
+          // Transform min/max data to chart format - show average of min/max for simpler visualization
+          const points: DataPoint[] = weatherData.map((d) => ({
+            label: new Date(d.date).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
-              hour: '2-digit',
             }),
-            value: d.value,
-            rawDate: new Date(d.time),
+            value: Math.round((d.minTemp + d.maxTemp) / 2), // Average temperature
+            rawDate: new Date(d.date),
           }));
           setData(points);
         }
       } catch (err) {
+        console.error('[DataChart] Error in fetchData:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
@@ -462,22 +500,36 @@ function useChartData(config: ChartItemConfig) {
     }
 
     fetchData();
-  }, [config.source, config.githubUsername, config.weatherLocation, config.weatherMetric]);
+  }, [config.source, config.githubUsername, config.weatherLocation]);
 
   return { data, loading, error };
 }
 
+// Wrapper component that properly uses the hook
+function ChartWithData({ config, index }: { config: ChartItemConfig; index: number }) {
+  const { data, loading, error } = useChartData(config);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[150px]">
+        <div className="animate-pulse text-muted-foreground">Loading data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[150px] text-muted-foreground">
+        Unable to load chart data
+      </div>
+    );
+  }
+
+  return <SingleChart config={config} data={data} index={index} />;
+}
+
 // Main component
 export function DataChart({ title, charts, layout = 'stack', className }: DataChartProps) {
-  // Fetch data for all charts
-  const chartDataResults = charts.map((config) => ({
-    config,
-    ...useChartData(config),
-  }));
-
-  const isLoading = chartDataResults.some((r) => r.loading);
-  const hasError = chartDataResults.some((r) => r.error);
-
   return (
     <section className={cn('py-8', className)}>
       <div className="flex items-center justify-between mb-6">
@@ -485,34 +537,13 @@ export function DataChart({ title, charts, layout = 'stack', className }: DataCh
       </div>
 
       <div className="p-4 rounded-xl bg-card border">
-        {isLoading && (
-          <div className="flex items-center justify-center h-[150px]">
-            <div className="animate-pulse text-muted-foreground">Loading data...</div>
-          </div>
-        )}
-
-        {hasError && !isLoading && (
-          <div className="flex items-center justify-center h-[150px] text-muted-foreground">
-            Unable to load chart data
-          </div>
-        )}
-
-        {!isLoading && !hasError && (
-          <div
-            className={cn(
-              layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-6'
-            )}
-          >
-            {chartDataResults.map((result, index) => (
-              <SingleChart
-                key={index}
-                config={result.config}
-                data={result.data}
-                index={index}
-              />
-            ))}
-          </div>
-        )}
+        <div
+          className={cn(layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-6')}
+        >
+          {charts.map((config, index) => (
+            <ChartWithData key={index} config={config} index={index} />
+          ))}
+        </div>
       </div>
     </section>
   );
