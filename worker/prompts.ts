@@ -8,7 +8,7 @@ export const TAG_GUIDELINES: Record<string, string> = {
   recruiter:
     'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Consider StatsCounter for key metrics. Use "hero-focused" or "single-column" layout.',
   developer:
-    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include DataChart with github commits (use area/bar/line for trends, or radar for weekly patterns). Show TechLogos (grid style) for tech stack visualization. Use SkillBadges (detailed style). Link to GitHub. Use "two-column" layout.',
+    'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include DataChart with github data for commit activity (area/bar/line for trends, or radar with byDayOfWeek). Show TechLogos (grid style). Use SkillBadges (detailed style). Use "two-column" layout.',
   collaborator:
     'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Consider StatsCounter for project metrics. Use "hero-focused" layout.',
   friend:
@@ -160,7 +160,7 @@ GitHub Activity Data:
 
 When generating DataChart for GitHub:
 - Set githubUsername to "${gh.username}"
-- Use aggregation "weekly" or "byDayOfWeek" for meaningful visualizations
+- Use aggregation "daily" or "byDayOfWeek" for meaningful visualizations
 - "area", "bar", or "line" charts work best for commit trends
 - "radar" works well with "byDayOfWeek" aggregation
 `;
