@@ -112,7 +112,10 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
   if (feedbackState === 'liked') {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1" data-testid="thanks-message">
+        <span
+          className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1"
+          data-testid="thanks-message"
+        >
           <Check className="w-4 h-4" />
           {t('feedback.thanks')}
         </span>
@@ -142,7 +145,10 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
   // Rate limited state
   if (feedbackState === 'rate-limited') {
     return (
-      <span className="text-sm text-orange-600 dark:text-orange-400" data-testid="rate-limit-message">
+      <span
+        className="text-sm text-orange-600 dark:text-orange-400"
+        data-testid="rate-limit-message"
+      >
         {t('feedback.rateLimited', { seconds: retryAfter })}
       </span>
     );

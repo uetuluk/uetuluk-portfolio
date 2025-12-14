@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import type { GenerateRequest, FeedbackRequest, PortfolioContent, GitHubActivityResponse } from './types';
+import type {
+  GenerateRequest,
+  FeedbackRequest,
+  PortfolioContent,
+  GitHubActivityResponse,
+  WeatherMinMaxResponse,
+  GeocodingResult,
+} from './types';
 
 // Import the worker default export
 import worker from './index';
@@ -935,7 +942,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as WeatherMinMaxResponse;
 
       expect(response.status).toBe(200);
       expect(data.data).toHaveLength(2);
@@ -982,7 +989,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as WeatherMinMaxResponse;
 
       expect(response.status).toBe(200);
       expect(data.location.name).toBe('Austin');
@@ -1019,7 +1026,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as WeatherMinMaxResponse;
 
       expect(response.status).toBe(200);
       // Should use Shanghai coordinates (31.23, 121.47)
@@ -1044,7 +1051,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as WeatherMinMaxResponse;
 
       expect(response.status).toBe(200);
       expect(data.data).toEqual([]);
@@ -1068,7 +1075,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as WeatherMinMaxResponse;
 
       expect(data.data).toEqual(cachedData.data);
     });
@@ -1106,7 +1113,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as WeatherMinMaxResponse;
 
       // Should fall back to Shanghai
       expect(response.status).toBe(200);
@@ -1179,7 +1186,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as GeocodingResult;
 
       expect(response.status).toBe(200);
       expect(data.name).toBe('New York');
@@ -1258,7 +1265,7 @@ describe('Worker API Handlers', () => {
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
       await waitOnExecutionContext(ctx);
-      const data = await response.json();
+      const data = (await response.json()) as GeocodingResult;
 
       expect(data.name).toBe('Paris');
       expect(data.lat).toBe(48.8566);

@@ -424,7 +424,10 @@ function useChartData(config: ChartItemConfig) {
           setData(points);
         } else if (config.source === 'weather') {
           let response: Response;
-          console.log('[DataChart] Fetching weather data, location config:', config.weatherLocation);
+          console.log(
+            '[DataChart] Fetching weather data, location config:',
+            config.weatherLocation,
+          );
 
           // Handle different location options
           if (config.weatherLocation === 'visitor') {
@@ -476,7 +479,9 @@ function useChartData(config: ChartItemConfig) {
 
           // Defensive check for missing data array
           if (!weatherData || !Array.isArray(weatherData)) {
-            console.error('[DataChart] Invalid weather response: data/weeklyForecast is missing or not an array');
+            console.error(
+              '[DataChart] Invalid weather response: data/weeklyForecast is missing or not an array',
+            );
             throw new Error('Invalid weather data format');
           }
 

@@ -17,7 +17,7 @@ describe('AI Gateway Mocks', () => {
       });
 
       const gateway = mockAI.gateway('test-id');
-      const response = await gateway.run({});
+      const response = await gateway.run({} as never);
 
       // This covers line 55 (and 246 in sequential): .text() method
       const text = await response.text();
@@ -31,7 +31,7 @@ describe('AI Gateway Mocks', () => {
       });
 
       const gateway = mockAI.gateway('test-id');
-      const response = await gateway.run({});
+      const response = await gateway.run({} as never);
       const text = await response.text();
 
       expect(text).toBe('custom text response');
@@ -43,7 +43,7 @@ describe('AI Gateway Mocks', () => {
       });
 
       const gateway = mockAI.gateway('test-id');
-      const response = await gateway.run({});
+      const response = await gateway.run({} as never);
       const text = await response.text();
 
       expect(text).toBe('');
@@ -56,10 +56,10 @@ describe('AI Gateway Mocks', () => {
       const mockAI = createSequentialMockAI(responses);
       const gateway = mockAI.gateway('test-id');
 
-      const result1 = await gateway.run({});
+      const result1 = await gateway.run({} as never);
       expect(await result1.json()).toEqual(responses[0]);
 
-      const result2 = await gateway.run({});
+      const result2 = await gateway.run({} as never);
       expect(await result2.json()).toEqual(responses[1]);
     });
 
@@ -68,9 +68,9 @@ describe('AI Gateway Mocks', () => {
       const mockAI = createSequentialMockAI(responses);
       const gateway = mockAI.gateway('test-id');
 
-      await gateway.run({}); // First
-      await gateway.run({}); // Second (last)
-      const result3 = await gateway.run({}); // Beyond length - should return last
+      await gateway.run({} as never); // First
+      await gateway.run({} as never); // Second (last)
+      const result3 = await gateway.run({} as never); // Beyond length - should return last
 
       expect(await result3.json()).toEqual(responses[1]);
     });
@@ -81,7 +81,7 @@ describe('AI Gateway Mocks', () => {
       const mockAI = createSequentialMockAI(responses);
       const gateway = mockAI.gateway('test-id');
 
-      const result = await gateway.run({});
+      const result = await gateway.run({} as never);
       const textContent = await result.text(); // Covers line 246
 
       expect(textContent).toContain('test');
@@ -93,7 +93,7 @@ describe('AI Gateway Mocks', () => {
       const mockAI = createMockErrorAI(500, 'Server error');
       const gateway = mockAI.gateway('test-id');
 
-      const result = await gateway.run({});
+      const result = await gateway.run({} as never);
 
       expect(result.ok).toBe(false);
       expect(result.status).toBe(500);
@@ -104,7 +104,7 @@ describe('AI Gateway Mocks', () => {
       const mockAI = createMockErrorAI(429, 'Rate limited');
       const gateway = mockAI.gateway('test-id');
 
-      const result = await gateway.run({});
+      const result = await gateway.run({} as never);
       const json = await result.json();
 
       expect(json).toEqual({ error: { message: 'Rate limited' } });
@@ -116,7 +116,7 @@ describe('AI Gateway Mocks', () => {
       const mockAI = createMockInvalidJsonAI();
       const gateway = mockAI.gateway('test-id');
 
-      const result = await gateway.run({});
+      const result = await gateway.run({} as never);
       const textContent = await result.text();
 
       expect(textContent).toContain('invalid json');

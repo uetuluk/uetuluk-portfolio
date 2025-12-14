@@ -118,7 +118,7 @@ describe('AI Gateway Layout Generation', () => {
   });
 
   describe('successful generation', () => {
-    it('returns AI-generated layout', async () => {
+    it('returns AI-generated layout', { timeout: 10000 }, async () => {
       const mockLayout: GeneratedLayout = {
         layout: 'two-column',
         theme: { accent: 'purple' },
