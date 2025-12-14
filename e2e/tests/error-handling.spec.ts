@@ -85,22 +85,21 @@ test.describe('Error Handling', () => {
     await welcomePage.goto();
     await welcomePage.selectVisitorType('recruiter');
 
-    // Wait for page to settle - may show error or fallback
-    await page.waitForTimeout(2000);
-
-    // The page should still be functional
+    // Wait for either navbar (fallback) or try again button (error state)
     const navbar = page.locator('nav');
     const tryAgainButton = page.getByRole('button', { name: /try again/i });
 
-    // Either shows fallback with navbar, or error with try again
-    const navbarVisible = await navbar.isVisible();
-    const tryAgainVisible = await tryAgainButton.isVisible();
-
-    expect(navbarVisible || tryAgainVisible).toBe(true);
+    // Wait for page to settle - either shows fallback with navbar, or error with try again
+    await expect(async () => {
+      const navbarVisible = await navbar.isVisible();
+      const tryAgainVisible = await tryAgainButton.isVisible();
+      expect(navbarVisible || tryAgainVisible).toBe(true);
+    }).toPass({ timeout: 15000 });
   });
 
   test('regeneration failure shows fallback', async ({ page }) => {
     let callCount = 0;
+    let regenerationAttempted = false;
 
     await page.route('**/api/generate', async (route) => {
       callCount++;
@@ -118,6 +117,7 @@ test.describe('Error Handling', () => {
         });
       } else {
         // Regeneration fails
+        regenerationAttempted = true;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -148,8 +148,10 @@ test.describe('Error Handling', () => {
     // Trigger regeneration via dislike
     await generatedPage.clickDislike();
 
-    // Wait for regeneration attempt
-    await page.waitForTimeout(2000);
+    // Wait for regeneration to be attempted (second API call)
+    await expect(async () => {
+      expect(regenerationAttempted).toBe(true);
+    }).toPass({ timeout: 15000 });
 
     // Page should still be visible (fallback used)
     await expect(generatedPage.navbar).toBeVisible();

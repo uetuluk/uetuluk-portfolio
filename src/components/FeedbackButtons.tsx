@@ -112,7 +112,7 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
   if (feedbackState === 'liked') {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+        <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1" data-testid="thanks-message">
           <Check className="w-4 h-4" />
           {t('feedback.thanks')}
         </span>
@@ -120,6 +120,7 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
           <button
             onClick={handleShare}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            data-testid="share-button"
           >
             <Share2 className="w-4 h-4" />
             {t('feedback.share')}
@@ -131,13 +132,17 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
 
   // Disliked state (regenerating)
   if (feedbackState === 'disliked') {
-    return <span className="text-sm text-muted-foreground">{t('feedback.regenerating')}</span>;
+    return (
+      <span className="text-sm text-muted-foreground" data-testid="regenerating-message">
+        {t('feedback.regenerating')}
+      </span>
+    );
   }
 
   // Rate limited state
   if (feedbackState === 'rate-limited') {
     return (
-      <span className="text-sm text-orange-600 dark:text-orange-400">
+      <span className="text-sm text-orange-600 dark:text-orange-400" data-testid="rate-limit-message">
         {t('feedback.rateLimited', { seconds: retryAfter })}
       </span>
     );
@@ -145,7 +150,11 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
 
   // Loading state
   if (feedbackState === 'loading') {
-    return <span className="text-sm text-muted-foreground">{t('feedback.sending')}</span>;
+    return (
+      <span className="text-sm text-muted-foreground" data-testid="sending-message">
+        {t('feedback.sending')}
+      </span>
+    );
   }
 
   // Default idle state
@@ -159,6 +168,7 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
           'dark:hover:text-green-400 dark:hover:bg-green-900/20',
         )}
         title={t('feedback.likeTooltip')}
+        data-testid="like-button"
       >
         <ThumbsUp className="w-4 h-4" />
       </button>
@@ -170,6 +180,7 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
           'dark:hover:text-red-400 dark:hover:bg-red-900/20',
         )}
         title={t('feedback.dislikeTooltip')}
+        data-testid="dislike-button"
       >
         <ThumbsDown className="w-4 h-4" />
       </button>
