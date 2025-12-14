@@ -746,5 +746,546 @@ describe('Worker API Handlers', () => {
 
       globalThis.fetch = originalFetch;
     });
+
+    it('sorts contributions by date correctly', async () => {
+      // Unsorted events
+      const unsortedEvents = [
+        {
+          type: 'PushEvent',
+          created_at: '2024-01-15T12:00:00Z',
+          payload: { commits: [{ sha: 'abc' }], size: 1 },
+        },
+        {
+          type: 'PushEvent',
+          created_at: '2024-01-10T12:00:00Z',
+          payload: { commits: [{ sha: 'def' }], size: 1 },
+        },
+        {
+          type: 'PushEvent',
+          created_at: '2024-01-20T12:00:00Z',
+          payload: { commits: [{ sha: 'ghi' }], size: 1 },
+        },
+      ];
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.github.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(unsortedEvents),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/github/activity?username=testuser', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as GitHubActivityResponse;
+
+      expect(response.status).toBe(200);
+      // Contributions should be sorted by date ascending
+      expect(data.contributions[0].date).toBe('2024-01-10');
+      expect(data.contributions[1].date).toBe('2024-01-15');
+      expect(data.contributions[2].date).toBe('2024-01-20');
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns unavailable summary when fetch throws', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.github.com')) {
+          throw new Error('Network error');
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/github/activity?username=testuser', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as GitHubActivityResponse;
+
+      expect(response.status).toBe(200);
+      expect(data.contributions).toEqual([]);
+      expect(data.totalCommits).toBe(0);
+      expect(data.recentActivity).toBe(0);
+
+      globalThis.fetch = originalFetch;
+    });
+  });
+
+  describe('GET /api/weather', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns 400 when lat/lon missing and visitor=false', async () => {
+      const request = createMockRequest('https://example.com/api/weather', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Missing required parameters');
+    });
+
+    it('returns 400 for invalid lat/lon values', async () => {
+      const request = createMockRequest('https://example.com/api/weather?lat=invalid&lon=abc', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Invalid lat/lon');
+    });
+
+    it('returns weather data for valid coordinates', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                latitude: 31.23,
+                longitude: 121.47,
+                daily: {
+                  time: ['2024-01-01', '2024-01-02'],
+                  temperature_2m_max: [15, 16],
+                  temperature_2m_min: [5, 6],
+                },
+                daily_units: {
+                  temperature_2m_max: '°C',
+                  temperature_2m_min: '°C',
+                },
+              }),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/weather?lat=31.23&lon=121.47', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.data).toHaveLength(2);
+      expect(data.unit).toBe('C');
+      expect(data.location.lat).toBe(31.23);
+      expect(data.location.lon).toBe(121.47);
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('uses visitor location when visitor=true and city is available', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('geocoding-api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                results: [{ latitude: 30.27, longitude: -97.74, name: 'Austin', country: 'United States', timezone: 'America/Chicago' }],
+              }),
+          });
+        }
+        if (url.includes('api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                daily: {
+                  time: ['2024-01-01'],
+                  temperature_2m_max: [20],
+                  temperature_2m_min: [10],
+                },
+                daily_units: { temperature_2m_max: '°C', temperature_2m_min: '°C' },
+              }),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/weather?visitor=true', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.location.name).toBe('Austin');
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('falls back to Shanghai when visitor city unavailable', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                daily: {
+                  time: ['2024-01-01'],
+                  temperature_2m_max: [15],
+                  temperature_2m_min: [5],
+                },
+                daily_units: { temperature_2m_max: '°C', temperature_2m_min: '°C' },
+              }),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      // Create request without cf.city
+      const request = new Request('https://example.com/api/weather?visitor=true');
+      Object.defineProperty(request, 'cf', {
+        value: { country: 'US' }, // No city
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Should use Shanghai coordinates (31.23, 121.47)
+      expect(data.location.lat).toBeCloseTo(31.23, 1);
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns empty data on Open-Meteo API error', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('api.open-meteo.com')) {
+          return Promise.resolve({ ok: false, status: 500 });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/weather?lat=31.23&lon=121.47', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.data).toEqual([]);
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns cached weather data when available', async () => {
+      // Pre-populate cache
+      const cachedData = {
+        data: [{ date: '2024-01-01', minTemp: 5, maxTemp: 15 }],
+        unit: 'C',
+        location: { lat: 31.23, lon: 121.47 },
+      };
+      await env.UI_CACHE.put('weather:minmax:31.23:121.47', JSON.stringify(cachedData));
+
+      const request = createMockRequest('https://example.com/api/weather?lat=31.23&lon=121.47', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(data.data).toEqual(cachedData.data);
+    });
+
+    it('handles geocoding failure when visitor=true', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('geocoding-api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ results: [] }), // No results
+          });
+        }
+        if (url.includes('api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                daily: {
+                  time: ['2024-01-01'],
+                  temperature_2m_max: [15],
+                  temperature_2m_min: [5],
+                },
+                daily_units: { temperature_2m_max: '°C', temperature_2m_min: '°C' },
+              }),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/weather?visitor=true', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      // Should fall back to Shanghai
+      expect(response.status).toBe(200);
+      expect(data.location.lat).toBeCloseTo(31.23, 1);
+
+      globalThis.fetch = originalFetch;
+    });
+  });
+
+  describe('GET /api/geocode', () => {
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns 400 for missing city parameter', async () => {
+      const request = createMockRequest('https://example.com/api/geocode', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Missing or invalid city');
+    });
+
+    it('returns 400 for city parameter less than 2 characters', async () => {
+      const request = createMockRequest('https://example.com/api/geocode?city=a', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('Missing or invalid city');
+    });
+
+    it('returns geocoding result for valid city', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('geocoding-api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                results: [
+                  {
+                    latitude: 40.7128,
+                    longitude: -74.006,
+                    name: 'New York',
+                    country: 'United States',
+                    timezone: 'America/New_York',
+                  },
+                ],
+              }),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/geocode?city=New%20York', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.name).toBe('New York');
+      expect(data.lat).toBeCloseTo(40.7128, 2);
+      expect(data.lon).toBeCloseTo(-74.006, 2);
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns 404 when city not found', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('geocoding-api.open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ results: [] }),
+          });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/geocode?city=NonexistentCity123', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(404);
+      expect(data.error).toContain('City not found');
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns 500 on geocoding API error', async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('geocoding-api.open-meteo.com')) {
+          return Promise.resolve({ ok: false, status: 500 });
+        }
+        return originalFetch(url);
+      });
+
+      const request = createMockRequest('https://example.com/api/geocode?city=Paris', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = (await response.json()) as ApiResponse;
+
+      expect(response.status).toBe(500);
+      expect(data.error).toContain('Failed to geocode');
+
+      globalThis.fetch = originalFetch;
+    });
+
+    it('returns cached geocoding result when available', async () => {
+      // Pre-populate cache
+      const cachedData = {
+        lat: 48.8566,
+        lon: 2.3522,
+        name: 'Paris',
+        country: 'France',
+        timezone: 'Europe/Paris',
+      };
+      await env.UI_CACHE.put('geocode:paris', JSON.stringify(cachedData));
+
+      const request = createMockRequest('https://example.com/api/geocode?city=Paris', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      const data = await response.json();
+
+      expect(data.name).toBe('Paris');
+      expect(data.lat).toBe(48.8566);
+    });
+  });
+
+  describe('Asset serving from R2', () => {
+    afterEach(async () => {
+      // Clean up R2 assets to prevent isolated storage issues
+      const objects = await env.ASSETS.list();
+      for (const obj of objects.objects) {
+        await env.ASSETS.delete(obj.key);
+      }
+    });
+
+    it('returns asset with correct headers when found in R2', async () => {
+      // Put a test asset in R2
+      await env.ASSETS.put('assets/test.png', new Uint8Array([1, 2, 3]), {
+        httpMetadata: { contentType: 'image/png' },
+      });
+
+      const request = createMockRequest('https://example.com/assets/test.png', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('image/png');
+      expect(response.headers.get('Cache-Control')).toContain('public');
+      expect(response.headers.get('ETag')).toBeDefined();
+
+      // Consume the body to properly dispose of R2 stream
+      await response.arrayBuffer();
+    });
+
+    it('returns favicon.ico from R2 root', async () => {
+      await env.ASSETS.put('favicon.ico', new Uint8Array([1, 2, 3]), {
+        httpMetadata: { contentType: 'image/x-icon' },
+      });
+
+      const request = createMockRequest('https://example.com/favicon.ico', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('image/x-icon');
+
+      // Consume the body to properly dispose of R2 stream
+      await response.arrayBuffer();
+    });
+
+    it('falls back to application/octet-stream when content type not set', async () => {
+      await env.ASSETS.put('assets/unknown.bin', new Uint8Array([1, 2, 3]));
+
+      const request = createMockRequest('https://example.com/assets/unknown.bin', {
+        method: 'GET',
+      });
+
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
+
+      // Consume the body to properly dispose of R2 stream
+      await response.arrayBuffer();
+    });
   });
 });

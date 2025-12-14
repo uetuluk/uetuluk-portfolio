@@ -284,4 +284,70 @@ describe('useTheme', () => {
     expect(result.current.preference).toBe('system');
     expect(result.current.isSystem).toBe(true);
   });
+
+  // Tests for uncovered branches (lines 44, 68)
+
+  it('responds to system theme change back to light via callback', () => {
+    // Start with system preference in dark mode
+    mockMatchMedia.mockImplementation((query: string) => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+        if (event === 'change') {
+          mediaQueryListeners.push(listener);
+        }
+      }),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    const { result } = renderHook(() => useTheme());
+
+    // Initially dark (system preference)
+    expect(result.current.theme).toBe('dark');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+
+    // Simulate system theme change back to light (covers line 44 light branch)
+    act(() => {
+      mediaQueryListeners.forEach((listener) => {
+        listener({ matches: false } as MediaQueryListEvent);
+      });
+    });
+
+    // Theme should update to light
+    expect(result.current.theme).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+  });
+
+  it('toggleTheme toggles to light when system preference is dark', () => {
+    // Set system to dark mode
+    mockMatchMedia.mockImplementation((query: string) => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+        if (event === 'change') {
+          mediaQueryListeners.push(listener);
+        }
+      }),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    const { result } = renderHook(() => useTheme());
+
+    // System is dark, preference is system
+    expect(result.current.preference).toBe('system');
+    expect(result.current.theme).toBe('dark');
+
+    // Toggle should go to opposite of system (dark -> light) - covers line 68
+    act(() => {
+      result.current.toggleTheme();
+    });
+
+    expect(result.current.preference).toBe('light');
+    expect(result.current.theme).toBe('light');
+    expect(document.documentElement.classList.contains('light')).toBe(true);
+  });
 });
