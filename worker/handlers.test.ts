@@ -572,6 +572,7 @@ describe('Worker API Handlers', () => {
         created_at: new Date().toISOString(),
         payload: {
           commits: [{ sha: 'abc123' }, { sha: 'def456' }],
+          size: 2, // 2 commits in this push
         },
       },
       {
@@ -579,10 +580,29 @@ describe('Worker API Handlers', () => {
         created_at: new Date(Date.now() - 86400000).toISOString(), // Yesterday
         payload: {
           commits: [{ sha: 'ghi789' }],
+          size: 1, // 1 commit in this push
         },
       },
       {
-        type: 'WatchEvent', // Non-push event, should be ignored
+        type: 'PullRequestEvent', // PR events count as 1
+        created_at: new Date().toISOString(),
+        payload: {
+          action: 'opened',
+        },
+      },
+      {
+        type: 'IssuesEvent', // Issue events count as 1
+        created_at: new Date().toISOString(),
+        payload: {
+          action: 'opened',
+        },
+      },
+      {
+        type: 'WatchEvent', // Non-tracked event, should be ignored
+        created_at: new Date().toISOString(),
+      },
+      {
+        type: 'ForkEvent', // Non-tracked event, should be ignored
         created_at: new Date().toISOString(),
       },
     ];
@@ -616,7 +636,7 @@ describe('Worker API Handlers', () => {
       expect(response.status).toBe(200);
       expect(data.contributions).toBeDefined();
       expect(Array.isArray(data.contributions)).toBe(true);
-      expect(data.totalCommits).toBe(3); // 2 + 1 from mock events
+      expect(data.totalCommits).toBe(5); // 2 + 1 from PushEvents + 1 PR + 1 Issue
       expect(data.recentActivity).toBeDefined();
 
       globalThis.fetch = originalFetch;

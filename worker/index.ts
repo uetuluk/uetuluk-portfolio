@@ -1195,6 +1195,34 @@ function createSummaryFromActivity(
   };
 }
 
+// Activity event types to track (beyond just PushEvent)
+const TRACKED_EVENT_TYPES = [
+  'PushEvent',
+  'PullRequestEvent',
+  'CreateEvent',
+  'IssuesEvent',
+  'IssueCommentEvent',
+  'PullRequestReviewEvent',
+  'PullRequestReviewCommentEvent',
+  'CommitCommentEvent',
+  'ReleaseEvent',
+];
+
+// Get activity count from a GitHub event
+function getActivityCountFromEvent(event: GitHubEvent): number {
+  if (!TRACKED_EVENT_TYPES.includes(event.type)) {
+    return 0;
+  }
+
+  // PushEvent has multiple commits, use payload.size
+  if (event.type === 'PushEvent' && event.payload?.size) {
+    return event.payload.size;
+  }
+
+  // All other tracked events count as 1 activity
+  return 1;
+}
+
 // Pre-fetch GitHub data and create a summary for AI context
 export async function fetchGitHubSummary(
   username: string,
@@ -1230,11 +1258,11 @@ export async function fetchGitHubSummary(
     let totalCommits = 0;
 
     for (const event of events) {
-      if (event.type === 'PushEvent' && event.payload?.commits) {
+      const activityCount = getActivityCountFromEvent(event);
+      if (activityCount > 0) {
         const date = event.created_at.split('T')[0];
-        const commitCount = event.payload.commits.length;
-        contributionMap.set(date, (contributionMap.get(date) || 0) + commitCount);
-        totalCommits += commitCount;
+        contributionMap.set(date, (contributionMap.get(date) || 0) + activityCount);
+        totalCommits += activityCount;
       }
     }
 
@@ -1441,11 +1469,11 @@ async function handleGitHubActivity(
     let totalCommits = 0;
 
     for (const event of events) {
-      if (event.type === 'PushEvent' && event.payload?.commits) {
+      const activityCount = getActivityCountFromEvent(event);
+      if (activityCount > 0) {
         const date = event.created_at.split('T')[0];
-        const commitCount = event.payload.commits.length;
-        contributionMap.set(date, (contributionMap.get(date) || 0) + commitCount);
-        totalCommits += commitCount;
+        contributionMap.set(date, (contributionMap.get(date) || 0) + activityCount);
+        totalCommits += activityCount;
       }
     }
 

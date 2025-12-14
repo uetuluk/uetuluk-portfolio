@@ -287,6 +287,31 @@ tests:
             dc.props?.charts?.every(c => validSources.includes(c.source))
           );
 
+  - description: 'Developer DataChart uses GitHub source (not weather)'
+    vars:
+      visitorTag: DEVELOPER
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const dataCharts = result.sections.filter(s => s.type === 'DataChart');
+          // If no DataChart, that's a separate issue
+          if (dataCharts.length === 0) {
+            console.log('WARNING: No DataChart found for developer');
+            return true;
+          }
+          // Check that at least one chart uses github source
+          const hasGithub = dataCharts.some(dc =>
+            dc.props?.charts?.some(c => c.source === 'github')
+          );
+          if (!hasGithub) {
+            const sources = dataCharts.flatMap(dc => dc.props?.charts?.map(c => c.source) || []);
+            console.log('DataChart sources found:', sources);
+          }
+          return hasGithub;
+
   - description: 'DataChart uses valid aggregation options'
     vars:
       visitorTag: DEVELOPER

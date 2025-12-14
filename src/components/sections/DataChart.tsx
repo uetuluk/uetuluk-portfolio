@@ -234,7 +234,7 @@ function SingleChart({
 
   // Apply aggregation
   const aggregatedData = useMemo(() => {
-    const aggregation = config.aggregation || (config.source === 'github' ? 'weekly' : 'daily');
+    const aggregation = config.aggregation || 'daily';
     return applyAggregation(data, aggregation);
   }, [data, config.aggregation, config.source]);
 

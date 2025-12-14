@@ -15,6 +15,7 @@ declare const module:
   | undefined;
 
 // Minimal portfolio content for testing
+// Uses real GitHub user to ensure GitHub data is available for tests
 const DUMMY_PORTFOLIO = {
   name: 'Test Portfolio',
   projects: [],
@@ -27,7 +28,7 @@ const DUMMY_PORTFOLIO = {
     contact: {
       email: 'test@example.com',
       linkedin: 'https://linkedin.com/in/test',
-      github: 'https://github.com/test',
+      github: 'https://github.com/uetuluk', // Real user with GitHub activity
     },
   },
   education: [],

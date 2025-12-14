@@ -159,12 +159,16 @@ export interface UIHints {
 }
 
 // GitHub Activity API types
+// Event types we track: PushEvent, PullRequestEvent, CreateEvent, IssuesEvent,
+// IssueCommentEvent, PullRequestReviewEvent, PullRequestReviewCommentEvent,
+// CommitCommentEvent, ReleaseEvent
 export interface GitHubEvent {
   type: string;
   created_at: string;
   payload?: {
     commits?: Array<{ sha: string }>;
     size?: number;
+    action?: string; // For PR/Issue events: opened, closed, merged, etc.
   };
 }
 
