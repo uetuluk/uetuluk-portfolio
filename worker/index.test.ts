@@ -615,6 +615,30 @@ describe('Worker Pure Functions', () => {
         const gallery = layout.sections.find((s) => s.type === 'ImageGallery');
         expect(gallery).toBeDefined();
       });
+
+      it('includes photo paths in ImageGallery when photos exist', () => {
+        const portfolioWithPhotos = {
+          ...mockPortfolio,
+          photos: [
+            { path: '/assets/photo1.jpg', description: 'Photo 1' },
+            { path: '/assets/photo2.jpg', description: 'Photo 2' },
+            { path: '/assets/photo3.jpg', description: 'Photo 3' },
+          ],
+        };
+
+        const layout = getDefaultLayout('friend', portfolioWithPhotos);
+        const gallery = layout.sections.find((s) => s.type === 'ImageGallery');
+
+        expect(gallery?.props.images).toEqual(['/assets/photo1.jpg', '/assets/photo2.jpg', '/assets/photo3.jpg']);
+      });
+
+      it('includes empty array when photos is undefined', () => {
+        // mockPortfolio doesn't have photos property
+        const layout = getDefaultLayout('friend', mockPortfolio);
+        const gallery = layout.sections.find((s) => s.type === 'ImageGallery');
+
+        expect(gallery?.props.images).toEqual([]);
+      });
     });
 
     describe('unknown visitor tag', () => {
