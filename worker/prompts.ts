@@ -3,6 +3,20 @@ import type { PortfolioContent, VisitorContext, DataSummaries } from './types';
 export const ALLOWED_VISITOR_TAGS = ['recruiter', 'developer', 'collaborator', 'friend'];
 const MAX_CUSTOM_INTENT_LENGTH = 200;
 
+// Security: Sanitize custom intent to prevent prompt injection
+// Uses allowlist approach - only allows safe characters
+export function sanitizeCustomIntent(intent: string): string {
+  return intent
+    .slice(0, MAX_CUSTOM_INTENT_LENGTH)
+    // Allow only alphanumeric, spaces, and basic punctuation
+    .replace(/[^a-zA-Z0-9\s.,!?'"-]/g, '')
+    // Collapse multiple spaces
+    .replace(/\s+/g, ' ')
+    // Remove potential prompt injection patterns
+    .replace(/\b(ignore|forget|disregard|system|assistant|user|prompt)\b/gi, '')
+    .trim();
+}
+
 // Extracted guidelines for reuse in categorization
 export const TAG_GUIDELINES: Record<string, string> = {
   recruiter:
@@ -66,11 +80,12 @@ OUTPUT ONLY VALID JSON - no markdown, no explanations.`;
 }
 
 export function buildCategorizationUserPrompt(customIntent: string): string {
-  // Sanitize and truncate the intent
-  const sanitized = customIntent
-    .slice(0, MAX_CUSTOM_INTENT_LENGTH)
-    .replace(/[<>{}[\]]/g, '') // Remove potential injection characters
-    .trim();
+  // Security: Use robust sanitization
+  const sanitized = sanitizeCustomIntent(customIntent);
+
+  if (!sanitized) {
+    return 'Analyze this visitor intent: "general visitor"';
+  }
 
   return `Analyze this visitor intent: "${sanitized}"`;
 }
@@ -271,9 +286,11 @@ export function buildUserPrompt(
   let prompt = `Visitor type: ${displayTag}`;
 
   if (customIntent) {
-    // Truncate custom intent to limit injection surface
-    const truncatedIntent = customIntent.slice(0, MAX_CUSTOM_INTENT_LENGTH);
-    prompt += `\nAdditional context: ${truncatedIntent}`;
+    // Security: Use robust sanitization for custom intent
+    const sanitized = sanitizeCustomIntent(customIntent);
+    if (sanitized) {
+      prompt += `\nAdditional context: ${sanitized}`;
+    }
   }
 
   // Add subtle context hints based on visitor data

@@ -353,7 +353,7 @@ describe('validateLink', () => {
       expect.any(String),
       expect.objectContaining({
         method: 'HEAD',
-        redirect: 'follow',
+        redirect: 'manual', // Security: don't follow redirects automatically
       }),
     );
   });

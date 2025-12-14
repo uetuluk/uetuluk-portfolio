@@ -269,9 +269,9 @@ describe('Worker Pure Functions', () => {
       expect(getClientIP(request)).toBe('1.1.1.1');
     });
 
-    it('returns unknown when no IP headers present', () => {
+    it('returns null when no IP headers present', () => {
       const request = new Request('https://example.com');
-      expect(getClientIP(request)).toBe('unknown');
+      expect(getClientIP(request)).toBeNull();
     });
 
     it('prefers CF-Connecting-IP over X-Forwarded-For', () => {
