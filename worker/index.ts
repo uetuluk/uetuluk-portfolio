@@ -12,11 +12,14 @@ import type {
   UIHints,
   GitHubEvent,
   GitHubActivityResponse,
-  WeatherMetric,
-  WeatherResponse,
-  OpenMeteoResponse,
   GeocodingResult,
   OpenMeteoGeocodingResponse,
+  GitHubDataSummary,
+  WeatherDataSummary,
+  DataSummaries,
+  OpenMeteoDailyResponse,
+  WeatherMinMaxResponse,
+  PortfolioContent,
 } from './types';
 
 // Rate limiting configuration
@@ -552,6 +555,18 @@ async function handleGenerate(
   const visitorContext = extractVisitorContext(request);
   const uiHints = deriveUIHints(visitorContext);
 
+  // Pre-fetch data summaries for AI context (run in parallel)
+  const githubUsername = extractGitHubUsername(portfolioContent);
+  const [githubSummary, weatherSummary] = await Promise.all([
+    fetchGitHubSummary(githubUsername, env),
+    fetchWeatherSummary(visitorContext, env),
+  ]);
+
+  const dataSummaries: DataSummaries = {
+    github: githubSummary,
+    weather: weatherSummary,
+  };
+
   // Step 1: Categorize custom intent if provided
   let effectiveTag = visitorTag;
   let customGuidelines: { tagName: string; guidelines: string } | undefined;
@@ -656,7 +671,7 @@ async function handleGenerate(
         messages: [
           {
             role: 'system',
-            content: buildSystemPrompt(portfolioContent, customGuidelines, visitorContext),
+            content: buildSystemPrompt(portfolioContent, customGuidelines, visitorContext, dataSummaries),
           },
           {
             role: 'user',
@@ -1122,7 +1137,7 @@ export function getDefaultLayout(
         },
         {
           type: 'ImageGallery',
-          props: { title: 'Photos', images: [] },
+          props: { title: 'Photos', images: portfolioContent.photos?.map((p) => p.path) || [] },
         },
         {
           type: 'ContactForm',
@@ -1135,6 +1150,253 @@ export function getDefaultLayout(
   return baseLayout;
 }
 
+// ============ Data Pre-fetch Functions for AI Context ============
+
+// Default fallback location: Shanghai
+const DEFAULT_WEATHER_LOCATION = {
+  name: 'Shanghai',
+  lat: 31.23,
+  lon: 121.47,
+};
+
+// Extract GitHub username from portfolio content
+function extractGitHubUsername(portfolioContent: PortfolioContent): string {
+  const githubUrl = portfolioContent.personal.contact.github;
+  const match = githubUrl.match(/github\.com\/([^/]+)/);
+  return match ? match[1] : 'uetuluk';
+}
+
+// Create summary from GitHub activity data
+function createSummaryFromActivity(
+  data: GitHubActivityResponse,
+  username: string,
+): GitHubDataSummary {
+  if (data.contributions.length === 0) {
+    return { available: false, username, totalCommits: 0, recentActivity: 0 };
+  }
+
+  const sorted = [...data.contributions].sort((a, b) => a.date.localeCompare(b.date));
+
+  // Calculate average commits per week
+  const weeks = Math.max(1, Math.ceil(sorted.length / 7));
+  const avgCommitsPerWeek = Math.round(data.totalCommits / weeks);
+
+  return {
+    available: true,
+    username,
+    dateRange: {
+      start: sorted[0].date,
+      end: sorted[sorted.length - 1].date,
+    },
+    totalCommits: data.totalCommits,
+    recentActivity: data.recentActivity,
+    samplePoints: sorted.slice(-5), // Last 5 data points
+    avgCommitsPerWeek,
+  };
+}
+
+// Pre-fetch GitHub data and create a summary for AI context
+export async function fetchGitHubSummary(
+  username: string,
+  env: Env,
+): Promise<GitHubDataSummary> {
+  const cacheKey = `github:activity:${username}`;
+
+  // Check cache first
+  if (env.UI_CACHE) {
+    const cached = await env.UI_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      const data = cached as GitHubActivityResponse;
+      return createSummaryFromActivity(data, username);
+    }
+  }
+
+  try {
+    const response = await fetch(`https://api.github.com/users/${username}/events?per_page=100`, {
+      headers: {
+        'User-Agent': 'Portfolio-Site',
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!response.ok) {
+      return { available: false, username, totalCommits: 0, recentActivity: 0 };
+    }
+
+    const events = (await response.json()) as GitHubEvent[];
+
+    // Process events into daily contribution counts
+    const contributionMap = new Map<string, number>();
+    let totalCommits = 0;
+
+    for (const event of events) {
+      if (event.type === 'PushEvent' && event.payload?.commits) {
+        const date = event.created_at.split('T')[0];
+        const commitCount = event.payload.commits.length;
+        contributionMap.set(date, (contributionMap.get(date) || 0) + commitCount);
+        totalCommits += commitCount;
+      }
+    }
+
+    const contributions = Array.from(contributionMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calculate recent activity (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentActivity = contributions
+      .filter((c) => new Date(c.date) >= thirtyDaysAgo)
+      .reduce((sum, c) => sum + c.count, 0);
+
+    const result: GitHubActivityResponse = {
+      contributions,
+      totalCommits,
+      recentActivity,
+    };
+
+    // Cache the result
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 3600, // 1 hour
+      });
+    }
+
+    return createSummaryFromActivity(result, username);
+  } catch {
+    return { available: false, username, totalCommits: 0, recentActivity: 0 };
+  }
+}
+
+// Helper to geocode a city name (for weather pre-fetch)
+async function geocodeCity(
+  cityName: string,
+  env: Env,
+): Promise<{ lat: number; lon: number; name: string } | null> {
+  const cacheKey = `geocode:${cityName.toLowerCase().trim()}`;
+
+  if (env.UI_CACHE) {
+    const cached = await env.UI_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      const result = cached as GeocodingResult;
+      return { lat: result.lat, lon: result.lon, name: result.name };
+    }
+  }
+
+  try {
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en`;
+    const response = await fetch(geocodeUrl, {
+      headers: { 'User-Agent': 'Portfolio-Site' },
+    });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as OpenMeteoGeocodingResponse;
+    if (!data.results || data.results.length === 0) return null;
+
+    const result: GeocodingResult = {
+      lat: data.results[0].latitude,
+      lon: data.results[0].longitude,
+      name: data.results[0].name,
+      country: data.results[0].country,
+      timezone: data.results[0].timezone,
+    };
+
+    // Cache for 1 year
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(result), {
+        expirationTtl: 31536000,
+      });
+    }
+
+    return { lat: result.lat, lon: result.lon, name: result.name };
+  } catch {
+    return null;
+  }
+}
+
+// Create empty weather summary
+function createEmptyWeatherSummary(location: {
+  name: string;
+  lat: number;
+  lon: number;
+}): WeatherDataSummary {
+  return {
+    available: false,
+    location,
+    weeklyForecast: [],
+    unit: 'C',
+  };
+}
+
+// Pre-fetch weather data for visitor location
+export async function fetchWeatherSummary(
+  visitorContext: VisitorContext,
+  env: Env,
+): Promise<WeatherDataSummary> {
+  // Try to get visitor city coordinates
+  let location = DEFAULT_WEATHER_LOCATION;
+
+  if (visitorContext.geo.city) {
+    const cityCoords = await geocodeCity(visitorContext.geo.city, env);
+    if (cityCoords) {
+      location = {
+        name: cityCoords.name,
+        lat: cityCoords.lat,
+        lon: cityCoords.lon,
+      };
+    }
+  }
+
+  // Check cache
+  const cacheKey = `weather:minmax:${location.lat.toFixed(2)}:${location.lon.toFixed(2)}`;
+  if (env.UI_CACHE) {
+    const cached = await env.UI_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      return cached as WeatherDataSummary;
+    }
+  }
+
+  try {
+    // Fetch daily min/max temperatures from Open-Meteo
+    const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&daily=temperature_2m_max,temperature_2m_min&forecast_days=7&timezone=auto`;
+
+    const response = await fetch(openMeteoUrl, {
+      headers: { 'User-Agent': 'Portfolio-Site' },
+    });
+
+    if (!response.ok) {
+      return createEmptyWeatherSummary(location);
+    }
+
+    const data = (await response.json()) as OpenMeteoDailyResponse;
+
+    const weeklyForecast = data.daily.time.map((date, i) => ({
+      date,
+      minTemp: data.daily.temperature_2m_min[i],
+      maxTemp: data.daily.temperature_2m_max[i],
+    }));
+
+    const summary: WeatherDataSummary = {
+      available: true,
+      location,
+      weeklyForecast,
+      unit: data.daily_units.temperature_2m_max.replace('°', ''),
+    };
+
+    // Cache for 1 hour
+    if (env.UI_CACHE) {
+      await env.UI_CACHE.put(cacheKey, JSON.stringify(summary), {
+        expirationTtl: 3600,
+      });
+    }
+
+    return summary;
+  } catch {
+    return createEmptyWeatherSummary(location);
+  }
+}
+
 // Handle GitHub activity data requests
 async function handleGitHubActivity(
   _request: Request,
@@ -1143,6 +1405,7 @@ async function handleGitHubActivity(
   url: URL,
 ): Promise<Response> {
   const username = url.searchParams.get('username') || 'uetuluk';
+  console.log('[Worker] GitHub activity request for username:', username);
 
   // Check cache first (1 hour TTL)
   const cacheKey = `github:activity:${username}`;
@@ -1164,11 +1427,14 @@ async function handleGitHubActivity(
       },
     });
 
+    console.log('[Worker] GitHub API response status:', response.status);
+
     if (!response.ok) {
       throw new Error(`GitHub API returned ${response.status}`);
     }
 
     const events = (await response.json()) as GitHubEvent[];
+    console.log('[Worker] GitHub events fetched:', events.length);
 
     // Process events into daily contribution counts
     const contributionMap = new Map<string, number>();
@@ -1201,6 +1467,12 @@ async function handleGitHubActivity(
       recentActivity,
     };
 
+    console.log('[Worker] Processed GitHub data:', {
+      contributionsCount: contributions.length,
+      totalCommits,
+      recentActivity,
+    });
+
     // Cache the result
     if (env.UI_CACHE) {
       await env.UI_CACHE.put(cacheKey, JSON.stringify(result), {
@@ -1212,7 +1484,7 @@ async function handleGitHubActivity(
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('GitHub API error:', error);
+    console.error('[Worker] GitHub API error:', error);
 
     // Return empty data on error
     const emptyResult: GitHubActivityResponse = {
@@ -1227,50 +1499,65 @@ async function handleGitHubActivity(
   }
 }
 
-// Handle weather data requests using Open-Meteo API
+// Handle weather data requests using Open-Meteo API (min/max temperature only)
 async function handleWeather(
-  _request: Request,
+  request: Request,
   env: Env,
   corsHeaders: Record<string, string>,
   url: URL,
 ): Promise<Response> {
+  const visitorParam = url.searchParams.get('visitor');
   const lat = url.searchParams.get('lat');
   const lon = url.searchParams.get('lon');
-  const metric = url.searchParams.get('metric') as WeatherMetric | null;
 
-  // Validate required parameters
-  if (!lat || !lon) {
-    return new Response(
-      JSON.stringify({ error: 'Missing required parameters: lat and lon' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+  let latitude: number;
+  let longitude: number;
+  let locationName: string | undefined;
+
+  // If visitor=true, use visitor's location from Cloudflare headers
+  if (visitorParam === 'true') {
+    const cf = request.cf as IncomingRequestCfProperties | undefined;
+
+    if (cf?.city) {
+      const cityCoords = await geocodeCity(cf.city as string, env);
+      if (cityCoords) {
+        latitude = cityCoords.lat;
+        longitude = cityCoords.lon;
+        locationName = cityCoords.name;
+      } else {
+        // Fall back to Shanghai
+        latitude = DEFAULT_WEATHER_LOCATION.lat;
+        longitude = DEFAULT_WEATHER_LOCATION.lon;
+        locationName = DEFAULT_WEATHER_LOCATION.name;
+      }
+    } else {
+      // Fall back to Shanghai
+      latitude = DEFAULT_WEATHER_LOCATION.lat;
+      longitude = DEFAULT_WEATHER_LOCATION.lon;
+      locationName = DEFAULT_WEATHER_LOCATION.name;
+    }
+  } else {
+    // Validate required parameters
+    if (!lat || !lon) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: lat and lon (or use visitor=true)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    latitude = parseFloat(lat);
+    longitude = parseFloat(lon);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid lat/lon values' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
   }
-
-  const latitude = parseFloat(lat);
-  const longitude = parseFloat(lon);
-
-  if (isNaN(latitude) || isNaN(longitude)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid lat/lon values' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
-  }
-
-  // Default to temperature if no metric specified
-  const weatherMetric: WeatherMetric = metric || 'temperature';
-
-  // Map metric to Open-Meteo parameter
-  const metricMapping: Record<WeatherMetric, { param: string; unitKey: string }> = {
-    temperature: { param: 'temperature_2m', unitKey: 'temperature_2m' },
-    humidity: { param: 'relative_humidity_2m', unitKey: 'relative_humidity_2m' },
-    precipitation: { param: 'precipitation', unitKey: 'precipitation' },
-    wind: { param: 'wind_speed_10m', unitKey: 'wind_speed_10m' },
-  };
-
-  const { param, unitKey } = metricMapping[weatherMetric];
 
   // Check cache first (1 hour TTL)
-  const cacheKey = `weather:${latitude.toFixed(2)}:${longitude.toFixed(2)}:${weatherMetric}`;
+  const cacheKey = `weather:minmax:${latitude.toFixed(2)}:${longitude.toFixed(2)}`;
   if (env.UI_CACHE) {
     const cached = await env.UI_CACHE.get(cacheKey, 'json');
     if (cached) {
@@ -1281,8 +1568,8 @@ async function handleWeather(
   }
 
   try {
-    // Fetch from Open-Meteo API (free, no key required)
-    const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=${param}&forecast_days=7`;
+    // Fetch ONLY daily min/max temperatures from Open-Meteo
+    const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min&forecast_days=7&timezone=auto`;
 
     const response = await fetch(openMeteoUrl, {
       headers: { 'User-Agent': 'Portfolio-Site' },
@@ -1292,29 +1579,17 @@ async function handleWeather(
       throw new Error(`Open-Meteo API returned ${response.status}`);
     }
 
-    const openMeteoData = (await response.json()) as OpenMeteoResponse;
+    const openMeteoData = (await response.json()) as OpenMeteoDailyResponse;
 
-    // Extract the data based on the metric
-    const values = openMeteoData.hourly[param as keyof typeof openMeteoData.hourly] as
-      | number[]
-      | undefined;
-    const times = openMeteoData.hourly.time;
-    const unit =
-      openMeteoData.hourly_units[unitKey as keyof typeof openMeteoData.hourly_units] || '';
-
-    if (!values || !times) {
-      throw new Error('Invalid response from Open-Meteo');
-    }
-
-    // Transform to our response format
-    const result: WeatherResponse = {
-      data: times.map((time, i) => ({
-        time,
-        value: values[i],
+    // Transform to response format
+    const result: WeatherMinMaxResponse = {
+      data: openMeteoData.daily.time.map((date, i) => ({
+        date,
+        minTemp: openMeteoData.daily.temperature_2m_min[i],
+        maxTemp: openMeteoData.daily.temperature_2m_max[i],
       })),
-      unit,
-      metric: weatherMetric,
-      location: { lat: latitude, lon: longitude },
+      unit: openMeteoData.daily_units.temperature_2m_max.replace('°', ''),
+      location: { lat: latitude, lon: longitude, name: locationName },
     };
 
     // Cache the result
@@ -1331,11 +1606,10 @@ async function handleWeather(
     console.error('Weather API error:', error);
 
     // Return empty data on error
-    const emptyResult: WeatherResponse = {
+    const emptyResult: WeatherMinMaxResponse = {
       data: [],
-      unit: '',
-      metric: weatherMetric,
-      location: { lat: latitude, lon: longitude },
+      unit: 'C',
+      location: { lat: latitude, lon: longitude, name: locationName },
     };
 
     return new Response(JSON.stringify(emptyResult), {

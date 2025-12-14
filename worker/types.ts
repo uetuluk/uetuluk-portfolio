@@ -235,3 +235,50 @@ export interface OpenMeteoGeocodingResponse {
     admin1?: string;
   }>;
 }
+
+// GitHub summary for AI context (pre-fetched data)
+export interface GitHubDataSummary {
+  available: boolean;
+  username: string;
+  dateRange?: { start: string; end: string };
+  totalCommits: number;
+  recentActivity: number;
+  samplePoints?: Array<{ date: string; count: number }>;
+  avgCommitsPerWeek?: number;
+}
+
+// Weather summary for AI context (pre-fetched data)
+export interface WeatherDataSummary {
+  available: boolean;
+  location: { name: string; lat: number; lon: number };
+  weeklyForecast: Array<{ date: string; minTemp: number; maxTemp: number }>;
+  unit: string;
+}
+
+// Combined data summaries for AI prompt
+export interface DataSummaries {
+  github?: GitHubDataSummary;
+  weather?: WeatherDataSummary;
+}
+
+// Open-Meteo daily forecast response structure
+export interface OpenMeteoDailyResponse {
+  latitude: number;
+  longitude: number;
+  daily: {
+    time: string[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+  };
+  daily_units: {
+    temperature_2m_max: string;
+    temperature_2m_min: string;
+  };
+}
+
+// New weather API response (min/max only)
+export interface WeatherMinMaxResponse {
+  data: Array<{ date: string; minTemp: number; maxTemp: number }>;
+  unit: string;
+  location: { lat: number; lon: number; name?: string };
+}

@@ -1,4 +1,4 @@
-import type { PortfolioContent, VisitorContext } from './types';
+import type { PortfolioContent, VisitorContext, DataSummaries } from './types';
 
 export const ALLOWED_VISITOR_TAGS = ['recruiter', 'developer', 'collaborator', 'friend'];
 const MAX_CUSTOM_INTENT_LENGTH = 200;
@@ -79,6 +79,7 @@ export function buildSystemPrompt(
   portfolioContent: PortfolioContent,
   customGuidelines?: { tagName: string; guidelines: string },
   visitorContext?: VisitorContext,
+  dataSummaries?: DataSummaries,
 ): string {
   const { personal, projects, experience, skills, education, hobbies, photos } = portfolioContent;
 
@@ -140,9 +141,64 @@ Personalization hints based on context:
 `;
   }
 
+  // Build data availability section for AI context
+  let dataAvailabilitySection = '';
+  if (dataSummaries) {
+    dataAvailabilitySection = '\n=== AVAILABLE DATA FOR CHARTS ===\n';
+
+    // GitHub data summary
+    if (dataSummaries.github?.available) {
+      const gh = dataSummaries.github;
+      dataAvailabilitySection += `
+GitHub Activity Data:
+- Username: ${gh.username}
+- Date Range: ${gh.dateRange?.start} to ${gh.dateRange?.end}
+- Total Commits: ${gh.totalCommits}
+- Recent Activity (30 days): ${gh.recentActivity} commits
+- Avg Commits/Week: ${gh.avgCommitsPerWeek}
+- Sample Data Points: ${JSON.stringify(gh.samplePoints)}
+
+When generating DataChart for GitHub:
+- Set githubUsername to "${gh.username}"
+- Use aggregation "weekly" or "byDayOfWeek" for meaningful visualizations
+- "area", "bar", or "line" charts work best for commit trends
+- "radar" works well with "byDayOfWeek" aggregation
+`;
+    } else {
+      dataAvailabilitySection += `
+GitHub Activity Data: NOT AVAILABLE - Do not include GitHub DataChart sections.
+`;
+    }
+
+    // Weather data summary
+    if (dataSummaries.weather?.available) {
+      const w = dataSummaries.weather;
+      dataAvailabilitySection += `
+Weather Data (Visitor Location):
+- Location: ${w.location.name} (${w.location.lat.toFixed(2)}, ${w.location.lon.toFixed(2)})
+- 7-Day Forecast (${w.unit}):
+${w.weeklyForecast.map((d) => `  ${d.date}: Min ${d.minTemp}${w.unit}, Max ${d.maxTemp}${w.unit}`).join('\n')}
+
+When generating DataChart for Weather:
+- Use weatherLocation: "visitor" to show weather for visitor's location
+- ONLY temperature min/max data is available (no humidity, precipitation, or wind)
+- weatherMetric: "temperature" (only supported metric)
+- "line" or "area" charts work best for temperature trends
+`;
+    } else {
+      dataAvailabilitySection += `
+Weather Data: Available at visitor location (fallback: Shanghai)
+- Use weatherLocation: "visitor" for visitor's location
+- ONLY temperature min/max is available (no humidity, precipitation, or wind)
+`;
+    }
+
+    dataAvailabilitySection += '=== END AVAILABLE DATA ===\n';
+  }
+
   return `You are a UI architect for a portfolio website. Your job is to create a personalized page layout based on the visitor's intent.
 ${visitorContextSection}
-
+${dataAvailabilitySection}
 Output a JSON object with this exact structure:
 {
   "layout": "single-column" | "two-column" | "hero-focused",
@@ -161,7 +217,7 @@ Available components and their props:
 - TextBlock: { title: string, content: string, style: "prose" | "highlight" }
 - ImageGallery: { title: string, images: ["/path/to/img", ...] }
 - StatsCounter: { title: string, stats: [{ label: string, value: number, suffix?: string }], animated?: boolean }
-- DataChart: { title: string, charts: Array<{ source: "github"|"weather", type: "area"|"bar"|"line"|"pie"|"radar"|"radial", aggregation?: "hourly"|"daily"|"weekly"|"monthly"|"byDayOfWeek", githubUsername?: string, githubMetric?: "commits", weatherMetric?: "temperature"|"humidity"|"precipitation"|"wind", weatherLocation?: {lat: number, lon: number}|"visitor"|"CityName", title?: string, height?: number, color?: string }>, layout?: "stack"|"grid" } -- weatherLocation can be a city name string like "Tokyo" or "New York"
+- DataChart: { title: string, charts: Array<{ source: "github"|"weather", type: "area"|"bar"|"line"|"pie"|"radar"|"radial", aggregation?: "hourly"|"daily"|"weekly"|"monthly"|"byDayOfWeek", githubUsername?: string, githubMetric?: "commits", weatherMetric?: "temperature", weatherLocation?: "visitor"|"CityName", title?: string, height?: number, color?: string }>, layout?: "stack"|"grid" } -- For weather, ONLY temperature min/max is available, use weatherLocation: "visitor" for visitor's location
 - TechLogos: { title: string, technologies?: string[], style: "grid" | "marquee", size?: "sm" | "md" | "lg" }
 
 === PORTFOLIO CONTENT (Use these exact IDs and values) ===

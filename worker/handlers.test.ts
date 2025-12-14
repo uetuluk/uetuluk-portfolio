@@ -1,9 +1,71 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import type { GenerateRequest, FeedbackRequest, PortfolioContent, GitHubActivityResponse } from './types';
 
 // Import the worker default export
 import worker from './index';
+
+// Mock external API calls (GitHub, Open-Meteo)
+const originalFetch = global.fetch;
+beforeEach(() => {
+  global.fetch = vi.fn((url: RequestInfo | URL) => {
+    const urlStr = typeof url === 'string' ? url : url.toString();
+
+    // Mock GitHub API
+    if (urlStr.includes('api.github.com')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve([
+            {
+              type: 'PushEvent',
+              created_at: '2024-01-01T12:00:00Z',
+              payload: { commits: [{ sha: 'abc123' }] },
+            },
+          ]),
+      } as Response);
+    }
+
+    // Mock Open-Meteo Geocoding API
+    if (urlStr.includes('geocoding-api.open-meteo.com')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            results: [{ latitude: 31.23, longitude: 121.47, name: 'Shanghai', country: 'China', timezone: 'Asia/Shanghai' }],
+          }),
+      } as Response);
+    }
+
+    // Mock Open-Meteo Weather API
+    if (urlStr.includes('api.open-meteo.com')) {
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            latitude: 31.23,
+            longitude: 121.47,
+            daily: {
+              time: ['2024-01-01', '2024-01-02'],
+              temperature_2m_max: [15, 16],
+              temperature_2m_min: [5, 6],
+            },
+            daily_units: {
+              temperature_2m_max: '°C',
+              temperature_2m_min: '°C',
+            },
+          }),
+      } as Response);
+    }
+
+    // Fall back to original fetch for other URLs
+    return originalFetch(url);
+  });
+});
+
+afterEach(() => {
+  global.fetch = originalFetch;
+});
 
 // Type for API responses in tests
 type ApiResponse = {
