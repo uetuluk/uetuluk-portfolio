@@ -17,9 +17,10 @@ const originalFetch = global.fetch;
 beforeEach(() => {
   global.fetch = vi.fn((url: RequestInfo | URL) => {
     const urlStr = typeof url === 'string' ? url : url.toString();
+    const parsedUrl = new URL(urlStr);
 
     // Mock GitHub API
-    if (urlStr.includes('api.github.com')) {
+    if (parsedUrl.hostname === 'api.github.com') {
       return Promise.resolve({
         ok: true,
         json: () =>
@@ -34,7 +35,7 @@ beforeEach(() => {
     }
 
     // Mock Open-Meteo Geocoding API
-    if (urlStr.includes('geocoding-api.open-meteo.com')) {
+    if (parsedUrl.hostname === 'geocoding-api.open-meteo.com') {
       return Promise.resolve({
         ok: true,
         json: () =>
@@ -45,7 +46,7 @@ beforeEach(() => {
     }
 
     // Mock Open-Meteo Weather API
-    if (urlStr.includes('api.open-meteo.com')) {
+    if (parsedUrl.hostname === 'api.open-meteo.com') {
       return Promise.resolve({
         ok: true,
         json: () =>
@@ -665,7 +666,8 @@ describe('Worker API Handlers', () => {
       // Mock the global fetch for GitHub API
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.github.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.github.com') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockGitHubEvents),
@@ -696,7 +698,8 @@ describe('Worker API Handlers', () => {
       const originalFetch = globalThis.fetch;
       let capturedUrl = '';
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.github.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.github.com') {
           capturedUrl = url;
           return Promise.resolve({
             ok: true,
@@ -745,7 +748,8 @@ describe('Worker API Handlers', () => {
     it('returns empty data on GitHub API error', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.github.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.github.com') {
           return Promise.resolve({
             ok: false,
             status: 404,
@@ -774,7 +778,8 @@ describe('Worker API Handlers', () => {
     it('includes CORS headers in response', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.github.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.github.com') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve([]),
@@ -823,7 +828,8 @@ describe('Worker API Handlers', () => {
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.github.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.github.com') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(unsortedEvents),
@@ -853,7 +859,8 @@ describe('Worker API Handlers', () => {
     it('returns unavailable summary when fetch throws', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.github.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.github.com') {
           throw new Error('Network error');
         }
         return originalFetch(url);
@@ -913,7 +920,8 @@ describe('Worker API Handlers', () => {
     it('returns weather data for valid coordinates', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -956,7 +964,8 @@ describe('Worker API Handlers', () => {
     it('uses visitor location when visitor=true and city is available', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('geocoding-api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'geocoding-api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -965,7 +974,7 @@ describe('Worker API Handlers', () => {
               }),
           });
         }
-        if (url.includes('api.open-meteo.com')) {
+        if (parsedUrl.hostname === 'api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -1000,7 +1009,8 @@ describe('Worker API Handlers', () => {
     it('falls back to Shanghai when visitor city unavailable', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -1038,7 +1048,8 @@ describe('Worker API Handlers', () => {
     it('returns empty data on Open-Meteo API error', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'api.open-meteo.com') {
           return Promise.resolve({ ok: false, status: 500 });
         }
         return originalFetch(url);
@@ -1083,13 +1094,14 @@ describe('Worker API Handlers', () => {
     it('handles geocoding failure when visitor=true', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('geocoding-api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'geocoding-api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ results: [] }), // No results
           });
         }
-        if (url.includes('api.open-meteo.com')) {
+        if (parsedUrl.hostname === 'api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -1159,7 +1171,8 @@ describe('Worker API Handlers', () => {
     it('returns geocoding result for valid city', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('geocoding-api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'geocoding-api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () =>
@@ -1199,7 +1212,8 @@ describe('Worker API Handlers', () => {
     it('returns 404 when city not found', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('geocoding-api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'geocoding-api.open-meteo.com') {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ results: [] }),
@@ -1226,7 +1240,8 @@ describe('Worker API Handlers', () => {
     it('returns 500 on geocoding API error', async () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('geocoding-api.open-meteo.com')) {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname === 'geocoding-api.open-meteo.com') {
           return Promise.resolve({ ok: false, status: 500 });
         }
         return originalFetch(url);
