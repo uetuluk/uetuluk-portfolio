@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" role="img" aria-label="Localized portfolio announcement">
+  <rect x="0" y="0" width="1000" height="520" rx="18" />
+  <style>
+    /* Theme (INSIDE the SVG only) */
+    :root {
+      --bg: #111;
+      --fg: #fff;
+      --muted: rgba(255,255,255,.9);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #fff;
+        --fg: #111;
+        --muted: rgba(0,0,0,.85);
+      }
+    }
+
+    rect { fill: var(--bg); }
+    text {
+      fill: var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .title { font-size: 26px; font-weight: 700; }
+    .body  { font-size: 16px; }
+    .small { font-size: 14px; opacity: .9; fill: var(--muted); }
+
+    /* Link affordance */
+    a text { text-decoration: underline; cursor: pointer; }
+  </style>
+
+  <switch>
+    <!-- Japanese -->
+    <g systemLanguage="ja">
+      <text x="32" y="64" class="title">ポートフォリオサイトの新版を公開しました</text>
+      <text x="32" y="104" class="body">制御された実運用志向の形で、生成UIを試しています。</text>
+      <text x="32" y="134" class="body">単一の固定レイアウトではなく、訪問者の意図に合わせて構造が変わります。</text>
+      <text x="32" y="164" class="body">短いプロンプトで訪問者（採用担当／開発者／協力者／友人）を分類し、</text>
+      <text x="32" y="194" class="body">それに基づいてUIを生成します。</text>
+
+      <text x="32" y="234" class="body">重要な制約として、AIは内容を捏造できません。</text>
+      <text x="32" y="264" class="body">固定のコンポーネント体系の範囲で動き、既存のUIセクションに対応する</text>
+      <text x="32" y="294" class="body">JSON設定のみを生成します。範囲外や意味不明な要求は拒否されます。</text>
+      <text x="32" y="324" class="body">その結果、意思決定は行う一方で、予測可能で監査しやすい挙動になります。</text>
+
+      <text x="32" y="364" class="small">主なポイント：</text>
+      <text x="48" y="392" class="small">• 意図に基づく生成UI（自由作文ではない）</text>
+      <text x="48" y="414" class="small">• 厳格なスキーマでのコンポーネント描画</text>
+      <text x="48" y="436" class="small">• Cloudflare Workers のエッジ中心アーキテクチャ</text>
+      <text x="48" y="458" class="small">• 訪問者カテゴリ単位のKVキャッシュ</text>
+      <text x="48" y="480" class="small">• 失敗時は既定レイアウトにフォールバック</text>
+    </g>
+
+    <!-- Chinese (Simplified + Traditional fallback) -->
+    <g systemLanguage="zh-CN,zh-Hans">
+      <text x="32" y="64" class="title">我的作品集网站发布了新版本</text>
+      <text x="32" y="104" class="body">它以受控、面向生产的方式探索生成式 UI。</text>
+      <text x="32" y="134" class="body">网站不再固定为单一静态布局，而是根据访问者意图调整结构。</text>
+      <text x="32" y="164" class="body">通过一个简短提示将访问者（招聘方、开发者、协作者、朋友）分类，</text>
+      <text x="32" y="194" class="body">并据此生成界面。</text>
+
+      <text x="32" y="234" class="body">一个刻意的约束是：AI 不允许编造内容。</text>
+      <text x="32" y="264" class="body">它只能在固定组件系统内工作，输出严格受限的 JSON 配置，</text>
+      <text x="32" y="294" class="body">仅映射到预构建的 UI 区块。无意义或超出范围的请求会被拒绝。</text>
+      <text x="32" y="324" class="body">因此系统会做决策，但依然可预测、可审计。</text>
+
+      <text x="32" y="364" class="small">要点：</text>
+      <text x="48" y="392" class="small">• 由意图驱动的生成式 UI，而非自由内容生成</text>
+      <text x="48" y="414" class="small">• 组件化渲染与严格 schema 约束</text>
+      <text x="48" y="436" class="small">• 基于 Cloudflare Workers 的边缘优先架构</text>
+      <text x="48" y="458" class="small">• 按访问者类别进行 KV 缓存</text>
+      <text x="48" y="480" class="small">• 生成失败时优雅回退到默认布局</text>
+    </g>
+
+    <g systemLanguage="zh-TW,zh-Hant,zh">
+      <text x="32" y="64" class="title">我的作品集網站推出了新版本</text>
+      <text x="32" y="104" class="body">以受控、面向實務的方式探索生成式 UI。</text>
+      <text x="32" y="134" class="body">不再只有單一固定版型，而是依訪客意圖調整結構。</text>
+      <text x="32" y="164" class="body">透過短提示將訪客（招募者、開發者、協作者、朋友）分類，</text>
+      <text x="32" y="194" class="body">並據此生成介面。</text>
+
+      <text x="32" y="234" class="body">刻意的限制是：AI 不被允許捏造內容。</text>
+      <text x="32" y="264" class="body">它只在固定元件系統內運作，輸出嚴格受限的 JSON 設定，</text>
+      <text x="32" y="294" class="body">僅對應到預先建好的 UI 區塊；無意義或超出範圍的要求會被拒絕。</text>
+      <text x="32" y="324" class="body">因此它會做決策，但仍可預測且可稽核。</text>
+
+      <text x="32" y="364" class="small">重點：</text>
+      <text x="48" y="392" class="small">• 以意圖驅動的生成式 UI（非自由內容生成）</text>
+      <text x="48" y="414" class="small">• 元件化渲染與嚴格 schema 約束</text>
+      <text x="48" y="436" class="small">• Cloudflare Workers 的邊緣優先架構</text>
+      <text x="48" y="458" class="small">• 依訪客類別做 KV 快取</text>
+      <text x="48" y="480" class="small">• 生成失敗時優雅回退到預設版型</text>
+    </g>
+
+    <!-- Turkish -->
+    <g systemLanguage="tr">
+      <text x="32" y="64" class="title">Portföy sitemin yeni sürümünü yayınladım</text>
+      <text x="32" y="104" class="body">Üretime uygun ve kontrollü bir şekilde generatif UI’ı deniyor.</text>
+      <text x="32" y="134" class="body">Tek bir statik düzen sunmak yerine, ziyaretçi niyetine göre yapı değişiyor.</text>
+      <text x="32" y="164" class="body">Kısa bir istem; ziyaretçiyi (işe alım, geliştirici, işbirlikçi, arkadaş) sınıflandırıyor</text>
+      <text x="32" y="194" class="body">ve arayüz buna göre üretiliyor.</text>
+
+      <text x="32" y="234" class="body">Bilinçli bir kısıt: AI içerik uyduramaz.</text>
+      <text x="32" y="264" class="body">Sabit bir bileşen sisteminde çalışır ve yalnızca önceden hazırlanmış bölümlere</text>
+      <text x="32" y="294" class="body">eşlenen JSON konfigürasyonu üretir. Anlamsız veya kapsam dışı istekler reddedilir.</text>
+      <text x="32" y="324" class="body">Sonuç: karar verir, ama öngörülebilir ve denetlenebilir kalır.</text>
+
+      <text x="32" y="364" class="small">Öne çıkanlar:</text>
+      <text x="48" y="392" class="small">• Serbest içerik yerine niyet odaklı generatif UI</text>
+      <text x="48" y="414" class="small">• Sıkı şema zorlaması ile bileşen tabanlı render</text>
+      <text x="48" y="436" class="small">• Cloudflare Workers ile edge-first mimari</text>
+      <text x="48" y="458" class="small">• Ziyaretçi kategorisine göre KV cache</text>
+      <text x="48" y="480" class="small">• Üretim başarısızsa varsayılan düzene zarif geri dönüş</text>
+    </g>
+
+    <!-- English -->
+    <g systemLanguage="en">
+      <text x="32" y="64" class="title">New portfolio version launched</text>
+      <text x="32" y="104" class="body">I’ve just launched a new version of my portfolio website that experiments with generative UI</text>
+      <text x="32" y="134" class="body">in a controlled, production-oriented way.</text>
+
+      <text x="32" y="174" class="body">Instead of serving a single static layout, the site adapts its structure based on visitor intent.</text>
+      <text x="32" y="204" class="body">A short prompt helps classify the visitor (recruiter, developer, collaborator, friend),</text>
+      <text x="32" y="234" class="body">and the interface is generated accordingly.</text>
+
+      <text x="32" y="274" class="body">The AI is not allowed to invent content. It operates within a fixed component system and</text>
+      <text x="32" y="304" class="body">produces JSON configuration that maps only to pre-built UI sections. Out-of-scope requests</text>
+      <text x="32" y="334" class="body">are rejected rather than hallucinated—predictable and auditable by design.</text>
+
+      <text x="32" y="374" class="small">Key aspects:</text>
+      <text x="48" y="402" class="small">• Intent-driven generative UI (not free-form content)</text>
+      <text x="48" y="424" class="small">• Component-based rendering with strict schema enforcement</text>
+      <text x="48" y="446" class="small">• Edge-first architecture using Cloudflare Workers</text>
+      <text x="48" y="468" class="small">• KV-based caching per visitor category</text>
+      <text x="48" y="490" class="small">• Graceful fallback to default layouts if AI generation fails</text>
+    </g>
+
+    <!-- Fallback -->
+    <g>
+      <text x="32" y="64" class="title">New portfolio version launched</text>
+      <text x="32" y="104" class="body">I’ve just launched a new version of my portfolio website that experiments with generative UI</text>
+      <text x="32" y="134" class="body">in a controlled, production-oriented way.</text>
+      <text x="32" y="174" class="body">The AI is constrained to a fixed component system and cannot invent content.</text>
+    </g>
+  </switch>
+
+  <!-- Shared link (shown for all locales) -->
+  <a href="https://github.com/uetuluk/uetuluk-portfolio" target="_blank" rel="noopener noreferrer">
+    <text x="32" y="510" class="small">github.com/uetuluk/uetuluk-portfolio</text>
+  </a>
+</svg>
