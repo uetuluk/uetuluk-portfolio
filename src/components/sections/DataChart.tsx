@@ -236,7 +236,7 @@ function SingleChart({
   const aggregatedData = useMemo(() => {
     const aggregation = config.aggregation || 'daily';
     return applyAggregation(data, aggregation);
-  }, [data, config.aggregation, config.source]);
+  }, [data, config.aggregation]);
 
   if (aggregatedData.length === 0) {
     return (
@@ -377,15 +377,21 @@ function useChartData(config: ChartItemConfig) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { source, githubUsername, weatherLocation } = config;
+
   useEffect(() => {
     async function fetchData() {
-      console.log('[DataChart] useChartData called with config:', config);
+      console.log('[DataChart] useChartData called with config:', {
+        source,
+        githubUsername,
+        weatherLocation,
+      });
       setLoading(true);
       setError(null);
 
       try {
-        if (config.source === 'github') {
-          const username = config.githubUsername || getDefaultUsername();
+        if (source === 'github') {
+          const username = githubUsername || getDefaultUsername();
           const url = `/api/github/activity?username=${username}`;
           console.log('[DataChart] Fetching GitHub data:', url);
 
@@ -422,25 +428,22 @@ function useChartData(config: ChartItemConfig) {
           }));
           console.log('[DataChart] Processed points:', points.length);
           setData(points);
-        } else if (config.source === 'weather') {
+        } else if (source === 'weather') {
           let response: Response;
-          console.log(
-            '[DataChart] Fetching weather data, location config:',
-            config.weatherLocation,
-          );
+          console.log('[DataChart] Fetching weather data, location config:', weatherLocation);
 
           // Handle different location options
-          if (config.weatherLocation === 'visitor') {
+          if (weatherLocation === 'visitor') {
             // Use visitor's location from Cloudflare headers
             console.log('[DataChart] Using visitor location');
             response = await fetch('/api/weather?visitor=true');
-          } else if (typeof config.weatherLocation === 'string') {
+          } else if (typeof weatherLocation === 'string') {
             // City name - use geocoding API first
             const geocodeResponse = await fetch(
-              `/api/geocode?city=${encodeURIComponent(config.weatherLocation)}`,
+              `/api/geocode?city=${encodeURIComponent(weatherLocation)}`,
             );
             if (!geocodeResponse.ok) {
-              throw new Error(`Failed to geocode city: ${config.weatherLocation}`);
+              throw new Error(`Failed to geocode city: ${weatherLocation}`);
             }
             const geocodeResult = (await geocodeResponse.json()) as {
               lat: number;
@@ -451,10 +454,10 @@ function useChartData(config: ChartItemConfig) {
             response = await fetch(
               `/api/weather?lat=${geocodeResult.lat}&lon=${geocodeResult.lon}`,
             );
-          } else if (config.weatherLocation && typeof config.weatherLocation === 'object') {
+          } else if (weatherLocation && typeof weatherLocation === 'object') {
             // Lat/lon object
             response = await fetch(
-              `/api/weather?lat=${config.weatherLocation.lat}&lon=${config.weatherLocation.lon}`,
+              `/api/weather?lat=${weatherLocation.lat}&lon=${weatherLocation.lon}`,
             );
           } else {
             // Default: use visitor location
@@ -505,7 +508,7 @@ function useChartData(config: ChartItemConfig) {
     }
 
     fetchData();
-  }, [config.source, config.githubUsername, config.weatherLocation]);
+  }, [source, githubUsername, weatherLocation]);
 
   return { data, loading, error };
 }
