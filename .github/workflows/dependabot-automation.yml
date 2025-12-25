@@ -127,15 +127,16 @@ jobs:
         if: steps.fetch.outputs.has_prs == 'true'
         run: |
           if [ -f /tmp/grouped-prs.json ]; then
-            matrix=$(cat /tmp/grouped-prs.json)
+            # Compact JSON to single line for GITHUB_OUTPUT
+            matrix=$(cat /tmp/grouped-prs.json | jq -c .)
             count=$(echo "$matrix" | jq '.include | length')
             echo "Claude created $count groups"
             echo "matrix=$matrix" >> $GITHUB_OUTPUT
             echo "has_groups=true" >> $GITHUB_OUTPUT
           else
             echo "Claude did not create grouping file, falling back to individual PRs"
-            # Fallback: each PR becomes its own group using jq
-            matrix=$(cat /tmp/dependabot-prs.json | jq '{include: [.[] | {group: "pr-\(.number)", prs: (.number | tostring), branches: .headRefName, count: 1}]}')
+            # Fallback: each PR becomes its own group using jq (-c for compact)
+            matrix=$(cat /tmp/dependabot-prs.json | jq -c '{include: [.[] | {group: "pr-\(.number)", prs: (.number | tostring), branches: .headRefName, count: 1}]}')
             echo "$matrix" > /tmp/grouped-prs.json
             echo "matrix=$matrix" >> $GITHUB_OUTPUT
             echo "has_groups=true" >> $GITHUB_OUTPUT
