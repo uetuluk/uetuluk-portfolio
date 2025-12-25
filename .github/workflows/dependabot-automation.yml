@@ -92,14 +92,26 @@ jobs:
           const prs = JSON.parse(fs.readFileSync('/tmp/dependabot-prs.json', 'utf8'));
           const packageFilter = process.env.PACKAGE_FILTER || '';
 
-          // Package family patterns
+          // Max PRs per group to prevent Claude from timing out
+          const MAX_PRS_PER_GROUP = 3;
+
+          // Package family patterns (more specific patterns first)
           const families = {
             'vite': ['vite', '@vitejs/', '@cloudflare/vite-plugin'],
-            'react': ['react', 'react-dom', 'react-', '@types/react'],
+            'react': ['react', 'react-dom', 'react-router', '@types/react'],
             'testing': ['vitest', '@testing-library/', 'playwright', 'promptfoo', '@vitest/'],
             'eslint': ['eslint', '@eslint/', 'typescript-eslint'],
             'tailwind': ['tailwindcss', '@tailwindcss/'],
             'cloudflare': ['wrangler', '@cloudflare/'],
+            'i18n': ['i18next', 'react-i18next'],
+            'recharts': ['recharts'],
+            'lucide': ['lucide-react', 'lucide-'],
+            'unhead': ['unhead', '@unhead/'],
+            'typescript': ['typescript', 'tsx', 'ts-node', 'tsconfig-paths'],
+            'prettier': ['prettier'],
+            'postcss': ['postcss', 'autoprefixer'],
+            'jsdom': ['jsdom'],
+            'clsx': ['clsx', 'class-variance-authority', 'tailwind-merge'],
             'types': ['@types/'],
             'github-actions': []  // Special: for workflow updates
           };
@@ -117,9 +129,9 @@ jobs:
                 groups['github-actions'].push(pr);
                 continue;
               }
-              // Unknown format, put in 'other'
-              if (!groups['other']) groups['other'] = [];
-              groups['other'].push(pr);
+              // Unknown format - process individually with package name from PR
+              const individualKey = `individual-pr-${pr.number}`;
+              groups[individualKey] = [pr];
               continue;
             }
 
@@ -142,25 +154,40 @@ jobs:
               if (assigned) break;
             }
 
+            // No "other" catch-all - process unmatched PRs individually
             if (!assigned) {
-              if (!groups['other']) groups['other'] = [];
-              groups['other'].push(pr);
+              const individualKey = `individual-${pkg.replace(/[^a-zA-Z0-9]/g, '-')}`;
+              groups[individualKey] = [pr];
             }
           }
 
-          // Build matrix
+          // Build matrix with chunking for large groups
           const matrix = { include: [] };
 
           for (const [group, groupPrs] of Object.entries(groups)) {
             // Apply package filter if specified
             if (packageFilter && group !== packageFilter) continue;
 
-            matrix.include.push({
-              group: group,
-              prs: groupPrs.map(p => p.number).join(','),
-              branches: groupPrs.map(p => p.headRefName).join(','),
-              count: groupPrs.length
-            });
+            // Split large groups into chunks of MAX_PRS_PER_GROUP
+            if (groupPrs.length > MAX_PRS_PER_GROUP) {
+              for (let i = 0; i < groupPrs.length; i += MAX_PRS_PER_GROUP) {
+                const chunk = groupPrs.slice(i, i + MAX_PRS_PER_GROUP);
+                const chunkNum = Math.floor(i / MAX_PRS_PER_GROUP) + 1;
+                matrix.include.push({
+                  group: `${group}-chunk${chunkNum}`,
+                  prs: chunk.map(p => p.number).join(','),
+                  branches: chunk.map(p => p.headRefName).join(','),
+                  count: chunk.length
+                });
+              }
+            } else {
+              matrix.include.push({
+                group: group,
+                prs: groupPrs.map(p => p.number).join(','),
+                branches: groupPrs.map(p => p.headRefName).join(','),
+                count: groupPrs.length
+              });
+            }
           }
 
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_groups=${matrix.include.length > 0}\n`);
