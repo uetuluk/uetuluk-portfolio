@@ -14,13 +14,13 @@ describe('StatsCounter', () => {
 
   beforeEach(() => {
     // Mock IntersectionObserver
-    const mockIntersectionObserver = vi.fn();
-    mockIntersectionObserver.mockReturnValue({
-      observe: vi.fn(),
-      unobserve: vi.fn(),
-      disconnect: vi.fn(),
-    });
-    window.IntersectionObserver = mockIntersectionObserver;
+    window.IntersectionObserver = vi.fn(function (callback) {
+      return {
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+      };
+    }) as any;
   });
 
   afterEach(() => {
