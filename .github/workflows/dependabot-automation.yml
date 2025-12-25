@@ -1,0 +1,388 @@
+# Dependabot Automation Workflow
+#
+# This workflow automatically processes Dependabot PRs by:
+# 1. Grouping them by package family (vite, react, eslint, etc.)
+# 2. Running Claude Code to merge, test, and fix issues
+# 3. Creating combined PRs that close the original Dependabot PRs
+#
+# REQUIRED SECRETS:
+# - CLAUDE_CODE_OAUTH_TOKEN: Claude Code OAuth token (existing)
+# - CLOUDFLARE_API_TOKEN: For running tests (existing)
+# - CLOUDFLARE_ACCOUNT_ID: For running tests (existing)
+# - GH_PAT_DEPENDABOT: GitHub PAT with 'repo' and 'workflow' scopes (NEW)
+#
+# To create GH_PAT_DEPENDABOT:
+# 1. Go to https://github.com/settings/tokens?type=beta (Fine-grained tokens)
+# 2. Create a new token with:
+#    - Repository access: This repository only
+#    - Permissions:
+#      - Contents: Read and write
+#      - Pull requests: Read and write
+#      - Workflows: Read and write
+#      - Metadata: Read (auto-granted)
+# 3. Add the token as a repository secret named GH_PAT_DEPENDABOT
+
+name: Dependabot Automation
+
+on:
+  schedule:
+    # Run weekly on Monday at 8 AM UTC (after Dependabot creates PRs)
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run mode (no PRs created, only logs actions)"
+        type: boolean
+        default: false
+      package_filter:
+        description: "Filter to specific package group (e.g., vite, react, eslint)"
+        type: string
+        required: false
+
+concurrency:
+  group: dependabot-automation
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+  id-token: write
+
+jobs:
+  # ============================================================================
+  # Job 1: Discover and group Dependabot PRs
+  # ============================================================================
+  discover-groups:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.group.outputs.matrix }}
+      has_groups: ${{ steps.group.outputs.has_groups }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Discover and group Dependabot PRs
+        id: group
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+          PACKAGE_FILTER: ${{ inputs.package_filter }}
+        run: |
+          echo "Fetching open Dependabot PRs..."
+
+          # Get all open Dependabot PRs
+          prs=$(gh pr list --author "app/dependabot" --state open --json number,title,headRefName)
+
+          if [ "$prs" = "[]" ] || [ -z "$prs" ]; then
+            echo "No open Dependabot PRs found"
+            echo "has_groups=false" >> $GITHUB_OUTPUT
+            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Found PRs: $prs"
+
+          # Save PRs to temp file for Node.js to read
+          echo "$prs" > /tmp/dependabot-prs.json
+
+          # Group PRs by package family using Node.js for better JSON handling
+          node << 'GROUPING_SCRIPT'
+          const fs = require('fs');
+          const prs = JSON.parse(fs.readFileSync('/tmp/dependabot-prs.json', 'utf8'));
+          const packageFilter = process.env.PACKAGE_FILTER || '';
+
+          // Package family patterns
+          const families = {
+            'vite': ['vite', '@vitejs/', '@cloudflare/vite-plugin'],
+            'react': ['react', 'react-dom', 'react-', '@types/react'],
+            'testing': ['vitest', '@testing-library/', 'playwright', 'promptfoo', '@vitest/'],
+            'eslint': ['eslint', '@eslint/', 'typescript-eslint'],
+            'tailwind': ['tailwindcss', '@tailwindcss/'],
+            'cloudflare': ['wrangler', '@cloudflare/'],
+            'types': ['@types/'],
+            'github-actions': []  // Special: for workflow updates
+          };
+
+          // Categorize each PR
+          const groups = {};
+
+          for (const pr of prs) {
+            // Extract package name from title: "Bump <package> from X to Y"
+            const match = pr.title.match(/^Bump\s+(@?[\w\/-]+)/i);
+            if (!match) {
+              // Check for GitHub Actions updates
+              if (pr.title.includes('actions/') || pr.headRefName.includes('github_actions')) {
+                if (!groups['github-actions']) groups['github-actions'] = [];
+                groups['github-actions'].push(pr);
+                continue;
+              }
+              // Unknown format, put in 'other'
+              if (!groups['other']) groups['other'] = [];
+              groups['other'].push(pr);
+              continue;
+            }
+
+            const pkg = match[1];
+            let assigned = false;
+
+            // Find matching family (check in order, more specific first)
+            for (const [family, patterns] of Object.entries(families)) {
+              if (family === 'types' && pkg.startsWith('@types/react')) continue; // react types go to react
+              if (family === 'github-actions') continue; // handled above
+
+              for (const pattern of patterns) {
+                if (pkg === pattern || pkg.startsWith(pattern)) {
+                  if (!groups[family]) groups[family] = [];
+                  groups[family].push(pr);
+                  assigned = true;
+                  break;
+                }
+              }
+              if (assigned) break;
+            }
+
+            if (!assigned) {
+              if (!groups['other']) groups['other'] = [];
+              groups['other'].push(pr);
+            }
+          }
+
+          // Build matrix
+          const matrix = { include: [] };
+
+          for (const [group, groupPrs] of Object.entries(groups)) {
+            // Apply package filter if specified
+            if (packageFilter && group !== packageFilter) continue;
+
+            matrix.include.push({
+              group: group,
+              prs: groupPrs.map(p => p.number).join(','),
+              branches: groupPrs.map(p => p.headRefName).join(','),
+              count: groupPrs.length
+            });
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_groups=${matrix.include.length > 0}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify(matrix)}\n`);
+
+          console.log('Groups discovered:', JSON.stringify(matrix, null, 2));
+          GROUPING_SCRIPT
+
+      - name: Summary
+        run: |
+          echo "### Dependabot PR Groups" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Matrix: \`${{ steps.group.outputs.matrix }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Has groups: ${{ steps.group.outputs.has_groups }}" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Job 2: Process each group in parallel with Claude
+  # ============================================================================
+  process-group:
+    needs: discover-groups
+    if: needs.discover-groups.outputs.has_groups == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix: ${{ fromJson(needs.discover-groups.outputs.matrix) }}
+      fail-fast: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    outputs:
+      result: ${{ steps.result.outputs.data }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: |
+          echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Run Claude Code for ${{ matrix.group }} group
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          mcp_config: ".github/mcp-config.json"
+          prompt: |
+            You are automating Dependabot dependency updates for the uetuluk-portfolio repository.
+
+            ## Context
+            - Group: ${{ matrix.group }}
+            - PR Numbers: ${{ matrix.prs }}
+            - PR Branches: ${{ matrix.branches }}
+            - Dry Run: ${{ inputs.dry_run || 'false' }}
+            - Repository Owner: ${{ github.repository_owner }}
+
+            ## Your Task
+
+            ### Step 1: Create Combined Branch
+            Create a new branch for the combined updates:
+            ```bash
+            BRANCH_NAME="dependabot/combined/${{ matrix.group }}-$(date +%Y%m%d)"
+            git checkout -b "$BRANCH_NAME"
+            ```
+
+            ### Step 2: Merge Dependabot Branches
+            For each branch in "${{ matrix.branches }}" (comma-separated):
+            1. Fetch the branch: `git fetch origin <branch>`
+            2. Merge it: `git merge origin/<branch> --no-edit`
+            3. If merge conflict in package.json:
+               - For version conflicts, keep the HIGHER semver version
+               - Edit the file to resolve
+            4. If merge conflict in package-lock.json:
+               - Delete package-lock.json
+               - Run `npm install` to regenerate
+            5. If npm install fails, try `npm install --legacy-peer-deps`
+
+            ### Step 3: Run Tests
+            Run the test suite in order. If any step fails, try to fix it (max 2 attempts):
+
+            1. `npm ci` - Install dependencies
+            2. `npm run build` - Build the project
+            3. `npm run typecheck` - TypeScript check
+            4. `npm run lint` - Linting
+            5. `npm run test:coverage` - Unit tests
+            6. `npm run test:e2e` - E2E tests (Playwright)
+            7. `npm run test:prompts` - Promptfoo tests (categorization + layout)
+
+            For each failure:
+            - Analyze the error output
+            - Make appropriate fixes (update imports, fix type errors, update configs)
+            - Re-run the failed test
+            - After 2 failed attempts on the same issue, note it for manual review
+
+            **Special handling for promptfoo tests:**
+            If promptfoo tests fail after fix attempts, post a comment on the PR:
+            `@${{ github.repository_owner }} Promptfoo tests require manual verification for ${{ matrix.group }} group`
+
+            ### Step 4: Create Combined PR
+            If not in dry run mode and tests pass:
+
+            1. Commit all changes:
+            ```bash
+            git add -A
+            git commit -m "chore(deps): update ${{ matrix.group }} dependencies"
+            ```
+
+            2. Push the branch:
+            ```bash
+            git push -u origin "$BRANCH_NAME"
+            ```
+
+            3. Create the PR using gh CLI:
+            ```bash
+            gh pr create \
+              --title "chore(deps): update ${{ matrix.group }} dependencies" \
+              --body "## Summary
+
+            This PR combines the following Dependabot updates for **${{ matrix.group }}** packages:
+
+            $(for pr in $(echo "${{ matrix.prs }}" | tr ',' ' '); do echo "- Closes #$pr"; done)
+
+            ## Changes
+            - Updated ${{ matrix.group }} related dependencies
+            - All tests passing
+
+            ## Test Results
+            - Build: Passing
+            - TypeScript: Passing
+            - Lint: Passing
+            - Unit Tests: Passing
+            - E2E Tests: Passing
+            - Promptfoo: [Status]
+
+            ---
+            *This PR was automatically created by the Dependabot Automation workflow.*"
+            ```
+
+            ### Step 5: Report Results
+            Output a JSON summary of what was done:
+            - group: "${{ matrix.group }}"
+            - status: "success" | "partial" | "failed"
+            - combined_pr: <number or null>
+            - closed_prs: [list of PR numbers]
+            - needs_review: true/false
+            - error_message: <if failed>
+
+            ## Important Rules
+            - Never force push or use destructive git operations
+            - If a merge fails completely, report it and skip
+            - Always use the repository's existing test scripts
+            - Use `gh pr comment` to post status updates
+          claude_args: '--allowed-tools "Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(node:*),Edit,Read,Write,Glob,Grep" --max-turns 100'
+
+      - name: Record result
+        id: result
+        if: always()
+        run: |
+          echo "data={\"group\":\"${{ matrix.group }}\",\"status\":\"${{ steps.claude.outcome }}\"}" >> $GITHUB_OUTPUT
+
+  # ============================================================================
+  # Job 3: Aggregate results and post summary
+  # ============================================================================
+  aggregate-results:
+    needs: [discover-groups, process-group]
+    if: always() && needs.discover-groups.outputs.has_groups == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Collect results and post summary
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+          MATRIX: ${{ needs.discover-groups.outputs.matrix }}
+        run: |
+          echo "### Dependabot Automation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Group | PRs | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Parse matrix and add rows
+          echo "$MATRIX" | jq -r '.include[] | "| \(.group) | \(.count) | - |"' >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Workflow completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify user
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+        run: |
+          # Create an issue comment or discussion to notify the user
+          # For now, the step summary serves as the notification
+          echo "@${{ github.repository_owner }} Dependabot automation workflow completed."
+          echo "Check the workflow summary for details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
