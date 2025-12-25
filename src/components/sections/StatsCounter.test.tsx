@@ -14,13 +14,13 @@ describe('StatsCounter', () => {
 
   beforeEach(() => {
     // Mock IntersectionObserver
-    window.IntersectionObserver = vi.fn(function (callback) {
+    window.IntersectionObserver = vi.fn(function () {
       return {
         observe: vi.fn(),
         unobserve: vi.fn(),
         disconnect: vi.fn(),
       };
-    }) as any;
+    }) as unknown as typeof IntersectionObserver;
   });
 
   afterEach(() => {

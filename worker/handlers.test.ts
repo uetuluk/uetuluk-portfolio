@@ -13,9 +13,9 @@ import type {
 import worker from './index';
 
 // Mock external API calls (GitHub, Open-Meteo)
-const originalFetch = global.fetch;
+const originalFetch = globalThis.fetch;
 beforeEach(() => {
-  global.fetch = vi.fn((url: RequestInfo | URL) => {
+  globalThis.fetch = vi.fn((url: RequestInfo | URL) => {
     const urlStr = typeof url === 'string' ? url : url.toString();
     const parsedUrl = new URL(urlStr);
 
@@ -72,7 +72,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  global.fetch = originalFetch;
+  globalThis.fetch = originalFetch;
 });
 
 // Type for API responses in tests

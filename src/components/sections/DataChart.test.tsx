@@ -65,7 +65,7 @@ vi.mock('@/content/portfolio.json', () => ({
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 describe('DataChart', () => {
   beforeEach(() => {
