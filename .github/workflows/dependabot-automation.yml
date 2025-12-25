@@ -52,157 +52,125 @@ permissions:
 
 jobs:
   # ============================================================================
-  # Job 1: Discover and group Dependabot PRs
+  # Job 1: Discover and group Dependabot PRs using Claude AI
   # ============================================================================
   discover-groups:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.group.outputs.matrix }}
-      has_groups: ${{ steps.group.outputs.has_groups }}
+      matrix: ${{ steps.parse.outputs.matrix }}
+      has_groups: ${{ steps.parse.outputs.has_groups }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Discover and group Dependabot PRs
-        id: group
+      - name: Fetch Dependabot PRs
+        id: fetch
         env:
           GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
-          PACKAGE_FILTER: ${{ inputs.package_filter }}
         run: |
           echo "Fetching open Dependabot PRs..."
-
-          # Get all open Dependabot PRs
           prs=$(gh pr list --author "app/dependabot" --state open --json number,title,headRefName)
 
           if [ "$prs" = "[]" ] || [ -z "$prs" ]; then
             echo "No open Dependabot PRs found"
-            echo "has_groups=false" >> $GITHUB_OUTPUT
-            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "has_prs=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          echo "Found PRs: $prs"
-
-          # Save PRs to temp file for Node.js to read
+          echo "has_prs=true" >> $GITHUB_OUTPUT
           echo "$prs" > /tmp/dependabot-prs.json
+          echo "Found $(echo "$prs" | jq length) PRs"
+          cat /tmp/dependabot-prs.json
 
-          # Group PRs by package family using Node.js for better JSON handling
-          node << 'GROUPING_SCRIPT'
-          const fs = require('fs');
-          const prs = JSON.parse(fs.readFileSync('/tmp/dependabot-prs.json', 'utf8'));
-          const packageFilter = process.env.PACKAGE_FILTER || '';
+      - name: Use Claude to group PRs intelligently
+        id: claude-group
+        if: steps.fetch.outputs.has_prs == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Analyze the Dependabot PRs in /tmp/dependabot-prs.json and group them intelligently by package ecosystem.
 
-          // Max PRs per group to prevent Claude from timing out
-          const MAX_PRS_PER_GROUP = 3;
+            ## Rules for Grouping:
+            1. Group related packages together (e.g., vitest + @vitest/coverage-* + @vitest/ui)
+            2. Group a package with its types (e.g., node + @types/node)
+            3. Group packages from the same ecosystem (e.g., all eslint-related, all react-related)
+            4. Maximum 3 PRs per group to prevent timeouts - split larger groups into chunks
+            5. Use descriptive group names (e.g., "testing", "react", "typescript", "node")
 
-          // Package family patterns (more specific patterns first)
-          const families = {
-            'vite': ['vite', '@vitejs/', '@cloudflare/vite-plugin'],
-            'react': ['react', 'react-dom', 'react-router', '@types/react'],
-            'testing': ['vitest', '@testing-library/', 'playwright', 'promptfoo', '@vitest/'],
-            'eslint': ['eslint', '@eslint/', 'typescript-eslint'],
-            'tailwind': ['tailwindcss', '@tailwindcss/'],
-            'cloudflare': ['wrangler', '@cloudflare/'],
-            'i18n': ['i18next', 'react-i18next'],
-            'recharts': ['recharts'],
-            'lucide': ['lucide-react', 'lucide-'],
-            'unhead': ['unhead', '@unhead/'],
-            'typescript': ['typescript', 'tsx', 'ts-node', 'tsconfig-paths'],
-            'prettier': ['prettier'],
-            'postcss': ['postcss', 'autoprefixer'],
-            'jsdom': ['jsdom'],
-            'clsx': ['clsx', 'class-variance-authority', 'tailwind-merge'],
-            'types': ['@types/'],
-            'github-actions': []  // Special: for workflow updates
-          };
+            ## Examples of good groupings:
+            - vitest, @vitest/coverage-v8, @vitest/coverage-istanbul → "testing"
+            - react, react-dom, @types/react, react-router-dom → "react"
+            - eslint, @eslint/js, typescript-eslint, eslint-plugin-react → "eslint"
+            - node, @types/node → "node"
+            - typescript, tsx, ts-node → "typescript"
 
-          // Categorize each PR
-          const groups = {};
-
-          for (const pr of prs) {
-            // Extract package name from title: "Bump <package> from X to Y"
-            const match = pr.title.match(/^Bump\s+(@?[\w\/-]+)/i);
-            if (!match) {
-              // Check for GitHub Actions updates
-              if (pr.title.includes('actions/') || pr.headRefName.includes('github_actions')) {
-                if (!groups['github-actions']) groups['github-actions'] = [];
-                groups['github-actions'].push(pr);
-                continue;
-              }
-              // Unknown format - process individually with package name from PR
-              const individualKey = `individual-pr-${pr.number}`;
-              groups[individualKey] = [pr];
-              continue;
+            ## Output Format:
+            Write the result to /tmp/grouped-prs.json as a JSON object:
+            ```json
+            {
+              "include": [
+                {"group": "testing", "prs": "1,2,3", "branches": "branch1,branch2,branch3", "count": 3},
+                {"group": "react", "prs": "4,5", "branches": "branch4,branch5", "count": 2}
+              ]
             }
+            ```
 
-            const pkg = match[1];
-            let assigned = false;
+            Package filter (if specified): ${{ inputs.package_filter }}
+            If a filter is specified, only include groups matching that filter.
 
-            // Find matching family (check in order, more specific first)
-            for (const [family, patterns] of Object.entries(families)) {
-              if (family === 'types' && pkg.startsWith('@types/react')) continue; // react types go to react
-              if (family === 'github-actions') continue; // handled above
+            Read the PRs file, analyze them, create logical groups, and write the output file.
+          claude_args: '--allowed-tools "Read,Write,Bash(cat:*),Bash(jq:*)" --max-turns 10'
 
-              for (const pattern of patterns) {
-                if (pkg === pattern || pkg.startsWith(pattern)) {
-                  if (!groups[family]) groups[family] = [];
-                  groups[family].push(pr);
-                  assigned = true;
-                  break;
-                }
-              }
-              if (assigned) break;
-            }
+      - name: Parse Claude's grouping output
+        id: parse
+        if: steps.fetch.outputs.has_prs == 'true'
+        run: |
+          if [ -f /tmp/grouped-prs.json ]; then
+            matrix=$(cat /tmp/grouped-prs.json)
+            count=$(echo "$matrix" | jq '.include | length')
+            echo "Claude created $count groups"
+            echo "matrix=$matrix" >> $GITHUB_OUTPUT
+            echo "has_groups=true" >> $GITHUB_OUTPUT
+          else
+            echo "Claude did not create grouping file, falling back to individual PRs"
+            # Fallback: each PR becomes its own group
+            node << 'FALLBACK'
+            const fs = require('fs');
+            const prs = JSON.parse(fs.readFileSync('/tmp/dependabot-prs.json', 'utf8'));
+            const matrix = { include: prs.map(pr => ({
+              group: `pr-${pr.number}`,
+              prs: String(pr.number),
+              branches: pr.headRefName,
+              count: 1
+            }))};
+            fs.writeFileSync('/tmp/grouped-prs.json', JSON.stringify(matrix));
+            console.log(JSON.stringify(matrix));
+            FALLBACK
+            matrix=$(cat /tmp/grouped-prs.json)
+            echo "matrix=$matrix" >> $GITHUB_OUTPUT
+            echo "has_groups=true" >> $GITHUB_OUTPUT
+          fi
 
-            // No "other" catch-all - process unmatched PRs individually
-            if (!assigned) {
-              const individualKey = `individual-${pkg.replace(/[^a-zA-Z0-9]/g, '-')}`;
-              groups[individualKey] = [pr];
-            }
-          }
-
-          // Build matrix with chunking for large groups
-          const matrix = { include: [] };
-
-          for (const [group, groupPrs] of Object.entries(groups)) {
-            // Apply package filter if specified
-            if (packageFilter && group !== packageFilter) continue;
-
-            // Split large groups into chunks of MAX_PRS_PER_GROUP
-            if (groupPrs.length > MAX_PRS_PER_GROUP) {
-              for (let i = 0; i < groupPrs.length; i += MAX_PRS_PER_GROUP) {
-                const chunk = groupPrs.slice(i, i + MAX_PRS_PER_GROUP);
-                const chunkNum = Math.floor(i / MAX_PRS_PER_GROUP) + 1;
-                matrix.include.push({
-                  group: `${group}-chunk${chunkNum}`,
-                  prs: chunk.map(p => p.number).join(','),
-                  branches: chunk.map(p => p.headRefName).join(','),
-                  count: chunk.length
-                });
-              }
-            } else {
-              matrix.include.push({
-                group: group,
-                prs: groupPrs.map(p => p.number).join(','),
-                branches: groupPrs.map(p => p.headRefName).join(','),
-                count: groupPrs.length
-              });
-            }
-          }
-
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_groups=${matrix.include.length > 0}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify(matrix)}\n`);
-
-          console.log('Groups discovered:', JSON.stringify(matrix, null, 2));
-          GROUPING_SCRIPT
+      - name: No PRs found
+        if: steps.fetch.outputs.has_prs != 'true'
+        run: |
+          echo "has_groups=false" >> $GITHUB_OUTPUT
+          echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
 
       - name: Summary
+        if: always()
         run: |
           echo "### Dependabot PR Groups" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Matrix: \`${{ steps.group.outputs.matrix }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Has groups: ${{ steps.group.outputs.has_groups }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f /tmp/grouped-prs.json ]; then
+            echo "Matrix:" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/grouped-prs.json | jq . >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No groups created" >> $GITHUB_STEP_SUMMARY
+          fi
 
   # ============================================================================
   # Job 2: Process each group in parallel with Claude
