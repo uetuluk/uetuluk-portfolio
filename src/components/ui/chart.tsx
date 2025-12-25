@@ -108,6 +108,7 @@ const ChartTooltipContent = React.forwardRef<
         color?: string;
         payload?: Record<string, unknown>;
         type?: 'none' | undefined;
+        graphicalItemId: string;
       }>;
       label?: string;
     }
