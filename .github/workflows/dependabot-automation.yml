@@ -231,11 +231,12 @@ jobs:
       - name: Run Claude Code for ${{ matrix.group }} group
         id: claude
         uses: anthropics/claude-code-action@v1
+        env:
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
-          mcp_config: ".github/mcp-config.json"
           prompt: |
             You are automating Dependabot dependency updates for the uetuluk-portfolio repository.
 
@@ -342,7 +343,7 @@ jobs:
             - If a merge fails completely, report it and skip
             - Always use the repository's existing test scripts
             - Use `gh pr comment` to post status updates
-          claude_args: '--allowed-tools "Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(node:*),Edit,Read,Write,Glob,Grep" --max-turns 100'
+          claude_args: '--mcp-config .github/mcp-config.json --allowed-tools "Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(node:*),Edit,Read,Write,Glob,Grep,mcp__github__*" --max-turns 100'
 
       - name: Record result
         id: result
