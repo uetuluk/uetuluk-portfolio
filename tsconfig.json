@@ -39,5 +39,12 @@
     "src",
     "worker",
     "worker-configuration.d.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "src/test/**/*"
   ]
 }
