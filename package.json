@@ -74,7 +74,7 @@
     "jsdom": "^27.2.0",
     "postcss": "^8.4.49",
     "prettier": "^3.7.4",
-    "promptfoo": "^0.120.1",
+    "promptfoo": "^0.120.8",
     "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
