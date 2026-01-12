@@ -294,7 +294,7 @@ describe('Worker API Handlers', () => {
       expect(data.sections).toBeDefined();
       expect(data._visitorContext).toBeDefined();
       expect(data._uiHints).toBeDefined();
-    });
+    }, 15000); // Longer timeout for AI Gateway operations
 
     it('returns default layout when AI Gateway not configured', async () => {
       // Create env without AI Gateway to test fallback behavior
@@ -357,7 +357,7 @@ describe('Worker API Handlers', () => {
       const data2 = (await response2.json()) as ApiResponse;
 
       expect(data1.layout).toBe(data2.layout);
-    });
+    }, 15000); // Longer timeout for AI Gateway and KV operations
 
     it('returns 400 when client IP is not identifiable', async () => {
       const body: GenerateRequest = {
