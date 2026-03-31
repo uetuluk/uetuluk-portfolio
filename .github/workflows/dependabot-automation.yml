@@ -1,46 +1,16 @@
-# Dependabot Automation Workflow
-#
-# This workflow automatically processes Dependabot PRs by:
-# 1. Grouping them by package family (vite, react, eslint, etc.)
-# 2. Running Claude Code to merge, test, and fix issues
-# 3. Creating combined PRs that close the original Dependabot PRs
-#
-# REQUIRED SECRETS:
-# - CLAUDE_CODE_OAUTH_TOKEN: Claude Code OAuth token (existing)
-# - CLOUDFLARE_API_TOKEN: For running tests (existing)
-# - CLOUDFLARE_ACCOUNT_ID: For running tests (existing)
-# - GH_PAT_DEPENDABOT: GitHub PAT with 'repo' and 'workflow' scopes (NEW)
-#
-# To create GH_PAT_DEPENDABOT:
-# 1. Go to https://github.com/settings/tokens?type=beta (Fine-grained tokens)
-# 2. Create a new token with:
-#    - Repository access: This repository only
-#    - Permissions:
-#      - Contents: Read and write
-#      - Pull requests: Read and write
-#      - Workflows: Read and write
-#      - Metadata: Read (auto-granted)
-# 3. Add the token as a repository secret named GH_PAT_DEPENDABOT
-
 name: Dependabot Automation
 
 on:
-  schedule:
-    # Run weekly on Monday at 8 AM UTC (after Dependabot creates PRs)
-    - cron: "0 8 * * 1"
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+    branches: [master]
+  workflow_run:
+    workflows: ["CI", "E2E Tests", "Promptfoo Tests"]
+    types: [completed]
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Dry run mode (no PRs created, only logs actions)"
-        type: boolean
-        default: false
-      package_filter:
-        description: "Filter to specific package group (e.g., vite, react, eslint)"
-        type: string
-        required: false
 
 concurrency:
-  group: dependabot-automation
+  group: dependabot-automation-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.run_id }}
   cancel-in-progress: false
 
 permissions:
@@ -51,324 +21,205 @@ permissions:
   id-token: write
 
 jobs:
-  # ============================================================================
-  # Job 1: Discover and group Dependabot PRs using Claude AI
-  # ============================================================================
-  discover-groups:
+  approve:
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.parse.outputs.matrix }}
-      has_groups: ${{ steps.parse.outputs.has_groups }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Fetch Dependabot PRs
-        id: fetch
+      - name: Approve Dependabot PR
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Fetching open Dependabot PRs..."
-          prs=$(gh pr list --author "app/dependabot" --state open --json number,title,headRefName)
+          gh pr review "${{ github.event.pull_request.number }}" \
+            --approve \
+            --body "Approved automatically after repository checks pass."
 
-          if [ "$prs" = "[]" ] || [ -z "$prs" ]; then
-            echo "No open Dependabot PRs found"
-            echo "has_prs=false" >> $GITHUB_OUTPUT
+  merge:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge Dependabot PRs with all checks green
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          pr_number="$(gh pr list \
+            --head "$HEAD_BRANCH" \
+            --state open \
+            --json number,author \
+            --jq '.[] | select(.author.login == "dependabot[bot]") | .number' \
+            | head -n 1)"
+
+          if [ -z "$pr_number" ]; then
+            echo "No open Dependabot PR found for branch $HEAD_BRANCH"
             exit 0
           fi
 
-          echo "has_prs=true" >> $GITHUB_OUTPUT
-          echo "$prs" > /tmp/dependabot-prs.json
-          echo "Found $(echo "$prs" | jq length) PRs"
-          cat /tmp/dependabot-prs.json
-
-      - name: Use Claude to group PRs intelligently
-        id: claude-group
-        if: steps.fetch.outputs.has_prs == 'true'
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Analyze the Dependabot PRs in /tmp/dependabot-prs.json and group them intelligently by package ecosystem.
-
-            ## Rules for Grouping:
-            1. Group related packages together (e.g., vitest + @vitest/coverage-* + @vitest/ui)
-            2. Group a package with its types (e.g., node + @types/node)
-            3. Group packages from the same ecosystem (e.g., all eslint-related, all react-related)
-            4. Maximum 3 PRs per group to prevent timeouts - split larger groups into chunks
-            5. Use descriptive group names (e.g., "testing", "react", "typescript", "node")
-
-            ## Examples of good groupings:
-            - vitest, @vitest/coverage-v8, @vitest/coverage-istanbul → "testing"
-            - react, react-dom, @types/react, react-router-dom → "react"
-            - eslint, @eslint/js, typescript-eslint, eslint-plugin-react → "eslint"
-            - node, @types/node → "node"
-            - typescript, tsx, ts-node → "typescript"
-
-            ## Output Format:
-            Write the result to /tmp/grouped-prs.json as a JSON object:
-            ```json
-            {
-              "include": [
-                {"group": "testing", "prs": "1,2,3", "branches": "branch1,branch2,branch3", "count": 3},
-                {"group": "react", "prs": "4,5", "branches": "branch4,branch5", "count": 2}
-              ]
-            }
-            ```
-
-            Package filter (if specified): ${{ inputs.package_filter }}
-            If a filter is specified, only include groups matching that filter.
-
-            Read the PRs file, analyze them, create logical groups, and write the output file.
-          claude_args: '--allowed-tools "Read,Write,Bash(cat:*),Bash(jq:*)" --max-turns 10'
-
-      - name: Parse Claude's grouping output
-        id: parse
-        if: steps.fetch.outputs.has_prs == 'true'
-        run: |
-          if [ -f /tmp/grouped-prs.json ]; then
-            # Compact JSON to single line for GITHUB_OUTPUT
-            matrix=$(cat /tmp/grouped-prs.json | jq -c .)
-            count=$(echo "$matrix" | jq '.include | length')
-            echo "Claude created $count groups"
-            echo "matrix=$matrix" >> $GITHUB_OUTPUT
-            echo "has_groups=true" >> $GITHUB_OUTPUT
-          else
-            echo "Claude did not create grouping file, falling back to individual PRs"
-            # Fallback: each PR becomes its own group using jq (-c for compact)
-            matrix=$(cat /tmp/dependabot-prs.json | jq -c '{include: [.[] | {group: "pr-\(.number)", prs: (.number | tostring), branches: .headRefName, count: 1}]}')
-            echo "$matrix" > /tmp/grouped-prs.json
-            echo "matrix=$matrix" >> $GITHUB_OUTPUT
-            echo "has_groups=true" >> $GITHUB_OUTPUT
+          is_draft="$(gh pr view "$pr_number" --json isDraft --jq '.isDraft')"
+          if [ "$is_draft" != "false" ]; then
+            echo "PR #$pr_number is draft"
+            exit 0
           fi
 
-      - name: No PRs found
-        if: steps.fetch.outputs.has_prs != 'true'
-        run: |
-          echo "has_groups=false" >> $GITHUB_OUTPUT
-          echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          required_checks_ready="$(gh pr view "$pr_number" --json statusCheckRollup --jq '
+            [
+              .statusCheckRollup[]
+              | select(
+                  (.name == "ci" or .name == "e2e" or .name == "prompt-tests") and
+                  .status == "COMPLETED" and
+                  .conclusion == "SUCCESS"
+              )
+              | .name
+            ] | unique | length
+          ')"
 
-      - name: Summary
-        if: always()
-        run: |
-          echo "### Dependabot PR Groups" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f /tmp/grouped-prs.json ]; then
-            echo "Matrix:" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/grouped-prs.json | jq . >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "No groups created" >> $GITHUB_STEP_SUMMARY
+          if [ "$required_checks_ready" != "3" ]; then
+            echo "PR #$pr_number is still waiting on required checks"
+            exit 0
           fi
 
-  # ============================================================================
-  # Job 2: Process each group in parallel with Claude
-  # ============================================================================
-  process-group:
-    needs: discover-groups
-    if: needs.discover-groups.outputs.has_groups == 'true'
+          failing_checks="$(gh pr view "$pr_number" --json statusCheckRollup --jq '
+            [
+              .statusCheckRollup[]
+              | select(
+                  .status != "COMPLETED" or
+                  (
+                    .conclusion != null and
+                    .conclusion != "SUCCESS" and
+                    .conclusion != "SKIPPED" and
+                    .conclusion != "NEUTRAL"
+                  )
+                )
+            ] | length
+          ')"
+
+          if [ "$failing_checks" != "0" ]; then
+            echo "PR #$pr_number still has incomplete or failing checks"
+            exit 0
+          fi
+
+          merge_state="$(gh pr view "$pr_number" --json mergeStateStatus --jq '.mergeStateStatus')"
+          case "$merge_state" in
+            CLEAN|HAS_HOOKS|UNSTABLE)
+              ;;
+            *)
+              echo "PR #$pr_number is not mergeable yet: $merge_state"
+              exit 0
+              ;;
+          esac
+
+          gh pr merge "$pr_number" --squash --delete-branch
+
+  repair:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      matrix: ${{ fromJson(needs.discover-groups.outputs.matrix) }}
-      fail-fast: false
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    outputs:
-      result: ${{ steps.result.outputs.data }}
     steps:
-      - name: Checkout repository
+      - name: Resolve Dependabot PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          pr_number="$(gh pr list \
+            --head "$HEAD_BRANCH" \
+            --state open \
+            --json number,author \
+            --jq '.[] | select(.author.login == "dependabot[bot]") | .number' \
+            | head -n 1)"
+
+          if [ -z "$pr_number" ]; then
+            echo "No open Dependabot PR found for branch $HEAD_BRANCH"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          failing_checks="$(gh pr view "$pr_number" --json statusCheckRollup --jq '
+            [
+              .statusCheckRollup[]
+              | select(
+                  (.name == "ci" or .name == "e2e" or .name == "prompt-tests") and
+                  (
+                    .status != "COMPLETED" or
+                    .conclusion == "FAILURE" or
+                    .conclusion == "TIMED_OUT" or
+                    .conclusion == "CANCELLED" or
+                    .conclusion == "ACTION_REQUIRED"
+                  )
+                )
+              | .name
+            ] | unique | join(", ")
+          ')"
+
+          if [ -z "$failing_checks" ]; then
+            echo "No failing required checks remain for PR #$pr_number"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "checks=$failing_checks" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Dependabot branch
+        if: steps.pr.outputs.found == 'true'
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
-          token: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
+        if: steps.pr.outputs.found == 'true'
         uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      - name: Get Playwright version
-        id: playwright-version
-        run: |
-          echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> $GITHUB_OUTPUT
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
-      - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
-
-      - name: Run Claude Code for ${{ matrix.group }} group
-        id: claude
+      - name: Run Claude repair for failing Dependabot PR
+        if: steps.pr.outputs.found == 'true'
         uses: anthropics/claude-code-action@v1
         env:
-          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          FAILING_CHECKS: ${{ steps.pr.outputs.checks }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
           prompt: |
-            You are automating Dependabot dependency updates for the uetuluk-portfolio repository.
+            You are repairing a failed Dependabot pull request in the repository ${{ github.repository }}.
 
-            ## Context
-            - Group: ${{ matrix.group }}
-            - PR Numbers: ${{ matrix.prs }}
-            - PR Branches: ${{ matrix.branches }}
-            - Dry Run: ${{ inputs.dry_run || 'false' }}
-            - Repository Owner: ${{ github.repository_owner }}
+            Context:
+            - Pull request number: ${{ steps.pr.outputs.number }}
+            - Branch: ${{ github.event.workflow_run.head_branch }}
+            - Workflow that triggered this repair: ${{ github.event.workflow_run.name }}
+            - Workflow run URL: ${{ github.event.workflow_run.html_url }}
+            - Required checks currently failing or incomplete: ${{ steps.pr.outputs.checks }}
 
-            ## Your Task
+            Task:
+            1. Inspect the failing checks and logs with the GitHub CLI.
+            2. Make the smallest safe changes needed on the current branch to fix the dependency update.
+            3. Run the relevant local verification commands before pushing.
+            4. If you fix the problem, commit and push directly to the current branch so CI reruns automatically.
+            5. If you cannot fix it confidently, leave a PR comment explaining the blocker and stop without risky edits.
 
-            ### Step 1: Create Combined Branch
-            Create a new branch for the combined updates:
-            ```bash
-            BRANCH_NAME="dependabot/combined/${{ matrix.group }}-$(date +%Y%m%d)"
-            git checkout -b "$BRANCH_NAME"
-            ```
+            Constraints:
+            - Stay focused on dependency-update fallout only.
+            - Do not rewrite unrelated code.
+            - Do not downgrade dependencies unless that is the only safe fix and you explain why in the commit or PR comment.
+            - If package-lock.json must change, regenerate it with npm install and ensure npm ci succeeds afterward.
 
-            ### Step 2: Merge Dependabot Branches
-            For each branch in "${{ matrix.branches }}" (comma-separated):
-            1. Fetch the branch: `git fetch origin <branch>`
-            2. Merge it: `git merge origin/<branch> --no-edit`
-            3. If merge conflict in package.json:
-               - For version conflicts, keep the HIGHER semver version
-               - Edit the file to resolve
-            4. If merge conflict in package-lock.json:
-               - Delete package-lock.json
-               - Run `npm install` to regenerate
-            5. If npm install fails, try `npm install --legacy-peer-deps`
-
-            ### Step 3: Run Tests
-            Run the test suite in order. If any step fails, try to fix it (max 2 attempts):
-
-            1. `npm ci` - Install dependencies
-            2. `npm run build` - Build the project
-            3. `npm run typecheck` - TypeScript check
-            4. `npm run lint` - Linting
-            5. `npm run test:coverage` - Unit tests
-            6. `npm run test:e2e` - E2E tests (Playwright)
-            7. `npm run test:prompts` - Promptfoo tests (categorization + layout)
-
-            For each failure:
-            - Analyze the error output
-            - Make appropriate fixes (update imports, fix type errors, update configs)
-            - Re-run the failed test
-            - After 2 failed attempts on the same issue, note it for manual review
-
-            **Special handling for promptfoo tests:**
-            If promptfoo tests fail after fix attempts, post a comment on the PR:
-            `@${{ github.repository_owner }} Promptfoo tests require manual verification for ${{ matrix.group }} group`
-
-            ### Step 4: Create Combined PR
-            If not in dry run mode and tests pass:
-
-            1. Commit all changes:
-            ```bash
-            git add -A
-            git commit -m "chore(deps): update ${{ matrix.group }} dependencies"
-            ```
-
-            2. Push the branch:
-            ```bash
-            git push -u origin "$BRANCH_NAME"
-            ```
-
-            3. Create the PR using gh CLI:
-            ```bash
-            gh pr create \
-              --title "chore(deps): update ${{ matrix.group }} dependencies" \
-              --body "## Summary
-
-            This PR combines the following Dependabot updates for **${{ matrix.group }}** packages:
-
-            $(for pr in $(echo "${{ matrix.prs }}" | tr ',' ' '); do echo "- Closes #$pr"; done)
-
-            ## Changes
-            - Updated ${{ matrix.group }} related dependencies
-            - All tests passing
-
-            ## Test Results
-            - Build: Passing
-            - TypeScript: Passing
-            - Lint: Passing
-            - Unit Tests: Passing
-            - E2E Tests: Passing
-            - Promptfoo: [Status]
-
-            ---
-            *This PR was automatically created by the Dependabot Automation workflow.*"
-            ```
-
-            ### Step 5: Report Results
-            Output a JSON summary of what was done:
-            - group: "${{ matrix.group }}"
-            - status: "success" | "partial" | "failed"
-            - combined_pr: <number or null>
-            - closed_prs: [list of PR numbers]
-            - needs_review: true/false
-            - error_message: <if failed>
-
-            ## Important Rules
-            - Never force push or use destructive git operations
-            - If a merge fails completely, report it and skip
-            - Always use the repository's existing test scripts
-            - Use `gh pr comment` to post status updates
-          claude_args: '--mcp-config .github/mcp-config.json --allowed-tools "Bash(gh:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(node:*),Edit,Read,Write,Glob,Grep,mcp__github__*" --max-turns 100'
-
-      - name: Record result
-        id: result
-        if: always()
-        run: |
-          echo "data={\"group\":\"${{ matrix.group }}\",\"status\":\"${{ steps.claude.outcome }}\"}" >> $GITHUB_OUTPUT
-
-  # ============================================================================
-  # Job 3: Aggregate results and post summary
-  # ============================================================================
-  aggregate-results:
-    needs: [discover-groups, process-group]
-    if: always() && needs.discover-groups.outputs.has_groups == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Collect results and post summary
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
-          MATRIX: ${{ needs.discover-groups.outputs.matrix }}
-        run: |
-          echo "### Dependabot Automation Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Group | PRs | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-----|--------|" >> $GITHUB_STEP_SUMMARY
-
-          # Parse matrix and add rows
-          echo "$MATRIX" | jq -r '.include[] | "| \(.group) | \(.count) | - |"' >> $GITHUB_STEP_SUMMARY
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "*Workflow completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
-
-      - name: Notify user
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT_DEPENDABOT || secrets.GITHUB_TOKEN }}
-        run: |
-          # Create an issue comment or discussion to notify the user
-          # For now, the step summary serves as the notification
-          echo "@${{ github.repository_owner }} Dependabot automation workflow completed."
-          echo "Check the workflow summary for details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            Use gh to inspect the PR and workflow run, and leave a concise PR comment when manual intervention is needed.
+          claude_args: '--max-turns 20'
