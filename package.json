@@ -50,8 +50,8 @@
     "unhead": "^2.0.19"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.17.0",
-    "@cloudflare/vitest-pool-workers": "^0.10.14",
+    "@cloudflare/vite-plugin": "^1.30.2",
+    "@cloudflare/vitest-pool-workers": "^0.13.5",
     "@cloudflare/workers-types": "^4.20251221.0",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
