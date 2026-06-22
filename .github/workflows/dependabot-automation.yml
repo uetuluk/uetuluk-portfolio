@@ -172,7 +172,7 @@ jobs:
 
       - name: Checkout Dependabot branch
         if: steps.pr.outputs.found == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
