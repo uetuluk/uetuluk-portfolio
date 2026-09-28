@@ -90,6 +90,7 @@
   "overrides": {
     "eslint-plugin-react": {
       "eslint": "$eslint"
-    }
+    },
+    "sharp": "^0.35.4"
   }
 }
