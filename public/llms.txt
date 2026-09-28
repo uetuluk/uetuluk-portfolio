@@ -1,10 +1,10 @@
 # Utku Ege Tuluk Portfolio
 
-> Personal portfolio of Utku Ege Tuluk, a Research Engineer & AI Specialist based in Shanghai, China. Features AI-powered personalized layouts generated for different visitor types.
+> Personal portfolio of Utku Ege Tuluk, a Research Engineer & AI and Emerging Technology Manager based in Shanghai, China. Features AI-powered personalized layouts generated for different visitor types.
 
 ## About
 
-Utku Ege Tuluk is a Research Engineer with 3+ years developing enterprise-scale educational technology platforms at NYU Shanghai. Expertise includes full-stack development, LLM integration, and production AI infrastructure.
+Utku Ege Tuluk is a Research Engineer and AI & Emerging Technology Manager at NYU Shanghai with 3+ years building production AI for education. Leads the Ask, Create, Train framework: multi-tenant AI assistants, an internal platform for AI-powered apps, and on-premises serving of quantized open-weight LLMs. Built Kiwi, a multimodal learning platform serving 300+ students and processing 100M+ tokens. Expertise in full-stack development, LLM infrastructure, and AI agents.
 
 ## Contact
 
@@ -12,16 +12,21 @@ Utku Ege Tuluk is a Research Engineer with 3+ years developing enterprise-scale 
 - GitHub: https://github.com/uetuluk
 - LinkedIn: https://linkedin.com/in/uetuluk
 
-## Featured Projects
+## Projects
 
-- KIWI: Multimodal AI Learning Platform - enterprise-scale education system serving 300+ students
-- ASK: Knowledge Base Chatbot Framework - multi-tenant RAG-based chatbot system
-- VTuber Chat Helper: Cross-platform chat aggregator for livestreaming
-- Spiegel 2D: AI VTuber Avatar application with real-time expressions
+- KIWI - Multimodal AI Learning Platform: Enterprise-scale multimodal learning platform serving 300+ students across 6 classes, featuring real-time AI-powered chat, intelligent PDF annotation, and in-browser Python execution.
+- ASK - Multi-Tenant AI Assistant Platform: Multi-tenant AI assistant platform behind NYU Shanghai's Ask Angie (faculty support), Ask Roary (library), and Ask RITS, cutting faculty response times from hours to instant.
+- Create - AI Sites Platform: Internal multi-tenant platform where NYU Shanghai users deploy small web apps, or generate them from a prompt, each with its own database, storage, serverless functions, and campus-hosted LLM access.
+- On-Premises LLM Inference Stack: Production LLM serving for NYU Shanghai: quantized open-weight models on on-premises and HPC GPUs, exposed through a LiteLLM gateway to campus apps and users.
+- AI Companion - App, Voice & Hardware: Full-stack AI companion product: a mobile app with personality-driven characters, voice-cloned speech, and a Bluetooth companion device with on-device wake-word recognition.
+- AI Song Generation Service: Self-hosted text-to-song service at NYU Shanghai: lyrics and a style prompt become a full song with vocals, generated on a single 12 GB GPU.
+- Fly Brain Robot: A complete fruit-fly connectome, simulated as 165k spiking neurons, sees through a robot arm's cameras and drives its joints through the fly's own front-leg motor neurons.
+- MiniMax-H3 on Apple Silicon: Runs MiniMax-H3 text-to-video-with-audio locally on a MacBook by rebuilding its MLX 4-bit pack byte-for-byte from the official BF16 weights.
+- Spiegel - AI VTuber Platform: AI VTuber streaming platform: a desktop chat aggregator for YouTube, Twitch, and Kick plus an AI-driven avatar with real-time lip-sync and speech.
 
 ## Skills
 
-Python, JavaScript, TypeScript, SQL, React, NestJS, Electron, PostgreSQL, Redis, Docker, Terraform, LangChain, RAG, Vector Databases, Real-time Processing
+Python, TypeScript, JavaScript, SQL, React, React Native, NestJS, FastAPI, Electron, PostgreSQL, Redis, Docker, Terraform, Cloudflare Workers, vLLM, LiteLLM, MCP, LLM Agents, RAG, Vector Databases
 
 ## Optional
 

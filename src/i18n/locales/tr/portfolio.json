@@ -1,43 +1,71 @@
 {
   "personal": {
     "name": "Utku Ege Tuluk",
-    "title": "Araştırma Mühendisi & AI Uzmanı",
-    "bio": "NYU Shanghai'da 3 yılı aşkın süredir kurumsal ölçekte eğitim teknolojisi platformları geliştiren Araştırma Mühendisi ve AI uzmanı. 300'den fazla öğrenciye hizmet veren çok modlu öğrenme sistemleri tasarladı, 100 milyondan fazla token işledi ve dağıtım verimliliğinde 5 kat artış sağladı. Full-stack geliştirme, LLM entegrasyonu ve üretim seviyesi AI altyapısı konularında uzman.",
+    "title": "Araştırma Mühendisi & Yapay Zeka ve Gelişen Teknolojiler Yöneticisi",
+    "bio": "NYU Shanghai'da Araştırma Mühendisi ve Yapay Zeka ve Gelişen Teknolojiler Yöneticisi; eğitim için üretim seviyesi yapay zeka geliştirmede 3 yılı aşkın deneyim. Ask, Create, Train çerçevesini yönetiyor: çok kiracılı yapay zeka asistanları, yapay zeka destekli uygulamalar için kurum içi bir platform ve nicemlenmiş açık ağırlıklı LLM'lerin yerinde (on-premises) sunumu. 300'den fazla öğrenciye hizmet veren ve 100 milyondan fazla token işleyen çok modlu öğrenme platformu Kiwi'yi geliştirdi. Full-stack geliştirme, LLM altyapısı ve yapay zeka ajanları konularında uzman.",
     "location": "Şangay, Çin"
   },
   "projects": {
     "kiwi": {
       "title": "KIWI - Çok Modlu AI Öğrenme Platformu",
-      "description": "6 sınıfta 300'den fazla öğrenciye hizmet veren kurumsal ölçekte çok modlu öğrenme platformu. Gerçek zamanlı AI destekli sohbet, akıllı PDF açıklama ve tarayıcı içi Python çalıştırma özellikleri.",
-      "longDescription": "Birden fazla LLM'yi destekleyen gerçek zamanlı akış sohbeti, AI destekli PDF açıklama ve vurgulama, vektör tabanlı belge arama ve çoklu sınıf dağıtım otomasyonu içeren üretim seviyesi eğitim platformu oluşturuldu. 100 milyondan fazla token işlendi, dağıtım hızında 5 kat iyileştirme ve %99,9 çalışma süresi sağlandı."
+      "description": "6 sınıfta 300'den fazla öğrenciye hizmet veren, gerçek zamanlı AI destekli sohbet, akıllı PDF açıklama ve tarayıcı içi Python çalıştırma özelliklerine sahip kurumsal ölçekte çok modlu öğrenme platformu.",
+      "longDescription": "Birden fazla LLM'i destekleyen gerçek zamanlı akış sohbeti, AI destekli PDF açıklama ve vurgulama, vektör tabanlı belge arama ve çok sınıflı dağıtım otomasyonu içeren üretim seviyesinde bir eğitim platformu geliştirdi. 100 milyondan fazla token işledi, dağıtım hızını 5 kat artırdı ve %99,9 çalışma süresi sağladı. Platform; Kiwi Apps (postMessage SDK ile bağlanan, izole Docker konteynerlerinde kod değerlendiren bir AI programlama alıştırma servisi dahil korumalı alanda çalışan üçüncü taraf uygulamalar) ve yerleşik bir MCP sunucusuyla genişletildi. Araştırma, KiwiNotebook adıyla ACM CHI 2024 Human-Notebook Interactions çalıştayında yayımlandı."
     },
     "ask": {
-      "title": "ASK - Bilgi Tabanı Sohbet Botu Çerçevesi",
-      "description": "Öğretim üyesi yanıt sürelerini saatlerden anlık seviyeye indiren çok kiracılı sohbet botu çerçevesi. NYU Shanghai öğretim üyesi desteği için 'Ask Angie' olarak dağıtıldı.",
-      "longDescription": "Rol tabanlı erişim kontrolü, çok dilli destek (İngilizce/Çince), akıllı belge işleme hattı, hibrit vektör/metin arama ve çevrimdışı metinden sese entegrasyonu içeren özelleştirilebilir çok kiracılı sohbet botu çerçevesi geliştirildi. Otomatik parçalama, gömme oluşturma ve gerçek zamanlı analitik özellikleri mevcut."
+      "title": "ASK - Çok Kiracılı Yapay Zeka Asistan Platformu",
+      "description": "NYU Shanghai'ın Ask Angie (öğretim üyesi desteği), Ask Roary (kütüphane) ve Ask RITS asistanlarının altyapısı olan, öğretim üyelerinin yanıt sürelerini saatlerden anlık seviyeye indiren çok kiracılı yapay zeka asistan platformu.",
+      "longDescription": "Rol tabanlı erişim kontrolü, İngilizce/Çince desteği, hibrit vektör/metin aramalı belge işleme hattı ve tarayıcı içi Whisper ses girişi sunan özelleştirilebilir çok kiracılı asistan çerçevesi. Asistanlar, kendi barındırılan modeller üzerinde araç çağırmalı bir ajan döngüsü çalıştırır; kampüs servisleri için MCP araç sunucuları, sunucu başına çıkış izin listeleriyle korumalı Docker konteynerleri olarak sağlanır ve istem değişiklikleri promptfoo değerlendirmeleriyle doğrulanır."
     },
-    "vtuber-chat": {
-      "title": "VTuber Sohbet Yardımcısı",
-      "description": "YouTube, Twitch ve Kick'ten gerçek zamanlı sohbet mesajlarını akıllı mesaj önceliklendirmesiyle toplayan çapraz platform masaüstü uygulaması.",
-      "longDescription": "100 saatten fazla yayında kullanılan çok platformlu yayın sohbet toplayıcısı oluşturuldu. Platformlar arası birleşik mesaj formatı, öncelikli mesaj kuyruğu, akıllı spam tespiti, SuperChat vurgulama ve OAuth kimlik doğrulaması ile hız sınırlama uyumlu özel bildirim uyarıları özellikleri mevcut."
+    "create": {
+      "title": "Create - Yapay Zeka Site Platformu",
+      "description": "NYU Shanghai kullanıcılarının küçük web uygulamalarını dağıtabildiği ya da bir istemden oluşturabildiği; her uygulamaya kendi veritabanını, depolamasını, sunucusuz fonksiyonlarını ve kampüste barındırılan LLM erişimini sağlayan kurum içi çok kiracılı platform.",
+      "longDescription": "RITS'in kurum içi Sites platformunu geliştirdi: bir proje yükleyin ya da Studio'da bir istemden oluşturun; proje özel bir alt alan adı, kiracıya özel PostgreSQL veritabanı, nesne depolama kovası, Deno fonksiyonları ve yönetilen LLM erişimi alır. Değiştirilemez dağıtımlar, davetli listesiyle erişim kontrolü, 30 günlük analitik, operatör yönetim paneli, CLI ve kodlama ajanlarının doğrudan dağıtım yapabileceği bir MCP uç noktası içerir. Yapay zeka şarkı üreticisi, kelime dağarcığı sınırlı bir Çince öğretmeni ve tablo tabanlı bir karar asistanı gibi kurum içi araçlara ev sahipliği yapar."
     },
-    "spiegel-2d": {
-      "title": "Spiegel 2D - AI VTuber Avatarı",
-      "description": "Gerçek zamanlı dudak senkronizasyonu, duygu odaklı ifadeler ve gizlilik öncelikli yerel AI ile 60fps render içeren AI destekli Live2D VTuber avatar uygulaması.",
-      "longDescription": "MFCC tabanlı dudak senkronizasyon analizi, AI destekli yüz ifadeleri, akıcı 60fps render ve OBS entegrasyonu için şeffaf arka plan içeren AI destekli Live2D avatar sistemi oluşturuldu. Gizlilik için yerel AI modelleri, engellenmeyen işleme için Web Workers ve WebGPU hızlandırma kullanılıyor."
+    "llm-stack": {
+      "title": "Yerinde LLM Çıkarım Altyapısı",
+      "description": "NYU Shanghai için üretim seviyesi LLM sunumu: nicemlenmiş açık ağırlıklı modeller yerinde ve HPC GPU'larında çalışır, LiteLLM ağ geçidi üzerinden kampüs uygulamalarına ve kullanıcılara sunulur.",
+      "longDescription": "Qwen3.6-35B-A3B (FP8, 4x RTX 4090 üzerinde tensör paralel, 256k bağlam) ve Qwen3.8-27B (AWQ INT4, 8x RTX 3090 üzerinde TP=2 x DP=4) gibi modelleri vLLM ile sunar ve üniversite HPC kümesinde Slurm ile zamanlar. Özel kancalara sahip LiteLLM ağ geçidi, kampüs içi ve Cloudflare Tunnel üzerinden ayrı erişim yollarıyla kullanıcı başına API anahtarları dağıtır. RITS GPU filosu (9 GPU, ~243 GiB VRAM) görüntü, video ve müzik üretim modellerini de barındırır."
+    },
+    "ai-companion": {
+      "title": "Yapay Zeka Yol Arkadaşı - Uygulama, Ses ve Donanım",
+      "description": "Uçtan uca yapay zeka yol arkadaşı ürünü: kişilik odaklı karakterlere sahip bir mobil uygulama, ses klonlamalı konuşma ve cihaz üzerinde uyandırma kelimesi tanıyan bir Bluetooth cihaz.",
+      "longDescription": "React Native uygulamasını (karakter sohbeti, kişilik sistemi, 3B sahneler, BLE cihaz kontrolü) geliştirdi ve yerel bir SwiftUI sürümüne başladı; Terraform ile AWS üzerinde kurulan NestJS/PostgreSQL arka uç ve yönetim paneli; A100'den B200'e kadar kıyaslanan, sunucusuz GPU'larda çalışan ses klonlamalı TTS servisi; ESP-SR ile uyandırma kelimesi ve komut tanıyan ESP32-S3 yazılımı; ve karakterler için 14 özel GLSL gölgelendiricili gerçek zamanlı kürk oluşturucu."
+    },
+    "yue2-music": {
+      "title": "Yapay Zeka Şarkı Üretim Servisi",
+      "description": "NYU Shanghai'da kendi sunucularında çalışan metinden şarkıya servis: şarkı sözleri ve bir stil tarifi, tek bir 12 GB GPU üzerinde vokalli tam bir şarkıya dönüşür.",
+      "longDescription": "YuE2-3B'yi sürümü sabitlenmiş ve yerel olarak yamalanmış bir audio.cpp motoruyla RTX 3060 üzerinde yaklaşık gerçek zamanlı hızda çalıştırır. Kaba fikirleri modele uygun şarkı sözleri ve stil etiketlerine dönüştüren bir LLM ajanı, yamalı MERT kodlayıcıyla sese dayalı üretim, bir web arayüzü ve üretilen şarkıları yayınlayan bir Icecast/Liquidsoap radyosu içerir."
+    },
+    "fly-brain": {
+      "title": "Meyve Sineği Beyinli Robot",
+      "description": "165 bin atımlı nöron olarak simüle edilen eksiksiz bir meyve sineği konektomu, bir robot kolun kameralarıyla görür ve eklemlerini sineğin kendi ön bacak motor nöronlarıyla yönetir.",
+      "longDescription": "165 bin sızıntılı entegre-ve-ateşle nöronu olarak simüle edilen MaleCNS v1.0 konektomunu, Aero Hand takılı bir PiPER X kolunun MuJoCo modeline bağlar. Kamera görüntüleri flyvis görsel sistem modelinden geçer ve ön bacak motor nöronu atımları eklem komutlarına dönüştürülür; görsel bir uyaran, boş ekrandaki 20'ye karşılık 147 ön bacak motor atımı üretti."
+    },
+    "minimax-h3": {
+      "title": "Apple Silicon Üzerinde MiniMax-H3",
+      "description": "MiniMax-H3'ün sesli metinden videoya modelini, MLX 4-bit paketini resmi BF16 ağırlıklarından bayt bayt yeniden oluşturarak bir MacBook'ta yerel olarak çalıştırır.",
+      "longDescription": "Şanghay'dan HuggingFace indirmeleri kullanılamayacak kadar yavaş olduğu için MiniMax'in resmi BF16 kontrol noktası ModelScope'tan 59 MB/s hızla çekilir ve yayımlanmış MLX 4-bit paketi yerelde yeniden oluşturularak onunla bayt bayt doğrulanır. 48 GB'lık bir M5 Pro'da, senkronize stereo sesli 5,17 saniyelik 832x480 videoyu 247 saniyede üretir. Bu süreçte belgelenmemiş bir qkv ağırlık yeniden düzenlemesi belgelendi, ikinci kontrol noktası 3,85 kat sıkıştırılmış bir fark olarak saklandı (18,70 GB'tan 4,86 GB'a) ve yaklaşık 25 kat daha hızlı bir yalnızca-ses modu eklendi."
+    },
+    "spiegel": {
+      "title": "Spiegel - AI VTuber Platformu",
+      "description": "AI VTuber yayın platformu: YouTube, Twitch ve Kick sohbetlerini birleştiren bir masaüstü uygulaması ile gerçek zamanlı dudak senkronu ve konuşmaya sahip yapay zeka destekli bir avatar.",
+      "longDescription": "Sohbet Yardımcısı, YouTube, Twitch ve Kick canlı sohbetlerini flood tespiti, SuperChat vurgulama ve OBS katmanıyla tek bir önceliklendirilmiş akışta birleştirir ve 100 saati aşkın yayında kullanıldı. AI Avatar, bir Live2D/VRM karakterini LLM ile yönetir; akışlı metinden konuşmaya, ses etkinliği algılama, dudak senkronu ve duyguya dayalı ifadeleri OBS için şeffaf arka planda sunar."
     }
   },
   "experience": {
     "nyu-shanghai": {
-      "company": "New York Üniversitesi Şangay",
-      "role": "Araştırma Mühendisi (Kiwi) & Kıdemli Gelişen Teknoloji Uzmanı",
+      "company": "New York University Shanghai",
+      "role": "Araştırma Mühendisi (Kiwi) & Kütüphane Yapay Zeka ve Gelişen Teknolojiler Yöneticisi",
       "period": "Ağustos 2023 - Günümüz",
-      "description": "AI destekli eğitim teknolojisi platformları ve altyapı geliştirmesine liderlik ediyor.",
+      "description": "Öğretim, öğrenme, araştırma ve kurumsal kullanım için üretim seviyesi yapay zeka servislerinden oluşan Ask, Create, Train çerçevesini yönetiyor.",
       "highlights": [
-        "Haftalık 100'den fazla kullanıcıya sahip MOOC'u başarıyla dağıttıktan sonra çift görevli pozisyona terfi edildi",
-        "AWQ kuantizasyonu ve vLLM tensör paralelleştirmesi ile model dağıtımı optimize edildi, GPU kullanımı maksimize edildi",
-        "Tüm departmanlarda Stable Diffusion, RAG ve LLM'lerle sınıflara AI entegrasyonuna öncülük edildi",
-        "Bulut ve şirket içi altyapı için REST, SSE ve WebSocket API'leri kullanılarak özel full-stack arayüzler geliştirildi"
+        "Kıdemli Gelişen Teknoloji Uzmanlığından Yapay Zeka ve Gelişen Teknolojiler Yöneticiliğine terfi etti",
+        "Haftalık 100'den fazla kullanıcıya sahip MOOC'u başarıyla devreye aldıktan sonra çift rollü pozisyona terfi etti",
+        "vLLM, FP8/AWQ nicemleme ve tensör/veri paralelliği ile yerinde ve HPC GPU'larında kampüs LLM çıkarımını yürütüyor ve LiteLLM ağ geçidi üzerinden sunuyor",
+        "Personel ve öğrencilerin kendi veritabanı, depolama ve LLM erişimine sahip yapay zeka destekli web uygulamaları dağıtabildiği kurum içi çok kiracılı platform Create'i geliştirdi",
+        "Ask tabanlı öğretim üyesi desteği, kütüphane ve RITS asistanlarını yayına aldı; kampüs servisleri için korumalı MCP araç sunucularıyla genişletti",
+        "Mini Course (Open edX) platformunun Maple'dan Ulmo'ya 8 sürümü kapsayan yükseltmesine liderlik ediyor",
+        "Stable Diffusion, RAG ve LLM'ler ile sınıflara yapay zeka entegrasyonuna departmanlar genelinde öncülük etti"
       ]
     }
   },

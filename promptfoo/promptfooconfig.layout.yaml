@@ -155,7 +155,7 @@ tests:
       - type: javascript
         value: |
           const result = JSON.parse(output);
-          const validProjectIds = ['kiwi', 'ask', 'vtuber-chat', 'spiegel-2d'];
+          const validProjectIds = ['kiwi', 'ask', 'create', 'llm-stack', 'ai-companion', 'yue2-music', 'fly-brain', 'minimax-h3', 'spiegel'];
           const cardGrids = result.sections.filter(s => s.type === 'CardGrid');
           if (cardGrids.length === 0) return true;
           return cardGrids.every(cg => {

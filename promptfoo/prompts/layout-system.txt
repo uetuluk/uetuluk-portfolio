@@ -22,7 +22,7 @@ Available components and their props:
 Personal Information:
 - Name: Utku Ege Tuluk
 - Title: Research Engineer & AI Specialist
-- Bio: Research Engineer and AI specialist with 3+ years developing enterprise-scale educational technology platforms at NYU Shanghai. Architected multimodal learning systems serving 300+ students, processing 100M+ tokens with 5x deployment efficiency gains. Expertise in full-stack development, LLM integration, and production AI infrastructure.
+- Bio: Research Engineer and AI & Emerging Technology Manager at NYU Shanghai with 3+ years building production AI for education. Leads the Ask, Create, Train framework: multi-tenant AI assistants, an internal platform for AI-powered apps, and on-premises serving of quantized open-weight LLMs. Built Kiwi, a multimodal learning platform serving 300+ students and processing 100M+ tokens. Expertise in full-stack development, LLM infrastructure, and AI agents.
 - Location: Shanghai, China
 - Resume URL: Not available
 - Profile Image: "/assets/profile.png"
@@ -34,14 +34,19 @@ Contact:
 
 Projects (use these IDs in CardGrid items):
 - kiwi: "KIWI - Multimodal AI Learning Platform" - Enterprise-scale multimodal learning platform serving 300+ students across 6 classes, featuring real-time AI-powered chat, intelligent PDF annotation, and in-browser Python execution. [ai, education, fullstack, rag] (FEATURED)
-- ask: "ASK - Knowledge Base Chatbot Framework" - Multi-tenant chatbot framework that reduced faculty response times from hours to instant, deployed as 'Ask Angie' for NYU Shanghai faculty support. [ai, chatbot, rag, enterprise] (FEATURED)
-- vtuber-chat: "VTuber Chat Helper" - Cross-platform desktop application aggregating real-time chat messages from YouTube, Twitch, and Kick with intelligent message prioritization. [streaming, desktop, realtime]
-- spiegel-2d: "Spiegel 2D - AI VTuber Avatar" - AI-driven Live2D VTuber avatar application featuring real-time lip-sync, emotion-driven expressions, and 60fps rendering with privacy-first local AI. [ai, desktop, streaming, graphics]
+- ask: "ASK - Multi-Tenant AI Assistant Platform" - Multi-tenant AI assistant platform behind NYU Shanghai's Ask Angie (faculty support), Ask Roary (library), and Ask RITS, cutting faculty response times from hours to instant. [ai, chatbot, rag, agents, enterprise] (FEATURED)
+- create: "Create - AI Sites Platform" - Internal multi-tenant platform where NYU Shanghai users deploy small web apps, or generate them from a prompt, each with its own database, storage, serverless functions, and campus-hosted LLM access. [ai, platform, infrastructure, fullstack] (FEATURED)
+- llm-stack: "On-Premises LLM Inference Stack" - Production LLM serving for NYU Shanghai: quantized open-weight models on on-premises and HPC GPUs, exposed through a LiteLLM gateway to campus apps and users. [ai, infrastructure, llm, gpu] (FEATURED)
+- ai-companion: "AI Companion - App, Voice & Hardware" - Full-stack AI companion product: a mobile app with personality-driven characters, voice-cloned speech, and a Bluetooth companion device with on-device wake-word recognition. [ai, mobile, hardware, graphics]
+- yue2-music: "AI Song Generation Service" - Self-hosted text-to-song service at NYU Shanghai: lyrics and a style prompt become a full song with vocals, generated on a single 12 GB GPU. [ai, audio, infrastructure]
+- fly-brain: "Fly Brain Robot" - A complete fruit-fly connectome, simulated as 165k spiking neurons, sees through a robot arm's cameras and drives its joints through the fly's own front-leg motor neurons. [research, neuroscience, robotics]
+- minimax-h3: "MiniMax-H3 on Apple Silicon" - Runs MiniMax-H3 text-to-video-with-audio locally on a MacBook by rebuilding its MLX 4-bit pack byte-for-byte from the official BF16 weights. [ai, video, model-conversion, research]
+- spiegel: "Spiegel - AI VTuber Platform" - AI VTuber streaming platform: a desktop chat aggregator for YouTube, Twitch, and Kick plus an AI-driven avatar with real-time lip-sync and speech. [ai, streaming, desktop, graphics]
 
 Experience (use these IDs in Timeline items):
-- nyu-shanghai: Research Engineer (Kiwi) & Senior Emerging Technology Associate at New York University Shanghai (August 2023 - Present)
+- nyu-shanghai: Research Engineer (Kiwi) & AI and Emerging Technology Manager, Library at New York University Shanghai (August 2023 - Present)
 
-Skills: ["Python", "JavaScript", "TypeScript", "SQL", "React", "NestJS", "Electron", "PostgreSQL", "Redis", "Docker", "Terraform", "LangChain", "RAG", "Vector Databases", "Real-time Processing"]
+Skills: ["Python", "TypeScript", "JavaScript", "SQL", "React", "React Native", "NestJS", "FastAPI", "Electron", "PostgreSQL", "Redis", "Docker", "Terraform", "Cloudflare Workers", "vLLM", "LiteLLM", "MCP", "LLM Agents", "RAG", "Vector Databases"]
 
 Education:
 - nyu-shanghai-edu: B.S. Electrical & Systems Engineering (Minors: Computer Science, Chinese) from New York University Shanghai (2017 - 2021)

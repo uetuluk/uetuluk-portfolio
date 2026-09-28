@@ -1,43 +1,71 @@
 {
   "personal": {
     "name": "陆胜",
-    "title": "研究工程师 & AI专家",
-    "bio": "研究工程师和AI专家，在纽约大学上海分校拥有3年以上企业级教育技术平台开发经验。设计了服务300多名学生的多模态学习系统，处理超过1亿个token，部署效率提升5倍。专长于全栈开发、LLM集成和生产级AI基础设施。",
+    "title": "研究工程师 & 人工智能及新兴技术专员",
+    "bio": "纽约大学上海分校研究工程师及图书馆人工智能及新兴技术专员，拥有3年以上面向教育的生产级AI开发经验。主导 Ask、Create、Train 框架：多租户AI助手、用于AI应用的内部平台，以及基于量化开源大模型的本地推理服务。构建了Kiwi多模态学习平台，服务300多名学生，处理超过1亿个token。专长于全栈开发、LLM基础设施和AI智能体。",
     "location": "中国上海"
   },
   "projects": {
     "kiwi": {
       "title": "KIWI - 多模态AI学习平台",
       "description": "企业级多模态学习平台，服务6个班级300多名学生，具有实时AI聊天、智能PDF注释和浏览器内Python执行功能。",
-      "longDescription": "构建了生产级教育平台，支持多个LLM的实时流式聊天、AI驱动的PDF注释和高亮、基于向量的文档搜索以及多班级部署自动化。处理超过1亿个token，部署速度提升5倍，正常运行时间达99.9%。"
+      "longDescription": "构建了生产级教育平台，支持多个LLM的实时流式聊天、AI驱动的PDF注释和高亮、基于向量的文档搜索以及多班级部署自动化。处理超过1亿个token，部署速度提升5倍，正常运行时间达99.9%。后续扩展了Kiwi Apps（通过postMessage SDK接入的沙箱化第三方应用，包括在隔离Docker容器中评测代码的AI编程练习服务）和内置MCP服务器。相关研究以KiwiNotebook为题发表于ACM CHI 2024人机笔记本交互研讨会。"
     },
     "ask": {
-      "title": "ASK - 知识库聊天机器人框架",
-      "description": "多租户聊天机器人框架，将教师响应时间从数小时缩短至即时，已部署为纽约大学上海分校的'Ask Angie'教师支持系统。",
-      "longDescription": "开发了可定制的多租户聊天机器人框架，具有基于角色的访问控制、多语言支持（英语/中文）、智能文档处理管道、混合向量/文本搜索和离线文本转语音集成。具备自动分块、嵌入生成和实时分析功能。"
+      "title": "ASK - 多租户AI助手平台",
+      "description": "多租户AI助手平台，支撑纽约大学上海分校的Ask Angie（教师支持）、Ask Roary（图书馆）和Ask RITS，将教师响应时间从数小时缩短至即时。",
+      "longDescription": "可定制的多租户助手框架，具有基于角色的访问控制、中英文支持、混合向量/文本检索的文档处理管道，以及浏览器内Whisper语音输入。助手在自托管模型上运行带工具调用的智能体循环；面向校园服务的MCP工具服务器以沙箱化Docker容器部署，并按服务器配置出站白名单；提示词变更通过promptfoo评测验证。"
     },
-    "vtuber-chat": {
-      "title": "VTuber聊天助手",
-      "description": "跨平台桌面应用程序，聚合来自YouTube、Twitch和Kick的实时聊天消息，具有智能消息优先级功能。",
-      "longDescription": "构建了多平台流媒体聊天聚合器，已用于100多小时的直播。具有跨平台统一消息格式、优先消息队列、智能刷屏检测、SuperChat高亮显示和自定义通知提醒，支持OAuth认证和速率限制合规。"
+    "create": {
+      "title": "Create - AI站点平台",
+      "description": "内部多租户平台，纽约大学上海分校用户可部署小型Web应用或通过提示词生成应用，每个应用拥有独立数据库、存储、无服务器函数和校内LLM访问权限。",
+      "longDescription": "构建了RITS内部站点平台：上传项目或在Studio中通过提示词生成项目，即可获得私有子域名、独立的PostgreSQL数据库、对象存储桶、Deno函数和托管LLM访问。支持不可变部署、访客名单访问控制、30天访问分析、运维管理后台、命令行工具，以及供编程智能体直接部署的MCP端点。平台上运行着AI歌曲生成器、限定词汇的中文陪练和表格决策助手等内部工具。"
     },
-    "spiegel-2d": {
-      "title": "Spiegel 2D - AI虚拟主播形象",
-      "description": "AI驱动的Live2D虚拟主播形象应用，具有实时口型同步、情感驱动表情和60fps渲染，采用隐私优先的本地AI。",
-      "longDescription": "创建了AI驱动的Live2D虚拟形象系统，具有基于MFCC的口型同步分析、AI驱动的面部表情、流畅的60fps渲染和用于OBS集成的透明背景。使用本地AI模型保护隐私，Web Workers实现非阻塞处理，WebGPU加速。"
+    "llm-stack": {
+      "title": "本地LLM推理平台",
+      "description": "纽约大学上海分校的生产级LLM服务：在本地及HPC GPU上运行量化开源模型，通过LiteLLM网关向校园应用和用户提供服务。",
+      "longDescription": "使用vLLM部署Qwen3.6-35B-A3B（FP8，4张RTX 4090张量并行，256k上下文）和Qwen3.8-27B（AWQ INT4，8张RTX 3090上TP=2 × DP=4）等模型，通过Slurm在大学HPC集群上调度。带自定义钩子的LiteLLM网关为每位用户签发API密钥，并区分校内与Cloudflare Tunnel两条访问路径。RITS GPU集群（9张GPU，约243 GiB显存）同时承载图像、视频和音乐生成模型。"
+    },
+    "ai-companion": {
+      "title": "AI陪伴产品 - 应用、语音与硬件",
+      "description": "全栈AI陪伴产品：具有个性化角色的移动应用、声音克隆语音，以及支持本地唤醒词识别的蓝牙陪伴设备。",
+      "longDescription": "开发了React Native应用（角色聊天、性格系统、3D场景、BLE设备控制）并启动原生SwiftUI移植；基于Terraform在AWS上部署的NestJS/PostgreSQL后端和管理后台；运行在无服务器GPU上的声音克隆TTS服务，并完成从A100到B200的基准测试；支持ESP-SR唤醒词和命令词识别的ESP32-S3固件；以及为角色打造、包含14个自定义GLSL着色器的实时毛发渲染器。"
+    },
+    "yue2-music": {
+      "title": "AI歌曲生成服务",
+      "description": "纽约大学上海分校自托管的文本生成歌曲服务：输入歌词和风格描述，即可在单张12 GB GPU上生成带人声的完整歌曲。",
+      "longDescription": "通过固定版本并本地打补丁的audio.cpp引擎，在RTX 3060上以接近实时的速度运行YuE2-3B；配有将粗略想法转化为模型可用歌词和风格标签的LLM智能体、基于MERT编码器补丁的音频参考生成、Web界面，以及播放生成歌曲的Icecast/Liquidsoap电台。"
+    },
+    "fly-brain": {
+      "title": "果蝇大脑机器人",
+      "description": "完整的果蝇连接组以16.5万个脉冲神经元进行模拟，通过机械臂的摄像头观察世界，并经由果蝇自身的前腿运动神经元驱动关节。",
+      "longDescription": "将MaleCNS v1.0连接组（以16.5万个泄漏积分发放神经元模拟）连接到配备Aero Hand的PiPER X机械臂MuJoCo模型。摄像头画面经过flyvis视觉系统模型处理，前腿运动神经元的脉冲被映射为关节指令；视觉刺激引发了147次前腿运动脉冲，而空白画面仅为20次。"
+    },
+    "minimax-h3": {
+      "title": "Apple Silicon上的MiniMax-H3",
+      "description": "通过从官方BF16权重逐字节重建MLX 4-bit模型包，在MacBook上本地运行MiniMax-H3文本生成带音频视频。",
+      "longDescription": "从上海访问HuggingFace下载速度过慢无法使用，因此改从ModelScope以59 MB/s拉取MiniMax官方BF16权重，并在本地重建已发布的MLX 4-bit模型包，与其逐字节校验一致。在48 GB内存的M5 Pro上，247秒即可生成5.17秒、832x480、带同步立体声的视频。过程中记录了一个未公开的qkv权重重排，将第二个检查点存储为压缩3.85倍的差分（18.70 GB降至4.86 GB），并新增快约25倍的纯音频模式。"
+    },
+    "spiegel": {
+      "title": "Spiegel - AI虚拟主播平台",
+      "description": "AI虚拟主播直播平台：聚合YouTube、Twitch和Kick聊天的桌面应用，以及具有实时口型同步和语音的AI驱动虚拟形象。",
+      "longDescription": "聊天助手将YouTube、Twitch和Kick的直播聊天整合为统一的优先级消息流，具备刷屏检测、SuperChat高亮和OBS叠加层，已用于100多小时的直播。AI虚拟形象由LLM驱动Live2D/VRM角色，支持流式文本转语音、语音活动检测、口型同步和情感驱动表情，并以透明背景输出到OBS。"
     }
   },
   "experience": {
     "nyu-shanghai": {
       "company": "纽约大学上海分校",
-      "role": "研究工程师（Kiwi）& 高级新兴技术专员",
+      "role": "研究工程师（Kiwi）& 图书馆人工智能及新兴技术专员",
       "period": "2023年8月 - 至今",
-      "description": "领导AI驱动的教育技术平台和基础设施开发。",
+      "description": "主导 Ask、Create、Train 框架，为教学、学习、科研和学校运营提供生产级AI服务。",
       "highlights": [
+        "由高级新兴技术专员晋升为人工智能及新兴技术专员",
         "成功部署拥有100多周活跃用户的MOOC后，晋升为双职位",
-        "通过AWQ量化和vLLM张量并行化优化模型部署，最大化GPU利用率",
-        "在各部门推动AI与课堂的整合，包括Stable Diffusion、RAG和LLM",
-        "使用REST、SSE和WebSocket API为云端和本地基础设施开发定制全栈接口"
+        "使用vLLM、FP8/AWQ量化以及张量/数据并行，在本地和HPC GPU上运行校园LLM推理服务，并通过LiteLLM网关对外提供",
+        "构建内部多租户平台Create，师生可部署拥有独立数据库、存储和LLM访问权限的AI Web应用",
+        "基于Ask上线面向教师支持、图书馆和RITS的助手，并通过沙箱化MCP工具服务器接入校园服务",
+        "主导Mini Course（Open edX）平台从Maple升级至Ulmo，跨越8个版本",
+        "在各部门推动AI与课堂的整合，包括Stable Diffusion、RAG和LLM"
       ]
     }
   },
