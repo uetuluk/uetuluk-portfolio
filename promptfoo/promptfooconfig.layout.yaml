@@ -43,7 +43,7 @@ tests:
       - type: javascript
         value: |
           const result = JSON.parse(output);
-          const validComponents = ['Hero', 'CardGrid', 'SkillBadges', 'Timeline', 'ContactForm', 'TextBlock', 'ImageGallery', 'StatsCounter', 'TechLogos', 'DataChart'];
+          const validComponents = ['Hero', 'CardGrid', 'SkillBadges', 'Timeline', 'ContactForm', 'TextBlock', 'ImageGallery', 'StatsCounter', 'TechLogos', 'DataChart', 'Callout', 'FAQ', 'Steps'];
           return result.sections.every(s => validComponents.includes(s.type));
 
   - description: 'Recruiter layout includes Hero and professional sections'
@@ -118,6 +118,52 @@ tests:
           const hasContact = result.sections.some(s => s.type === 'ContactForm');
           const hasProjects = result.sections.some(s => s.type === 'CardGrid');
           return hasContact || hasProjects;
+
+  - description: 'Recruiter layout includes a well-formed FAQ'
+    vars:
+      visitorTag: RECRUITER
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const faq = result.sections.find(s => s.type === 'FAQ');
+          if (!faq) return { pass: false, score: 0, reason: 'No FAQ section' };
+          const items = faq.props.items || [];
+          const ok = items.length >= 2 && items.every(i => i.question?.trim() && i.answer?.trim());
+          return { pass: ok, score: ok ? 1 : 0, reason: ok ? 'FAQ ok' : 'FAQ items missing or empty' };
+
+  - description: 'Collaborator layout outlines how to work together with Steps'
+    vars:
+      visitorTag: COLLABORATOR
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const steps = result.sections.find(s => s.type === 'Steps');
+          if (!steps) return { pass: false, score: 0, reason: 'No Steps section' };
+          const items = steps.props.steps || [];
+          const ok = items.length >= 3 && items.length <= 5 && items.every(i => i.title?.trim() && i.details?.trim());
+          return { pass: ok, score: ok ? 1 : 0, reason: ok ? 'Steps ok' : `Expected 3-5 complete steps, got ${items.length}` };
+
+  - description: 'Generated Callout, FAQ and Steps make no availability or pricing claims'
+    vars:
+      visitorTag: COLLABORATOR
+      customIntent: ''
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const result = JSON.parse(output);
+          const text = JSON.stringify(
+            result.sections.filter(s => ['Callout', 'FAQ', 'Steps'].includes(s.type)).map(s => s.props),
+          ).toLowerCase();
+          const claims = /\b(available|availability|open to (work|new|opportunities|roles)|hourly|rates?|pric(e|es|ing))\b|\$\d/g;
+          const found = [...new Set(text.match(claims) || [])];
+          return { pass: found.length === 0, score: found.length ? 0 : 1, reason: found.length ? `Unsupported claims: ${found.join(', ')}` : 'No unsupported claims' };
 
   # Test: Friend layout generation
   - description: 'Generate valid layout for friend'
