@@ -10,6 +10,12 @@ skills = SkillBadges("What I work with", "detailed")
 work = CardGrid("Featured Projects", 2, ["project-a", "project-b"])
 contact = ContactForm("Get in touch", true, true, true)`;
 
+// Shows the object-array syntax of the react-ui components, which the first example doesn't use.
+const COLLABORATION_EXAMPLE = `root = PortfolioPage("single-column", "green", [intro, process, faq])
+intro = Callout("What I'm exploring", "Developer tooling and applied ML.", "info")
+process = Steps("How we could work together", [{title: "Reach out", details: "Send a short note about your idea."}, {title: "Scope it", details: "We agree on a small first milestone."}, {title: "Prototype", details: "Build and review a first version together."}])
+faq = FAQ("Common questions", [{question: "What do you work on?", answer: "Developer tools and ML infrastructure."}])`;
+
 export const ALLOWED_VISITOR_TAGS = ['recruiter', 'developer', 'collaborator', 'friend'];
 const MAX_CUSTOM_INTENT_LENGTH = 200;
 
@@ -32,11 +38,11 @@ export function sanitizeCustomIntent(intent: string): string {
 // Extracted guidelines for reuse in categorization
 export const TAG_GUIDELINES: Record<string, string> = {
   recruiter:
-    'Professional focus. Lead with Hero (include resume CTA) + SkillBadges. Emphasize Timeline (experience). Show CardGrid with featured projects. Consider StatsCounter for key metrics. Use "hero-focused" or "single-column" layout.',
+    'Professional focus. Use Hero (include resume CTA), Timeline (experience), CardGrid with featured projects, and an FAQ answering what a recruiter would ask (current role, focus areas, education) only from the portfolio content. At most one more section, SkillBadges or StatsCounter. Use "hero-focused" or "single-column" layout.',
   developer:
     'Technical focus. Lead with CardGrid showing all projects (columns: 3). Include DataChart with github data for commit activity (area/bar/line for trends, or radar with byDayOfWeek). Show TechLogos (grid style). Use SkillBadges (detailed style). Use "two-column" layout.',
   collaborator:
-    'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Show ContactForm prominently. Include a TextBlock about collaboration interests. Consider StatsCounter for project metrics. Use "hero-focused" layout.',
+    'Partnership focus. Highlight current/featured projects in CardGrid (columns: 2). Add Steps (3-4) outlining how a collaboration would get started, e.g. reach out, scope the idea together, prototype. Show ContactForm prominently. A Callout or TextBlock can state collaboration interests drawn from the portfolio. Use "hero-focused" layout.',
   friend:
     'Personal focus. Casual, friendly tone. Lead with Hero. Include TextBlock with bio. Add ImageGallery for photos. Show hobbies. Use "single-column" layout.',
 };
@@ -265,12 +271,13 @@ ${personalizationSection}`;
     library: getContractLibrary().toSpec(),
     promptOptions: {
       preamble,
-      examples: [LAYOUT_EXAMPLE],
+      examples: [LAYOUT_EXAMPLE, COLLABORATION_EXAMPLE],
       additionalRules: [
         'Use ONLY the project IDs, experience IDs and photo paths from the portfolio content above',
         'Keep the page focused and relevant to the visitor type',
         'Include 3-5 sections in total, counting the Hero. The visitor guidelines suggest components to choose from, not a list to include in full',
         `Write all visible text in the visitor's language when one is given`,
+        'Callout, FAQ and Steps text must come from the portfolio content. Never invent availability, rates, dates, employers or achievements',
       ],
     },
   });

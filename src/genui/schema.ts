@@ -189,7 +189,7 @@ export const componentDefinitions = {
   Callout: {
     props: calloutProps,
     description:
-      'A short highlighted note, e.g. current availability or what kind of work is being sought. Use at most one per page.',
+      'A short highlighted note, e.g. a headline achievement or a research interest stated in the portfolio. Use at most one per page.',
   },
   FAQ: {
     props: faqProps,
