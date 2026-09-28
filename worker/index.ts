@@ -925,6 +925,17 @@ async function handleGenerate(
       return;
     }
 
+    // The model occasionally stops early (e.g. after only the root line), leaving nothing
+    // renderable. Swap in the default page rather than leave the visitor with a blank one.
+    if (!isRenderableLayout(parseLayout(lang))) {
+      console.warn('Model output was not renderable; sending fallback layout');
+      send({
+        event: 'replace',
+        data: { text: buildFallbackLayout(effectiveTag, portfolioContent) },
+      });
+      return;
+    }
+
     // Validate and cache after the visitor has the page; waitUntil keeps the Worker alive.
     const finalize = cacheGeneratedLayout(env, cacheKey, lang, layoutToken);
     if (ctx) ctx.waitUntil(finalize);

@@ -4,6 +4,8 @@
  * The response is a server-sent event stream:
  *   event: meta   — GenerateMeta, always first
  *   event: delta  — { text }, OpenUI Lang to append (a cache hit or fallback arrives as one delta)
+ *   event: replace — { text }, discard everything received so far and render this instead (sent
+ *                   when the model's output turned out to be unrenderable)
  *   event: error  — { message }, generation failed after content was sent; keep what rendered
  *   event: done   — {}, always last
  */
@@ -36,6 +38,7 @@ export interface GenerateMeta {
 export type GenerateEvent =
   | { event: 'meta'; data: GenerateMeta }
   | { event: 'delta'; data: { text: string } }
+  | { event: 'replace'; data: { text: string } }
   | { event: 'error'; data: { message: string } }
   | { event: 'done'; data: Record<string, never> };
 
@@ -75,7 +78,7 @@ function parseBlock(block: string): GenerateEvent | null {
     if (line.startsWith('event:')) event = line.slice(6).trim();
     else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
   }
-  if (!['meta', 'delta', 'error', 'done'].includes(event)) return null;
+  if (!['meta', 'delta', 'replace', 'error', 'done'].includes(event)) return null;
   try {
     return { event, data: JSON.parse(data.join('\n')) } as GenerateEvent;
   } catch {

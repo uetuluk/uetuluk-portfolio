@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     # Run on push, schedule, or PRs from the same repo (secrets available)
     if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || github.event.pull_request.head.repo.full_name == github.repository }}
+    env:
+      # Opt out of @openuidev/lang-core's postinstall telemetry
+      OPENUI_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v6
 

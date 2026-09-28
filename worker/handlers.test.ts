@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
+import { env as testEnv, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import type {
   GenerateRequest,
   FeedbackRequest,
@@ -13,6 +13,17 @@ import type {
 import worker from './index';
 import { readEvents, type GenerateEvent, type GenerateMeta } from '../src/genui/protocol';
 import { parseLayout } from './genui-stream';
+
+import { createMockStreamingLayoutAI } from './mocks/ai-gateway';
+
+// Keep these tests hermetic: never call the real AI binding (it needs remote access and would
+// make billable model calls in CI). Generation is exercised in depth in ai-generation.test.ts.
+const env = {
+  ...testEnv,
+  AI: createMockStreamingLayoutAI(
+    'root = PortfolioPage("two-column", "blue", [Hero("Test User", "Developer")])',
+  ),
+} as typeof testEnv;
 
 /** Read a /api/generate event stream into its meta and the concatenated OpenUI Lang. */
 async function readGenerateStream(response: Response) {

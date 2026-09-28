@@ -79,6 +79,10 @@ export function useGeneratedLayout() {
               received = true;
               setState((s) => ({ ...s, lang: s.lang + event.data.text }));
               break;
+            case 'replace':
+              received = true;
+              setState((s) => ({ ...s, lang: event.data.text }));
+              break;
             case 'error':
               // Content already rendered stays; the page is just incomplete.
               console.warn('Layout generation interrupted:', event.data.message);

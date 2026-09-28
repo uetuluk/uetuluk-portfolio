@@ -257,6 +257,7 @@ describe('AI Gateway Layout Generation', () => {
 
     it('does not cache output that does not render', async () => {
       stubFetch();
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
       await generate(envWith(createMockStreamingLayoutAI('Sorry, I cannot help with that.')));
 
       const keys = await env.UI_CACHE.list({ prefix: 'layout:v2:' });
@@ -272,6 +273,33 @@ describe('AI Gateway Layout Generation', () => {
 
       const second = await generate(envWith(createMockStreamingLayoutAI(LAYOUT)));
       expect(second.meta?.source).toBe('ai');
+    });
+  });
+
+  describe('unrenderable model output', () => {
+    it.each([
+      ['prose instead of OpenUI Lang', 'Sorry, I cannot help with that.'],
+      [
+        'a root whose sections were never defined',
+        'root = PortfolioPage("single-column", "orange", [hero, bio, gallery])',
+      ],
+    ])('replaces %s with the default page', async (_, lang) => {
+      stubFetch();
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const result = await generate(envWith(createMockStreamingLayoutAI(lang)));
+
+      const replace = result.events.find((e) => e.event === 'replace');
+      expect(replace).toBeDefined();
+      expect(result.events.at(-1)?.event).toBe('done');
+      const text = (replace as Extract<GenerateEvent, { event: 'replace' }>).data.text;
+      expect(sectionNames(text)).toEqual(['Hero', 'CardGrid', 'SkillBadges', 'ContactForm']);
+    });
+
+    it('does not send replace for a renderable layout', async () => {
+      stubFetch();
+      const result = await generate(envWith(createMockStreamingLayoutAI(LAYOUT)));
+
+      expect(result.events.some((e) => e.event === 'replace')).toBe(false);
     });
   });
 
