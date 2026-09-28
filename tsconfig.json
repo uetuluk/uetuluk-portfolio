@@ -2,11 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "types": [
@@ -30,14 +26,8 @@
     "noFallthroughCasesInSwitch": true,
     /* Paths */
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "src",
-    "worker",
-    "worker-configuration.d.ts"
-  ]
+  "include": ["src", "worker", "worker-configuration.d.ts"]
 }

@@ -22,7 +22,7 @@ test.describe('Theme Toggle', () => {
 
     // Get initial state - should be system default (light in most cases)
     const initialHasDark = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark')
+      document.documentElement.classList.contains('dark'),
     );
 
     // Find and click theme button
@@ -37,7 +37,7 @@ test.describe('Theme Toggle', () => {
 
     // Verify DOM class actually changed
     const afterClickHasDark = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark')
+      document.documentElement.classList.contains('dark'),
     );
 
     // The class should have toggled
@@ -78,7 +78,7 @@ test.describe('Theme Toggle', () => {
     }).toPass({ timeout: 5000 });
 
     const afterFirstClick = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark')
+      document.documentElement.classList.contains('dark'),
     );
 
     // Second click: explicit -> system
@@ -93,7 +93,7 @@ test.describe('Theme Toggle', () => {
     }).toPass({ timeout: 5000 });
 
     const afterThirdClick = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark')
+      document.documentElement.classList.contains('dark'),
     );
 
     // First and third should be the same (both explicit opposite of system)
@@ -125,9 +125,7 @@ test.describe('Theme Toggle', () => {
     await page.reload();
 
     // Check that light class is applied (no dark class)
-    const hasDark = await page.evaluate(() =>
-      document.documentElement.classList.contains('dark')
-    );
+    const hasDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
     expect(hasDark).toBe(false);
   });
 
@@ -154,7 +152,10 @@ test.describe('Theme Toggle', () => {
     await page.reload();
 
     // Select a visitor type to go to generated page
-    await page.getByRole('button', { name: /recruiter/i }).first().click();
+    await page
+      .getByRole('button', { name: /recruiter/i })
+      .first()
+      .click();
 
     // Wait for generated page
     await page.locator('nav').waitFor({ state: 'visible', timeout: 15000 });

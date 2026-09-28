@@ -411,7 +411,8 @@ describe('Worker Pure Functions', () => {
     });
 
     it('preserves guidelines for new_tag status', () => {
-      const customGuidelines = 'Focus on investment potential, market opportunities, and startup ROI metrics';
+      const customGuidelines =
+        'Focus on investment potential, market opportunities, and startup ROI metrics';
       const result = sanitizeCategorizationResult({
         status: 'new_tag',
         tagName: 'investor',
@@ -629,7 +630,11 @@ describe('Worker Pure Functions', () => {
         const layout = getDefaultLayout('friend', portfolioWithPhotos);
         const gallery = layout.sections.find((s) => s.type === 'ImageGallery');
 
-        expect(gallery?.props.images).toEqual(['/assets/photo1.jpg', '/assets/photo2.jpg', '/assets/photo3.jpg']);
+        expect(gallery?.props.images).toEqual([
+          '/assets/photo1.jpg',
+          '/assets/photo2.jpg',
+          '/assets/photo3.jpg',
+        ]);
       });
 
       it('includes empty array when photos is undefined', () => {

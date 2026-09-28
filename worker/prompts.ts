@@ -6,15 +6,17 @@ const MAX_CUSTOM_INTENT_LENGTH = 200;
 // Security: Sanitize custom intent to prevent prompt injection
 // Uses allowlist approach - only allows safe characters
 export function sanitizeCustomIntent(intent: string): string {
-  return intent
-    .slice(0, MAX_CUSTOM_INTENT_LENGTH)
-    // Allow only alphanumeric, spaces, and basic punctuation
-    .replace(/[^a-zA-Z0-9\s.,!?'"-]/g, '')
-    // Collapse multiple spaces
-    .replace(/\s+/g, ' ')
-    // Remove potential prompt injection patterns
-    .replace(/\b(ignore|forget|disregard|system|assistant|user|prompt)\b/gi, '')
-    .trim();
+  return (
+    intent
+      .slice(0, MAX_CUSTOM_INTENT_LENGTH)
+      // Allow only alphanumeric, spaces, and basic punctuation
+      .replace(/[^a-zA-Z0-9\s.,!?'"-]/g, '')
+      // Collapse multiple spaces
+      .replace(/\s+/g, ' ')
+      // Remove potential prompt injection patterns
+      .replace(/\b(ignore|forget|disregard|system|assistant|user|prompt)\b/gi, '')
+      .trim()
+  );
 }
 
 // Extracted guidelines for reuse in categorization

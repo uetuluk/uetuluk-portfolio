@@ -40,7 +40,15 @@ beforeEach(() => {
         ok: true,
         json: () =>
           Promise.resolve({
-            results: [{ latitude: 31.23, longitude: 121.47, name: 'Shanghai', country: 'China', timezone: 'Asia/Shanghai' }],
+            results: [
+              {
+                latitude: 31.23,
+                longitude: 121.47,
+                name: 'Shanghai',
+                country: 'China',
+                timezone: 'Asia/Shanghai',
+              },
+            ],
           }),
       } as Response);
     }
@@ -676,9 +684,12 @@ describe('Worker API Handlers', () => {
         return originalFetch(url);
       });
 
-      const request = createMockRequest('https://example.com/api/github/activity?username=testuser', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'https://example.com/api/github/activity?username=testuser',
+        {
+          method: 'GET',
+        },
+      );
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
@@ -731,9 +742,12 @@ describe('Worker API Handlers', () => {
       };
       await env.UI_CACHE.put('github:activity:cacheduser', JSON.stringify(cachedData));
 
-      const request = createMockRequest('https://example.com/api/github/activity?username=cacheduser', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'https://example.com/api/github/activity?username=cacheduser',
+        {
+          method: 'GET',
+        },
+      );
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
@@ -758,9 +772,12 @@ describe('Worker API Handlers', () => {
         return originalFetch(url);
       });
 
-      const request = createMockRequest('https://example.com/api/github/activity?username=nonexistent', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'https://example.com/api/github/activity?username=nonexistent',
+        {
+          method: 'GET',
+        },
+      );
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
@@ -838,9 +855,12 @@ describe('Worker API Handlers', () => {
         return originalFetch(url);
       });
 
-      const request = createMockRequest('https://example.com/api/github/activity?username=testuser', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'https://example.com/api/github/activity?username=testuser',
+        {
+          method: 'GET',
+        },
+      );
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
@@ -866,9 +886,12 @@ describe('Worker API Handlers', () => {
         return originalFetch(url);
       });
 
-      const request = createMockRequest('https://example.com/api/github/activity?username=testuser', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'https://example.com/api/github/activity?username=testuser',
+        {
+          method: 'GET',
+        },
+      );
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
@@ -970,7 +993,15 @@ describe('Worker API Handlers', () => {
             ok: true,
             json: () =>
               Promise.resolve({
-                results: [{ latitude: 30.27, longitude: -97.74, name: 'Austin', country: 'United States', timezone: 'America/Chicago' }],
+                results: [
+                  {
+                    latitude: 30.27,
+                    longitude: -97.74,
+                    name: 'Austin',
+                    country: 'United States',
+                    timezone: 'America/Chicago',
+                  },
+                ],
               }),
           });
         }
