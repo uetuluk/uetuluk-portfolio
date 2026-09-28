@@ -1,12 +1,31 @@
+import { createRequire } from 'node:module';
+import { defineConfig } from 'eslint/config';
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import prettier from 'eslint-config-prettier';
 
-export default tseslint.config(
+// eslint-plugin-react's `version: 'detect'` calls context.getFilename(), which ESLint 10
+// removed. Resolve the installed React version here instead so behaviour is unchanged.
+const reactVersion = createRequire(import.meta.url)('react/package.json').version;
+
+export default defineConfig(
+  {
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      '.wrangler/',
+      'playwright-report/',
+      'test-results/',
+      'promptfoo/output/',
+      '*.min.js',
+      'worker-configuration.d.ts',
+    ],
+  },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
@@ -22,7 +41,7 @@ export default tseslint.config(
     },
     settings: {
       react: {
-        version: 'detect',
+        version: reactVersion,
       },
     },
     rules: {
@@ -31,12 +50,9 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
     },
   },
   prettier,
-  {
-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.min.js', 'worker-configuration.d.ts'],
-  }
 );
