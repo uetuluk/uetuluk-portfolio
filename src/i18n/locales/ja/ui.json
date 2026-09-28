@@ -110,7 +110,9 @@
     "projects": "プロジェクト",
     "letsConnect": "お問い合わせ",
     "aboutMe": "自己紹介",
-    "photos": "写真"
+    "photos": "写真",
+    "featuredProjects": "注目のプロジェクト",
+    "getInTouch": "連絡先"
   },
   "seo": {
     "portfolioFor": "ポートフォリオ -"

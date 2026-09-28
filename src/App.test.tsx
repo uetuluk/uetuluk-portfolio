@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
+import { createParser } from '@openuidev/lang-core';
 import App from './App';
+import { encodeEvent, type GenerateEvent, type GenerateMeta } from '@/genui/protocol';
+import { contractLibrary, ROOT_COMPONENT } from '@/genui/schema';
 
 // Mock child components
 vi.mock('@/components/WelcomeModal', () => ({
@@ -23,13 +26,17 @@ vi.mock('@/components/LoadingScreen', () => ({
 
 vi.mock('@/components/GeneratedPage', () => ({
   GeneratedPage: ({
-    layout,
+    lang,
+    isStreaming,
+    layoutToken,
     visitorType,
     onReset,
     onRegenerate,
     error,
   }: {
-    layout: unknown;
+    lang: string;
+    isStreaming: boolean;
+    layoutToken?: string;
     visitorType: string;
     onReset: () => void;
     onRegenerate: () => void;
@@ -37,7 +44,9 @@ vi.mock('@/components/GeneratedPage', () => ({
   }) => (
     <div data-testid="generated-page">
       <span data-testid="visitor-type">{visitorType}</span>
-      <span data-testid="layout">{JSON.stringify(layout)}</span>
+      <span data-testid="lang">{lang}</span>
+      <span data-testid="streaming">{String(isStreaming)}</span>
+      <span data-testid="layout-token">{layoutToken ?? ''}</span>
       {error && <span data-testid="error">{error}</span>}
       <button onClick={onReset}>Reset</button>
       <button onClick={onRegenerate}>Regenerate</button>
@@ -73,7 +82,9 @@ vi.mock('react-i18next', () => ({
         'fallbackSections.skills': 'Skills',
         'fallbackSections.experience': 'Experience',
         'fallbackSections.projects': 'Projects',
+        'fallbackSections.featuredProjects': 'Featured Projects',
         'fallbackSections.letsConnect': "Let's Connect",
+        'fallbackSections.getInTouch': 'Get in Touch',
         'fallbackSections.aboutMe': 'About Me',
         'fallbackSections.photos': 'Photos',
       };
@@ -97,40 +108,73 @@ vi.mock('@/hooks/useTheme', () => ({
   }),
 }));
 
-// Mock useTranslatedPortfolio hook
+const mockPortfolio = {
+  personal: {
+    name: 'Test User',
+    title: 'Test Engineer',
+    bio: 'Test bio',
+    location: 'Test City',
+    contact: {},
+  },
+  projects: [{ id: 'project-1', title: 'Project 1' }],
+  experience: [{ id: 'exp-1', company: 'Test Company' }],
+  skills: ['TypeScript', 'React'],
+  education: [],
+  photos: [{ path: '/assets/cat.png' }],
+};
+
 vi.mock('@/hooks/useTranslatedPortfolio', () => ({
-  useTranslatedPortfolio: () => ({
-    personal: {
-      name: 'Test User',
-      title: 'Test Engineer',
-      bio: 'Test bio',
-      location: 'Test City',
-      contact: {},
-    },
-    projects: [{ id: 'project-1', title: 'Project 1' }],
-    experience: [{ id: 'exp-1', company: 'Test Company' }],
-    skills: ['TypeScript', 'React'],
-    education: [],
-    photos: [],
-  }),
+  useTranslatedPortfolio: () => mockPortfolio,
 }));
 
-// Mock palette functions
-vi.mock('@/lib/palette', () => ({
-  generatePalette: vi.fn(() => ({ light: {}, dark: {} })),
-  colorNameToHSL: vi.fn(() => ({ h: 200, s: 70, l: 50 })),
-}));
+const LAYOUT = 'root = PortfolioPage("single-column", "blue", [Hero("Hi", "There")])';
+const META: GenerateMeta = { source: 'ai', layoutToken: 'token-abc' };
 
-vi.mock('@/lib/applyPalette', () => ({
-  applyPaletteToRoot: vi.fn(),
-}));
+/** A /api/generate response whose events are all available immediately. */
+function sseResponse(events: GenerateEvent[], status = 200): Response {
+  return new Response(events.map(encodeEvent).join(''), {
+    status,
+    headers: { 'Content-Type': 'text/event-stream' },
+  });
+}
+
+function layoutResponse(lang = LAYOUT, meta: GenerateMeta = META): Response {
+  return sseResponse([
+    { event: 'meta', data: meta },
+    { event: 'delta', data: { text: lang } },
+    { event: 'done', data: {} },
+  ]);
+}
+
+/** A /api/generate response the test feeds one event at a time. */
+function controlledResponse() {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const body = new ReadableStream<Uint8Array>({ start: (c) => (controller = c) });
+  const encoder = new TextEncoder();
+  return {
+    response: new Response(body, { headers: { 'Content-Type': 'text/event-stream' } }),
+    send: (event: GenerateEvent) => controller.enqueue(encoder.encode(encodeEvent(event))),
+    close: () => controller.close(),
+  };
+}
+
+const parser = createParser(contractLibrary.toJSONSchema(), ROOT_COMPONENT);
+
+function renderedSections(): string[] {
+  const root = parser.parse(screen.getByTestId('lang').textContent ?? '').root;
+  return ((root?.props as { sections: Array<{ typeName: string }> }).sections ?? []).map(
+    (s) => s.typeName,
+  );
+}
 
 describe('App', () => {
   let mockLocalStorage: Record<string, string>;
+  const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    globalThis.fetch = vi.fn();
+    fetchMock.mockReset();
+    globalThis.fetch = fetchMock;
 
     mockLocalStorage = {};
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
@@ -149,8 +193,6 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByTestId('welcome-modal')).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-screen')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('generated-page')).not.toBeInTheDocument();
   });
 
   it('renders SEO, StructuredData, LanguageSwitcher, and ThemeToggle', () => {
@@ -162,238 +204,201 @@ describe('App', () => {
     expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
   });
 
-  it('shows LoadingScreen during API call', async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
-      () => new Promise(() => {}), // Never resolves
+  it('sends the visitor type, custom intent and portfolio content', async () => {
+    fetchMock.mockResolvedValue(layoutResponse());
+    render(<App />);
+
+    await act(async () => screen.getByText('Select Custom').click());
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/generate',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    const body = JSON.parse(fetchMock.mock.calls[0][1]!.body as string);
+    expect(body).toEqual({
+      visitorTag: 'developer',
+      customIntent: 'Custom intent',
+      portfolioContent: mockPortfolio,
+    });
+  });
+
+  it('shows LoadingScreen until the first content arrives, then renders progressively', async () => {
+    const stream = controlledResponse();
+    fetchMock.mockResolvedValue(stream.response);
+    render(<App />);
+
+    await act(async () => screen.getByText('Select Developer').click());
+    expect(screen.getByTestId('loading-screen')).toHaveTextContent('Loading for developer');
+
+    await act(async () => stream.send({ event: 'meta', data: META }));
+    expect(screen.getByTestId('loading-screen')).toBeInTheDocument();
+
+    await act(async () => stream.send({ event: 'delta', data: { text: 'root = PortfolioPage(' } }));
+    expect(await screen.findByTestId('generated-page')).toBeInTheDocument();
+    expect(screen.getByTestId('streaming')).toHaveTextContent('true');
+
+    await act(async () => {
+      stream.send({ event: 'delta', data: { text: '"single-column", "blue", [])' } });
+      stream.send({ event: 'done', data: {} });
+      stream.close();
+    });
+    await waitFor(() => expect(screen.getByTestId('streaming')).toHaveTextContent('false'));
+    expect(screen.getByTestId('lang')).toHaveTextContent(
+      'root = PortfolioPage("single-column", "blue", [])',
+    );
+    expect(screen.getByTestId('layout-token')).toHaveTextContent('token-abc');
+  });
+
+  it('applies the suggested theme as soon as meta arrives on a first visit', async () => {
+    const stream = controlledResponse();
+    fetchMock.mockResolvedValue(stream.response);
+    render(<App />);
+
+    await act(async () => screen.getByText('Select Developer').click());
+    await act(async () =>
+      stream.send({ event: 'meta', data: { source: 'ai', uiHints: { suggestedTheme: 'dark' } } }),
     );
 
-    render(<App />);
-
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
-
-    expect(screen.getByTestId('loading-screen')).toBeInTheDocument();
-    expect(screen.getByText('Loading for developer')).toBeInTheDocument();
+    // Before any content: no theme flip once the page is visible
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
+    expect(mockLocalStorage['portfolio-visited']).toBe('true');
   });
 
-  it('renders GeneratedPage after successful generation', async () => {
-    const mockLayout = {
-      layout: 'hero-focused',
-      theme: { accent: 'blue' },
-      sections: [{ type: 'Hero', props: {} }],
-    };
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockLayout,
-    });
-
+  it('does not override the theme on a repeat visit', async () => {
+    mockLocalStorage['portfolio-visited'] = 'true';
+    fetchMock.mockResolvedValue(
+      layoutResponse(LAYOUT, { source: 'ai', uiHints: { suggestedTheme: 'dark' } }),
+    );
     render(<App />);
 
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
+    await act(async () => screen.getByText('Select Developer').click());
+    await screen.findByTestId('generated-page');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('generated-page')).toBeInTheDocument();
-      expect(screen.getByTestId('visitor-type')).toHaveTextContent('developer');
-    });
+    expect(mockSetTheme).not.toHaveBeenCalled();
   });
 
-  it('handles API error and falls back to default layout', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  describe('fallback layout', () => {
+    it.each([
+      ['Recruiter', ['Hero', 'SkillBadges', 'Timeline', 'CardGrid']],
+      ['Developer', ['Hero', 'CardGrid', 'SkillBadges', 'ContactForm']],
+      ['Collaborator', ['Hero', 'TextBlock', 'CardGrid', 'ContactForm']],
+      ['Friend', ['Hero', 'TextBlock', 'ImageGallery', 'ContactForm']],
+    ])('renders the %s default page when the API fails', async (type, sections) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      fetchMock.mockResolvedValue(new Response('Internal error', { status: 500 }));
+      render(<App />);
 
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-    });
+      await act(async () => screen.getByText(`Select ${type}`).click());
 
-    render(<App />);
-
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('generated-page')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByTestId('generated-page')).toBeInTheDocument());
+      await waitFor(() => expect(renderedSections()).toEqual(sections));
       expect(screen.getByTestId('error')).toHaveTextContent('Failed to generate layout');
     });
 
-    consoleSpy.mockRestore();
+    it('uses translated section titles', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      fetchMock.mockResolvedValue(new Response('Internal error', { status: 500 }));
+      render(<App />);
+
+      await act(async () => screen.getByText('Select Recruiter').click());
+
+      await waitFor(() =>
+        expect(screen.getByTestId('lang')).toHaveTextContent('Featured Projects'),
+      );
+    });
+
+    it('renders the default page when the network request fails', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+      render(<App />);
+
+      await act(async () => screen.getByText('Select Developer').click());
+
+      await waitFor(() => expect(renderedSections()).toContain('CardGrid'));
+      expect(screen.getByTestId('error')).toHaveTextContent('Failed to fetch');
+    });
+
+    it('renders the default page when the stream ends without content', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      fetchMock.mockResolvedValue(
+        sseResponse([
+          { event: 'meta', data: META },
+          { event: 'done', data: {} },
+        ]),
+      );
+      render(<App />);
+
+      await act(async () => screen.getByText('Select Developer').click());
+
+      await waitFor(() => expect(renderedSections()).toContain('CardGrid'));
+    });
+
+    it('keeps partial content when the stream is interrupted', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      fetchMock.mockResolvedValue(
+        sseResponse([
+          { event: 'meta', data: META },
+          { event: 'delta', data: { text: 'root = PortfolioPage("single-column"' } },
+          { event: 'error', data: { message: 'Generation was interrupted' } },
+          { event: 'done', data: {} },
+        ]),
+      );
+      render(<App />);
+
+      await act(async () => screen.getByText('Select Developer').click());
+
+      await waitFor(() => expect(screen.getByTestId('streaming')).toHaveTextContent('false'));
+      expect(screen.getByTestId('lang')).toHaveTextContent('root = PortfolioPage("single-column"');
+      expect(screen.queryByTestId('error')).not.toBeInTheDocument();
+    });
   });
 
   it('handleReset clears state and returns to modal', async () => {
-    const mockLayout = {
-      layout: 'hero-focused',
-      theme: { accent: 'blue' },
-      sections: [],
-    };
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockLayout,
-    });
-
+    fetchMock.mockResolvedValue(layoutResponse());
     render(<App />);
 
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
+    await act(async () => screen.getByText('Select Developer').click());
+    await screen.findByTestId('generated-page');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('generated-page')).toBeInTheDocument();
-    });
-
-    await act(async () => {
-      screen.getByText('Reset').click();
-    });
+    await act(async () => screen.getByText('Reset').click());
 
     expect(screen.getByTestId('welcome-modal')).toBeInTheDocument();
-    expect(screen.queryByTestId('generated-page')).not.toBeInTheDocument();
   });
 
-  it('handleRegenerate re-fetches layout from API', async () => {
-    const mockLayout1 = {
-      layout: 'hero-focused',
-      theme: { accent: 'blue' },
-      sections: [{ type: 'Hero', props: { version: 1 } }],
-    };
-    const mockLayout2 = {
-      layout: 'two-column',
-      theme: { accent: 'green' },
-      sections: [{ type: 'Hero', props: { version: 2 } }],
-    };
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockLayout1,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockLayout2,
-      });
-
+  it('handleRegenerate re-fetches the layout', async () => {
+    fetchMock.mockResolvedValueOnce(layoutResponse());
     render(<App />);
 
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
+    await act(async () => screen.getByText('Select Custom').click());
+    await screen.findByTestId('generated-page');
 
-    await waitFor(() => {
-      expect(screen.getByTestId('generated-page')).toBeInTheDocument();
-    });
+    const REGENERATED = 'root = PortfolioPage("two-column", "green", [Timeline("Work")])';
+    fetchMock.mockResolvedValueOnce(layoutResponse(REGENERATED));
+    await act(async () => screen.getByText('Regenerate').click());
 
-    await act(async () => {
-      screen.getByText('Regenerate').click();
-    });
-
-    await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
-    });
+    await waitFor(() => expect(screen.getByTestId('lang')).toHaveTextContent(REGENERATED));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // Regeneration keeps the original custom intent
+    expect(JSON.parse(fetchMock.mock.calls[1][1]!.body as string).customIntent).toBe(
+      'Custom intent',
+    );
   });
 
-  it('getDefaultLayout returns correct sections for recruiter', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-    });
-
+  it('shows the fallback with a regenerate-specific error when regeneration fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchMock.mockResolvedValueOnce(layoutResponse());
     render(<App />);
 
-    await act(async () => {
-      screen.getByText('Select Recruiter').click();
-    });
+    await act(async () => screen.getByText('Select Developer').click());
+    await screen.findByTestId('generated-page');
 
-    await waitFor(() => {
-      const layoutText = screen.getByTestId('layout').textContent || '';
-      const layout = JSON.parse(layoutText);
+    fetchMock.mockResolvedValueOnce(new Response('down', { status: 503 }));
+    await act(async () => screen.getByText('Regenerate').click());
 
-      expect(layout.sections).toHaveLength(3); // Hero + SkillBadges + Timeline
-      expect(layout.sections[0].type).toBe('Hero');
-      expect(layout.sections[1].type).toBe('SkillBadges');
-      expect(layout.sections[2].type).toBe('Timeline');
-    });
-
-    consoleSpy.mockRestore();
-  });
-
-  it('getDefaultLayout returns correct sections for developer', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-    });
-
-    render(<App />);
-
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
-
-    await waitFor(() => {
-      const layoutText = screen.getByTestId('layout').textContent || '';
-      const layout = JSON.parse(layoutText);
-
-      expect(layout.sections).toHaveLength(2); // Hero + CardGrid
-      expect(layout.sections[0].type).toBe('Hero');
-      expect(layout.sections[1].type).toBe('CardGrid');
-    });
-
-    consoleSpy.mockRestore();
-  });
-
-  it('getDefaultLayout returns correct sections for collaborator', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-    });
-
-    render(<App />);
-
-    await act(async () => {
-      screen.getByText('Select Collaborator').click();
-    });
-
-    await waitFor(() => {
-      const layoutText = screen.getByTestId('layout').textContent || '';
-      const layout = JSON.parse(layoutText);
-
-      expect(layout.sections).toHaveLength(3); // Hero + CardGrid + ContactForm
-      expect(layout.sections[0].type).toBe('Hero');
-      expect(layout.sections[1].type).toBe('CardGrid');
-      expect(layout.sections[2].type).toBe('ContactForm');
-    });
-
-    consoleSpy.mockRestore();
-  });
-
-  it('getDefaultLayout returns correct sections for friend', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-    });
-
-    render(<App />);
-
-    await act(async () => {
-      screen.getByText('Select Friend').click();
-    });
-
-    await waitFor(() => {
-      const layoutText = screen.getByTestId('layout').textContent || '';
-      const layout = JSON.parse(layoutText);
-
-      expect(layout.sections).toHaveLength(3); // Hero + TextBlock + ImageGallery
-      expect(layout.sections[0].type).toBe('Hero');
-      expect(layout.sections[1].type).toBe('TextBlock');
-      expect(layout.sections[2].type).toBe('ImageGallery');
-    });
-
-    consoleSpy.mockRestore();
+    await waitFor(() =>
+      expect(screen.getByTestId('error')).toHaveTextContent('Failed to regenerate layout'),
+    );
+    expect(renderedSections()).toContain('CardGrid');
   });
 
   it('updates document.documentElement.lang when i18n language changes', () => {
@@ -403,30 +408,15 @@ describe('App', () => {
   });
 
   it('logs info when rate limited', async () => {
-    const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
-
-    const mockLayout = {
-      layout: 'hero-focused',
-      theme: { accent: 'blue' },
-      sections: [],
-      _rateLimited: true,
-    };
-
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockLayout,
-    });
-
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    fetchMock.mockResolvedValue(
+      layoutResponse(LAYOUT, { source: 'fallback', rateLimited: true, retryAfter: 30 }),
+    );
     render(<App />);
 
-    await act(async () => {
-      screen.getByText('Select Developer').click();
-    });
+    await act(async () => screen.getByText('Select Developer').click());
+    await screen.findByTestId('generated-page');
 
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Rate limited - showing default layout');
-    });
-
-    consoleSpy.mockRestore();
+    await waitFor(() => expect(info).toHaveBeenCalledWith('Rate limited - showing default layout'));
   });
 });

@@ -94,7 +94,9 @@
     "projects": "项目",
     "letsConnect": "联系我",
     "aboutMe": "关于我",
-    "photos": "照片"
+    "photos": "照片",
+    "featuredProjects": "精选项目",
+    "getInTouch": "联系方式"
   },
   "seo": {
     "portfolioFor": "作品集 -"

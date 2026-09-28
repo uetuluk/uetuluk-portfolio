@@ -5,7 +5,7 @@
  * responses for testing categorization and layout generation code paths.
  */
 
-import type { AIGatewayResponse, CategorizationResult, GeneratedLayout } from '../types';
+import type { AIGatewayResponse, CategorizationResult } from '../types';
 
 /**
  * Configuration for creating a mock AI Gateway
@@ -100,26 +100,6 @@ export function createMockCategorizationAI(result: CategorizationResult): Ai {
 }
 
 /**
- * Creates a mock AI that returns a successful layout generation result
- *
- * @example
- * ```ts
- * const mockAI = createMockLayoutAI({
- *   layout: "two-column",
- *   theme: { accent: "blue" },
- *   sections: [{ type: "hero", props: { title: "Welcome" } }],
- * });
- * ```
- */
-export function createMockLayoutAI(layout: GeneratedLayout): Ai {
-  return createMockAI({
-    ok: true,
-    status: 200,
-    response: createAIResponse(JSON.stringify(layout)),
-  });
-}
-
-/**
  * Creates a mock AI that returns an error response (non-ok)
  *
  * @example
@@ -183,25 +163,6 @@ export function createMockThrowingAI(error: Error): Ai {
 }
 
 /**
- * Creates a mock AI that returns a layout missing required fields
- *
- * This simulates cases where the AI returns an object that doesn't
- * match the expected GeneratedLayout structure.
- */
-export function createMockInvalidLayoutAI(): Ai {
-  return createMockAI({
-    ok: true,
-    status: 200,
-    response: createAIResponse(
-      JSON.stringify({
-        theme: { accent: 'blue' },
-        // Missing 'layout' and 'sections' fields
-      }),
-    ),
-  });
-}
-
-/**
  * Helper to create an env object with mock AI for testing
  *
  * @example
@@ -224,30 +185,90 @@ export function createEnvWithMockAI<T extends object>(
 /**
  * Creates a mock AI that returns different responses for sequential calls.
  * Useful for testing flows that make multiple AI calls (e.g., categorization then layout).
+ * Pass `{ stream: [...] }` for a call answered with a streamed completion.
  *
  * @example
  * ```ts
  * const mockAI = createSequentialMockAI([
  *   createAIResponse(JSON.stringify(categorizationResult)),
- *   createAIResponse(JSON.stringify(layoutResult)),
+ *   { stream: ['root = PortfolioPage(...)'] },
  * ]);
  * ```
  */
-export function createSequentialMockAI(responses: AIGatewayResponse[]): Ai {
+export function createSequentialMockAI(
+  responses: Array<AIGatewayResponse | { stream: CompletionChunk[] }>,
+  onRun?: (options: unknown) => void,
+): Ai {
   let callIndex = 0;
 
   return {
     gateway: (_gatewayId: string) => ({
-      run: async (_options: unknown) => {
+      run: async (options: unknown) => {
+        onRun?.(options);
         const response = responses[callIndex] ?? responses[responses.length - 1];
         callIndex++;
 
+        if ('stream' in response) return createCompletionResponse(response.stream);
         return {
           ok: true,
           status: 200,
           json: async () => response,
           text: async () => JSON.stringify(response),
         } as Response;
+      },
+    }),
+  } as Ai;
+}
+
+/**
+ * A streamed completion chunk: a string becomes `choices[0].delta.content`; an object is sent
+ * verbatim (e.g. a reasoning delta or an upstream `{ error }` chunk).
+ */
+export type CompletionChunk = string | Record<string, unknown>;
+
+/** Encode chunks as an OpenAI-compatible chat completion SSE stream, ending with [DONE]. */
+export function createCompletionResponse(chunks: CompletionChunk[]): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) {
+        const payload =
+          typeof chunk === 'string'
+            ? { choices: [{ index: 0, delta: { content: chunk } }] }
+            : chunk;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      }
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+  return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+}
+
+/** Split OpenUI Lang into small chunks, the way a model streams it. */
+export function chunkText(text: string, size = 12): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks;
+}
+
+/**
+ * Creates a mock AI whose layout call streams the given OpenUI Lang.
+ *
+ * @example
+ * ```ts
+ * const mockAI = createMockStreamingLayoutAI('root = PortfolioPage("single-column", "blue", [])');
+ * ```
+ */
+export function createMockStreamingLayoutAI(
+  lang: string,
+  options: { extraChunks?: CompletionChunk[]; onRun?: (options: unknown) => void } = {},
+): Ai {
+  return {
+    gateway: (_gatewayId: string) => ({
+      run: async (runOptions: unknown) => {
+        options.onRun?.(runOptions);
+        return createCompletionResponse([...(options.extraChunks ?? []), ...chunkText(lang)]);
       },
     }),
   } as Ai;

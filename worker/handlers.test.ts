@@ -11,6 +11,21 @@ import type {
 
 // Import the worker default export
 import worker from './index';
+import { readEvents, type GenerateEvent, type GenerateMeta } from '../src/genui/protocol';
+import { parseLayout } from './genui-stream';
+
+/** Read a /api/generate event stream into its meta and the concatenated OpenUI Lang. */
+async function readGenerateStream(response: Response) {
+  const events: GenerateEvent[] = [];
+  for await (const event of readEvents(response.body!)) events.push(event);
+  const meta = events.find((e) => e.event === 'meta')?.data as GenerateMeta | undefined;
+  const lang = events
+    .filter((e): e is Extract<GenerateEvent, { event: 'delta' }> => e.event === 'delta')
+    .map((e) => e.data.text)
+    .join('');
+  const root = parseLayout(lang).root;
+  return { events, meta, lang, layout: (root?.props as { layout?: string } | undefined)?.layout };
+}
 
 // Mock external API calls (GitHub, Open-Meteo)
 const originalFetch = global.fetch;
@@ -294,14 +309,16 @@ describe('Worker API Handlers', () => {
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
+      const data = await readGenerateStream(response);
       await waitOnExecutionContext(ctx);
-      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('text/event-stream');
+      expect(data.events[0].event).toBe('meta');
+      expect(data.events.at(-1)?.event).toBe('done');
       expect(data.layout).toBeDefined();
-      expect(data.sections).toBeDefined();
-      expect(data._visitorContext).toBeDefined();
-      expect(data._uiHints).toBeDefined();
+      expect(data.meta?.visitorContext).toBeDefined();
+      expect(data.meta?.uiHints).toBeDefined();
     });
 
     it('returns default layout when AI Gateway not configured', async () => {
@@ -325,11 +342,11 @@ describe('Worker API Handlers', () => {
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, envWithoutAI, ctx);
+      const data = await readGenerateStream(response);
       await waitOnExecutionContext(ctx);
-      const data = (await response.json()) as ApiResponse;
 
       expect(response.status).toBe(200);
-      expect(data.layout).toBeDefined();
+      expect(data.meta?.source).toBe('fallback');
       // Default layout for developer is two-column
       expect(data.layout).toBe('two-column');
     });
@@ -349,8 +366,8 @@ describe('Worker API Handlers', () => {
 
       const ctx1 = createExecutionContext();
       const response1 = await worker.fetch(request1, env, ctx1);
+      const data1 = await readGenerateStream(response1);
       await waitOnExecutionContext(ctx1);
-      const data1 = (await response1.json()) as ApiResponse;
 
       // Second request should return cached layout
       const request2 = createMockRequest('https://example.com/api/generate', {
@@ -361,8 +378,8 @@ describe('Worker API Handlers', () => {
 
       const ctx2 = createExecutionContext();
       const response2 = await worker.fetch(request2, env, ctx2);
+      const data2 = await readGenerateStream(response2);
       await waitOnExecutionContext(ctx2);
-      const data2 = (await response2.json()) as ApiResponse;
 
       expect(data1.layout).toBe(data2.layout);
     });
@@ -437,7 +454,7 @@ describe('Worker API Handlers', () => {
       const body: FeedbackRequest = {
         feedbackType: 'like',
         audienceType: 'developer',
-        cacheKey: 'cache-123',
+        layoutToken: '00000000-0000-4000-8000-000000000000',
         sessionId: 'session-123',
       };
 
@@ -460,7 +477,7 @@ describe('Worker API Handlers', () => {
       const body: FeedbackRequest = {
         feedbackType: 'dislike',
         audienceType: 'developer',
-        cacheKey: 'cache-123',
+        layoutToken: '00000000-0000-4000-8000-000000000000',
         sessionId: 'session-dislike-1',
       };
 
@@ -483,7 +500,7 @@ describe('Worker API Handlers', () => {
       const body = {
         feedbackType: 'invalid',
         audienceType: 'developer',
-        cacheKey: 'cache-123',
+        layoutToken: '00000000-0000-4000-8000-000000000000',
         sessionId: 'session-123',
       };
 
@@ -507,7 +524,7 @@ describe('Worker API Handlers', () => {
       const body: FeedbackRequest = {
         feedbackType: 'dislike',
         audienceType: 'developer',
-        cacheKey: 'cache-123',
+        layoutToken: '00000000-0000-4000-8000-000000000000',
         sessionId: 'session-rate-test',
       };
 
@@ -538,6 +555,56 @@ describe('Worker API Handlers', () => {
       expect(data2.success).toBe(false);
       expect(data2.rateLimited).toBe(true);
       expect(data2.retryAfter).toBeDefined();
+    });
+  });
+
+  describe('POST /api/feedback layout invalidation', () => {
+    const TOKEN = '11111111-2222-4333-8444-555555555555';
+    const CACHE_KEY = 'layout:v2:developer:default:abc';
+
+    async function dislike(layoutToken: string, sessionId: string) {
+      const request = createMockRequest('https://example.com/api/feedback', {
+        method: 'POST',
+        body: JSON.stringify({
+          feedbackType: 'dislike',
+          audienceType: 'developer',
+          layoutToken,
+          sessionId,
+        } satisfies FeedbackRequest),
+      });
+      const ctx = createExecutionContext();
+      const response = await worker.fetch(request, env, ctx);
+      await waitOnExecutionContext(ctx);
+      return response;
+    }
+
+    beforeEach(async () => {
+      await env.UI_CACHE.put(CACHE_KEY, JSON.stringify({ lang: 'root = ...', token: TOKEN }));
+      await env.UI_CACHE.put(`layouttoken:${TOKEN}`, CACHE_KEY);
+      await env.UI_CACHE.put('ratelimit:victim', JSON.stringify({ lastDislike: 1, count: 1 }));
+    });
+
+    it('deletes the cached layout the token was issued for', async () => {
+      await dislike(TOKEN, 'session-token-valid');
+      expect(await env.UI_CACHE.get(CACHE_KEY)).toBeNull();
+    });
+
+    it('ignores a raw KV key sent in place of a token', async () => {
+      await dislike('ratelimit:victim', 'session-token-forged');
+      expect(await env.UI_CACHE.get('ratelimit:victim')).not.toBeNull();
+      expect(await env.UI_CACHE.get(CACHE_KEY)).not.toBeNull();
+    });
+
+    it('ignores an unknown token', async () => {
+      await dislike('99999999-2222-4333-8444-555555555555', 'session-token-unknown');
+      expect(await env.UI_CACHE.get(CACHE_KEY)).not.toBeNull();
+    });
+
+    it('never deletes a non-layout key even if a token maps to one', async () => {
+      const evil = '22222222-2222-4333-8444-555555555555';
+      await env.UI_CACHE.put(`layouttoken:${evil}`, 'ratelimit:victim');
+      await dislike(evil, 'session-token-mismapped');
+      expect(await env.UI_CACHE.get('ratelimit:victim')).not.toBeNull();
     });
   });
 
@@ -613,13 +680,14 @@ describe('Worker API Handlers', () => {
 
       const ctx = createExecutionContext();
       const response = await worker.fetch(request, env, ctx);
+      const data = await readGenerateStream(response);
       await waitOnExecutionContext(ctx);
-      const data = (await response.json()) as ApiResponse;
 
       // Response should include rate limited flag but still return valid layout
       expect(response.status).toBe(200);
-      expect(data._rateLimited).toBe(true);
-      expect(data._retryAfter).toBeDefined();
+      expect(data.meta?.rateLimited).toBe(true);
+      expect(data.meta?.retryAfter).toBeDefined();
+      expect(data.meta?.source).toBe('fallback');
       expect(data.layout).toBeDefined();
     }, 30000);
   });

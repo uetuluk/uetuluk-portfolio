@@ -35,6 +35,9 @@
     "deploy": "npm run build && npm run sync-assets && wrangler deploy"
   },
   "dependencies": {
+    "@openuidev/lang-core": "^0.3.0",
+    "@openuidev/react-lang": "^0.3.0",
+    "@openuidev/react-ui": "^0.16.3",
     "@unhead/react": "^3.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -49,7 +52,8 @@
     "react-spinners": "^0.17.1",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
-    "unhead": "^3.4.1"
+    "unhead": "^3.4.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.61.0",
