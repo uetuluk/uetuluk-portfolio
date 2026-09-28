@@ -13,6 +13,8 @@ import {
 import type { CategorizationResult } from './types';
 import { readEvents, type GenerateEvent, type GenerateMeta } from '../src/genui/protocol';
 import { parseLayout } from './genui-stream';
+import { DEFAULT_FALLBACK_TITLES } from '../src/genui/fallback';
+import { fallbackTitlesFor } from '../src/genui/language';
 
 /**
  * AI Gateway Layout Generation Tests
@@ -224,6 +226,44 @@ describe('AI Gateway Layout Generation', () => {
       expect(meta?.visitorContext?.geo).toEqual({ country: 'US', city: 'Austin' });
       expect(meta?.visitorContext?.device?.type).toBeDefined();
       expect(meta?.uiHints).toBeDefined();
+    });
+  });
+
+  describe('visitor language', () => {
+    it('tells the model which language to write in', async () => {
+      stubFetch();
+      let userPrompt = '';
+      const ai = createMockStreamingLayoutAI(LAYOUT, {
+        onRun: (options) => {
+          const { messages } = (options as { query: { messages: Array<{ content: string }> } })
+            .query;
+          userPrompt = messages.at(-1)!.content;
+        },
+      });
+      await generate(envWith(ai), createGenerateRequest({ language: 'ja' }));
+
+      expect(userPrompt).toContain('Visitor language: Japanese');
+    });
+
+    it('caches each language separately', async () => {
+      stubFetch();
+      await generate(envWith(createMockStreamingLayoutAI(LAYOUT)), createGenerateRequest({}));
+      const second = await generate(
+        envWith(createMockStreamingLayoutAI(LAYOUT)),
+        createGenerateRequest({ language: 'ja' }),
+      );
+
+      expect(second.meta?.source).toBe('ai');
+      expect((await env.UI_CACHE.list({ prefix: 'layout:v2:' })).keys).toHaveLength(2);
+    });
+
+    it('localizes the default layout headings', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const result = await generate(envWith(undefined), createGenerateRequest({ language: 'ja' }));
+
+      expect(result.meta?.source).toBe('fallback');
+      expect(result.lang).toContain(fallbackTitlesFor('ja').projects);
+      expect(result.lang).not.toContain(DEFAULT_FALLBACK_TITLES.projects);
     });
   });
 

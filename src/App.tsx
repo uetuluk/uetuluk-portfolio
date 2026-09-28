@@ -56,7 +56,12 @@ function App() {
     onMeta?: (meta: GenerateMeta) => void,
   ) =>
     layout.generate(
-      { visitorTag: type ?? 'friend', customIntent: custom || undefined, portfolioContent },
+      {
+        visitorTag: type ?? 'friend',
+        customIntent: custom || undefined,
+        language: i18n.resolvedLanguage,
+        portfolioContent,
+      },
       {
         failureMessage,
         onMeta,

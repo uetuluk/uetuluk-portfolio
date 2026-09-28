@@ -346,6 +346,13 @@ describe('prompts', () => {
       expect(prompt).toContain('DEVELOPER');
     });
 
+    it('names the visitor language, defaulting to English', () => {
+      expect(buildUserPrompt('developer', undefined)).toContain('Visitor language: English');
+      expect(buildUserPrompt('developer', undefined, undefined, 'zh')).toContain(
+        'Visitor language: Simplified Chinese',
+      );
+    });
+
     it('includes custom intent when provided', () => {
       const prompt = buildUserPrompt('developer', 'I want to see your open source work');
       expect(prompt).toContain('open source work');

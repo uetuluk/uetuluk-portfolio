@@ -108,6 +108,10 @@ sequenceDiagram
 
 Only `delta.content` from the model is forwarded, so reasoning or other metadata can never reach the page. If the model fails before sending anything, the Worker streams the fallback layout instead.
 
+Link validation gates caching only: the visitor who triggered a generation sees the page as streamed (the renderer still drops unsafe links), and a layout with an unreachable link is simply not cached, so later visitors get a fresh generation.
+
+**Language:** the client sends its i18n language. The Worker checks it against the supported locales (`src/genui/language.ts`, anything else becomes English), tells the model to write in it, uses it in the cache key, and builds the fallback layout with the translated `fallbackSections` headings.
+
 **Dislike / regenerate:** the `meta` event carries an opaque `layoutToken`. The Worker maps it to the cache key in KV, so a dislike invalidates exactly that layout; clients never see or send raw cache keys.
 
 ## Key Files

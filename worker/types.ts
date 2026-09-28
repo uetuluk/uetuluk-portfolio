@@ -15,6 +15,8 @@ export interface Env {
 export interface GenerateRequest {
   visitorTag: string;
   customIntent?: string;
+  /** i18n language code; validated with resolveLanguage */
+  language?: string;
   portfolioContent: PortfolioContent;
 }
 
