@@ -21,6 +21,8 @@ export interface MockAIConfig {
   responseText?: string;
   /** Error to throw when .run() is called */
   throwError?: Error;
+  /** Called with the options passed to .run(), for asserting on the outgoing request */
+  onRun?: (options: unknown) => void;
 }
 
 /**
@@ -39,11 +41,12 @@ export interface MockAIConfig {
  * ```
  */
 export function createMockAI(config: MockAIConfig = {}): Ai {
-  const { ok = true, status = 200, response, responseText, throwError } = config;
+  const { ok = true, status = 200, response, responseText, throwError, onRun } = config;
 
   return {
     gateway: (_gatewayId: string) => ({
-      run: async (_options: unknown) => {
+      run: async (options: unknown) => {
+        onRun?.(options);
         if (throwError) {
           throw throwError;
         }

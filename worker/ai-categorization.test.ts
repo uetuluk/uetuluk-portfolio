@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { env } from 'cloudflare:test';
-import { categorizeIntent, getDefaultCategorizationResult, hashString } from './index';
+import { AI_MODEL, categorizeIntent, getDefaultCategorizationResult, hashString } from './index';
 import type { CategorizationResult, Env } from './types';
 import {
+  createAIResponse,
+  createMockAI,
   createMockCategorizationAI,
   createMockErrorAI,
   createMockNoContentAI,
@@ -48,6 +50,35 @@ describe('AI Gateway Categorization', () => {
       expect(result.tagName).toBe('developer');
       expect(result.displayName).toBe('Developer');
       expect(result.confidence).toBe(0.95);
+    });
+
+    it('requests the configured model with strict JSON and reasoning disabled', async () => {
+      let sent: { query?: Record<string, unknown> } | undefined;
+      const mockAI = createMockAI({
+        response: createAIResponse(
+          JSON.stringify({
+            status: 'matched',
+            tagName: 'developer',
+            displayName: 'Developer',
+            guidelines: TAG_GUIDELINES.developer,
+            confidence: 0.95,
+          }),
+        ),
+        onRun: (options) => {
+          sent = options as typeof sent;
+        },
+      });
+
+      await categorizeIntent('I am a developer', createEnvWithMockAI(env, mockAI));
+
+      expect(AI_MODEL).toBe('qwen/qwen3.8-flash');
+      expect(sent?.query?.model).toBe(AI_MODEL);
+      expect(sent?.query?.reasoning).toEqual({ enabled: false });
+      expect(sent?.query?.provider).toEqual({ require_parameters: true });
+      expect(sent?.query?.response_format).toMatchObject({
+        type: 'json_schema',
+        json_schema: { strict: true },
+      });
     });
 
     it('caches successful categorization result', async () => {
