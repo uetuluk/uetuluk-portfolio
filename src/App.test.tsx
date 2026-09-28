@@ -71,7 +71,7 @@ vi.mock('@/components/StructuredData', () => ({
 }));
 
 // Mock react-i18next
-const mockI18n = { language: 'en' };
+const mockI18n = { language: 'en', resolvedLanguage: 'en' };
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => {
@@ -204,7 +204,7 @@ describe('App', () => {
     expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
   });
 
-  it('sends the visitor type, custom intent and portfolio content', async () => {
+  it('sends the visitor type, custom intent, language and portfolio content', async () => {
     fetchMock.mockResolvedValue(layoutResponse());
     render(<App />);
 
@@ -218,6 +218,7 @@ describe('App', () => {
     expect(body).toEqual({
       visitorTag: 'developer',
       customIntent: 'Custom intent',
+      language: 'en',
       portfolioContent: mockPortfolio,
     });
   });

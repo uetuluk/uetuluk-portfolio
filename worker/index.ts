@@ -22,6 +22,7 @@ import type {
 } from './types';
 import type { ParseResult } from '@openuidev/lang-core';
 import { buildFallbackLayout } from '../src/genui/fallback';
+import { fallbackTitlesFor, resolveLanguage } from '../src/genui/language';
 import {
   encodeEvent,
   EVENT_STREAM_CONTENT_TYPE,
@@ -733,6 +734,8 @@ async function handleGenerate(
   }
 
   const { visitorTag, customIntent, portfolioContent } = body as GenerateRequest;
+  const language = resolveLanguage((body as GenerateRequest).language);
+  const fallbackTitles = fallbackTitlesFor(language);
 
   // Check rate limit (IP-based, 3 requests per minute)
   const clientIP = getClientIP(request);
@@ -749,11 +752,15 @@ async function handleGenerate(
 
   if (rateLimitResult.limited) {
     // Serve the default layout with a rateLimited flag (no error, just fallback)
-    return staticLayoutResponse(corsHeaders, buildFallbackLayout(visitorTag, portfolioContent), {
-      source: 'fallback',
-      rateLimited: true,
-      retryAfter: rateLimitResult.retryAfter,
-    });
+    return staticLayoutResponse(
+      corsHeaders,
+      buildFallbackLayout(visitorTag, portfolioContent, fallbackTitles),
+      {
+        source: 'fallback',
+        rateLimited: true,
+        retryAfter: rateLimitResult.retryAfter,
+      },
+    );
   }
 
   // Update rate limit counter
@@ -828,7 +835,7 @@ async function handleGenerate(
   const contextHash = hashString(
     `${visitorContext.device.type}:${visitorContext.time.timeOfDay}:${visitorContext.geo.country || 'XX'}`,
   );
-  const cacheKey = `${LAYOUT_CACHE_PREFIX}${effectiveTag}:${
+  const cacheKey = `${LAYOUT_CACHE_PREFIX}${effectiveTag}:${language}:${
     customGuidelines ? hashString(customGuidelines.guidelines) : 'default'
   }:${contextHash}`;
 
@@ -846,10 +853,14 @@ async function handleGenerate(
   // Check if AI Gateway is configured
   if (!env.AI || !env.AI_GATEWAY_ID) {
     console.warn('AI Gateway not configured, returning default layout');
-    return staticLayoutResponse(corsHeaders, buildFallbackLayout(effectiveTag, portfolioContent), {
-      ...meta,
-      source: 'fallback',
-    });
+    return staticLayoutResponse(
+      corsHeaders,
+      buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles),
+      {
+        ...meta,
+        source: 'fallback',
+      },
+    );
   }
 
   // Step 3: Generate layout with categorized tag and custom guidelines
@@ -878,7 +889,7 @@ async function handleGenerate(
           },
           {
             role: 'user',
-            content: buildUserPrompt(effectiveTag, customIntent, visitorContext),
+            content: buildUserPrompt(effectiveTag, customIntent, visitorContext, language),
           },
         ],
         temperature: 0.7,
@@ -894,10 +905,14 @@ async function handleGenerate(
   } catch (error) {
     // Nothing has been sent yet, so the visitor gets a complete default page instead.
     console.error('Generation error:', error);
-    return staticLayoutResponse(corsHeaders, buildFallbackLayout(effectiveTag, portfolioContent), {
-      ...meta,
-      source: 'fallback',
-    });
+    return staticLayoutResponse(
+      corsHeaders,
+      buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles),
+      {
+        ...meta,
+        source: 'fallback',
+      },
+    );
   }
 
   // The token only resolves once the layout is cached after the stream ends, so a dislike sent
@@ -920,7 +935,7 @@ async function handleGenerate(
         // Failed before any content: fall back to a complete default page.
         send({
           event: 'delta',
-          data: { text: buildFallbackLayout(effectiveTag, portfolioContent) },
+          data: { text: buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles) },
         });
       } else {
         send({ event: 'error', data: { message: 'Generation was interrupted' } });
@@ -935,7 +950,7 @@ async function handleGenerate(
       console.warn('Model output was not renderable; sending fallback layout');
       send({
         event: 'replace',
-        data: { text: buildFallbackLayout(effectiveTag, portfolioContent) },
+        data: { text: buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles) },
       });
       return;
     }

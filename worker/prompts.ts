@@ -1,5 +1,6 @@
 import { generateSystemPrompt } from '@openuidev/lang-core';
 import { getContractLibrary } from '../src/genui/schema';
+import { LANGUAGE_NAMES, type GenerateLanguage } from '../src/genui/language';
 import type { PortfolioContent, VisitorContext, DataSummaries } from './types';
 
 // A worked example keeps small models on the positional syntax and root-first ordering.
@@ -279,11 +280,12 @@ export function buildUserPrompt(
   visitorTag: string,
   customIntent: string | undefined,
   visitorContext?: VisitorContext,
+  language: GenerateLanguage = 'en',
 ): string {
   // Use the tag as-is (it's already validated/categorized)
   const displayTag = visitorTag.toUpperCase();
 
-  let prompt = `Visitor type: ${displayTag}`;
+  let prompt = `Visitor type: ${displayTag}\nVisitor language: ${LANGUAGE_NAMES[language]}`;
 
   if (customIntent) {
     // Security: Use robust sanitization for custom intent

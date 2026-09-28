@@ -4,6 +4,7 @@ import { readEvents, type GenerateMeta } from './protocol';
 export interface GenerateRequestBody {
   visitorTag: string;
   customIntent?: string;
+  language?: string;
   portfolioContent: unknown;
 }
 
