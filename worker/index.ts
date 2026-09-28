@@ -20,6 +20,7 @@ import type {
   WeatherMinMaxResponse,
   PortfolioContent,
 } from './types';
+import type { ParseResult } from '@openuidev/lang-core';
 import { buildFallbackLayout } from '../src/genui/fallback';
 import {
   encodeEvent,
@@ -927,7 +928,8 @@ async function handleGenerate(
 
     // The model occasionally stops early (e.g. after only the root line), leaving nothing
     // renderable. Swap in the default page rather than leave the visitor with a blank one.
-    if (!isRenderableLayout(parseLayout(lang))) {
+    const parsed = parseLayout(lang);
+    if (!isRenderableLayout(parsed)) {
       console.warn('Model output was not renderable; sending fallback layout');
       send({
         event: 'replace',
@@ -937,7 +939,7 @@ async function handleGenerate(
     }
 
     // Validate and cache after the visitor has the page; waitUntil keeps the Worker alive.
-    const finalize = cacheGeneratedLayout(env, cacheKey, lang, layoutToken);
+    const finalize = cacheGeneratedLayout(env, cacheKey, lang, parsed, layoutToken);
     if (ctx) ctx.waitUntil(finalize);
     else await finalize;
   });
@@ -953,22 +955,17 @@ interface CachedLayout {
 }
 
 /**
- * Cache a completed layout, unless it is unusable or links to something unsafe or unreachable.
+ * Cache a completed, renderable layout, unless it links to something unsafe or unreachable.
  * Skipping the cache means the next visitor regenerates instead of inheriting a bad layout.
  */
 export async function cacheGeneratedLayout(
   env: Env,
   cacheKey: string,
   lang: string,
+  parsed: ParseResult,
   layoutToken: string,
 ): Promise<boolean> {
   if (!env.UI_CACHE) return false;
-
-  const parsed = parseLayout(lang);
-  if (!isRenderableLayout(parsed)) {
-    console.warn('Not caching unrenderable layout', parsed.meta.errors);
-    return false;
-  }
 
   // Only absolute URLs can be checked for reachability. Anything else (anchors, relative paths,
   // mailto) is either allowed or dropped by the renderer's schema validation.
@@ -991,9 +988,14 @@ export async function cacheGeneratedLayout(
   return true;
 }
 
-/** Resolve a client-supplied layout token to its cache key, or null if unknown or malformed. */
+const LAYOUT_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Resolve a client-supplied layout token to its cache key, or null if unknown or malformed.
+ * The prefix check keeps a token from ever deleting anything but a cached layout.
+ */
 async function resolveLayoutToken(env: Env, token: string): Promise<string | null> {
-  if (!env.UI_CACHE || !/^[0-9a-f-]{36}$/.test(token)) return null;
+  if (!env.UI_CACHE || !LAYOUT_TOKEN_PATTERN.test(token)) return null;
   const cacheKey = await env.UI_CACHE.get(`${LAYOUT_TOKEN_PREFIX}${token}`);
   return cacheKey?.startsWith(LAYOUT_CACHE_PREFIX) ? cacheKey : null;
 }

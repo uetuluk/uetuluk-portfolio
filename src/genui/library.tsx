@@ -1,4 +1,4 @@
-import { useEffect, type ComponentType } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import type { z } from 'zod';
 import type { ComponentRenderer, ComponentRenderProps, Library } from '@openuidev/react-lang';
 import { Callout } from '@openuidev/react-ui/Callout';
@@ -21,7 +21,6 @@ import { TextBlock } from '@/components/sections/TextBlock';
 import { ImageGallery } from '@/components/sections/ImageGallery';
 import { StatsCounter } from '@/components/sections/StatsCounter';
 import { TechLogos } from '@/components/sections/TechLogos';
-import { DataChart } from '@/components/sections/DataChart';
 import { generatePalette, colorNameToHSL } from '@/lib/palette';
 import { applyPaletteToRoot } from '@/lib/applyPalette';
 import { cn } from '@/lib/utils';
@@ -47,6 +46,19 @@ function section<N extends SectionName>(
   }
   Section.displayName = `GenUI(${name})`;
   return Section as ComponentRenderer<Props<N>>;
+}
+
+// recharts is only needed when a layout includes a chart, so load it on demand.
+const LazyDataChart = lazy(() =>
+  import('@/components/sections/DataChart').then((m) => ({ default: m.DataChart })),
+);
+
+function DataChart(props: Props<'DataChart'>) {
+  return (
+    <Suspense fallback={<div className="min-h-64" aria-hidden="true" />}>
+      <LazyDataChart {...props} />
+    </Suspense>
+  );
 }
 
 const LAYOUT_CLASSES = {
