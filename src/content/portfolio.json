@@ -1,8 +1,8 @@
 {
   "personal": {
     "name": "Utku Ege Tuluk",
-    "title": "Research Engineer & AI Specialist",
-    "bio": "Research Engineer and AI specialist with 3+ years developing enterprise-scale educational technology platforms at NYU Shanghai. Architected multimodal learning systems serving 300+ students, processing 100M+ tokens with 5x deployment efficiency gains. Expertise in full-stack development, LLM integration, and production AI infrastructure.",
+    "title": "Research Engineer & AI and Emerging Technology Manager",
+    "bio": "Research Engineer and AI & Emerging Technology Manager at NYU Shanghai with 3+ years building production AI for education. Leads the Ask, Create, Train framework: multi-tenant AI assistants, an internal platform for AI-powered apps, and on-premises serving of quantized open-weight LLMs. Built Kiwi, a multimodal learning platform serving 300+ students and processing 100M+ tokens. Expertise in full-stack development, LLM infrastructure, and AI agents.",
     "contact": {
       "email": "utkuegetuluk@gmail.com",
       "linkedin": "https://linkedin.com/in/uetuluk",
@@ -15,7 +15,7 @@
       "id": "kiwi",
       "title": "KIWI - Multimodal AI Learning Platform",
       "description": "Enterprise-scale multimodal learning platform serving 300+ students across 6 classes, featuring real-time AI-powered chat, intelligent PDF annotation, and in-browser Python execution.",
-      "longDescription": "Built a production-grade educational platform with real-time streaming chat supporting multiple LLMs, AI-powered PDF annotation and highlighting, vector-based document search, and multi-class deployment automation. Processed 100M+ tokens with 5x deployment speed improvement and 99.9% uptime.",
+      "longDescription": "Built a production-grade educational platform with real-time streaming chat supporting multiple LLMs, AI-powered PDF annotation and highlighting, vector-based document search, and multi-class deployment automation. Processed 100M+ tokens with 5x deployment speed improvement and 99.9% uptime. Extended with Kiwi Apps (sandboxed third-party apps connected through a postMessage SDK, including an AI coding-exercise service that grades code in isolated Docker containers) and a built-in MCP server. Research published as KiwiNotebook at the ACM CHI 2024 Workshop on Human-Notebook Interactions.",
       "technologies": [
         "React",
         "NestJS",
@@ -24,7 +24,9 @@
         "pgvector",
         "Docker",
         "Terraform",
-        "WebSocket"
+        "WebSocket",
+        "FastAPI",
+        "MCP"
       ],
       "image": "/assets/kiwi-chat.png",
       "links": {},
@@ -33,9 +35,9 @@
     },
     {
       "id": "ask",
-      "title": "ASK - Knowledge Base Chatbot Framework",
-      "description": "Multi-tenant chatbot framework that reduced faculty response times from hours to instant, deployed as 'Ask Angie' for NYU Shanghai faculty support.",
-      "longDescription": "Developed a customizable multi-tenant chatbot framework with role-based access control, multilingual support (English/Chinese), intelligent document processing pipeline, hybrid vector/text search, and offline text-to-speech integration. Features automatic chunking, embedding generation, and real-time analytics.",
+      "title": "ASK - Multi-Tenant AI Assistant Platform",
+      "description": "Multi-tenant AI assistant platform behind NYU Shanghai's Ask Angie (faculty support), Ask Roary (library), and Ask RITS, cutting faculty response times from hours to instant.",
+      "longDescription": "Customizable multi-tenant assistant framework with role-based access control, English/Chinese support, a document pipeline with hybrid vector/text search, and in-browser Whisper speech input. Assistants run an agent loop with tool calling over self-hosted models; MCP tool servers for campus services are provisioned as sandboxed Docker containers behind per-server egress allowlists, and prompt changes are validated with promptfoo evaluations.",
       "technologies": [
         "NestJS",
         "React",
@@ -44,49 +46,131 @@
         "Elasticsearch",
         "BullMQ",
         "Redis",
-        "Whisper"
+        "Whisper",
+        "MCP",
+        "Docker"
       ],
       "image": "/assets/ask-chat.png",
       "links": {},
-      "tags": ["ai", "chatbot", "rag", "enterprise"],
+      "tags": ["ai", "chatbot", "rag", "agents", "enterprise"],
       "featured": true
     },
     {
-      "id": "vtuber-chat",
-      "title": "VTuber Chat Helper",
-      "description": "Cross-platform desktop application aggregating real-time chat messages from YouTube, Twitch, and Kick with intelligent message prioritization.",
-      "longDescription": "Built a multi-platform streaming chat aggregator used for 100+ hours of streaming. Features unified message format across platforms, priority message queuing, intelligent flood detection, SuperChat highlighting, and custom notification alerts with OAuth authentication and rate limiting compliance.",
+      "id": "create",
+      "title": "Create - AI Sites Platform",
+      "description": "Internal multi-tenant platform where NYU Shanghai users deploy small web apps, or generate them from a prompt, each with its own database, storage, serverless functions, and campus-hosted LLM access.",
+      "longDescription": "Built RITS's internal Sites platform: upload a project or generate one from a prompt in Studio, and it gets a private subdomain, a per-tenant PostgreSQL database, an object-storage bucket, Deno functions, and managed LLM access. Includes immutable deploys, guest-list access control, 30-day analytics, an operator admin console, a CLI, and an MCP endpoint so coding agents can deploy directly. Hosts internal tools such as an AI song generator, a vocabulary-constrained Chinese tutor, and a spreadsheet decision assistant.",
+      "technologies": [
+        "TypeScript",
+        "Node.js",
+        "Deno",
+        "PostgreSQL",
+        "PgBouncer",
+        "RustFS",
+        "Caddy",
+        "Docker",
+        "Cloudflare Tunnel",
+        "MCP"
+      ],
+      "image": "/assets/create.png",
+      "links": {},
+      "tags": ["ai", "platform", "infrastructure", "fullstack"],
+      "featured": true
+    },
+    {
+      "id": "llm-stack",
+      "title": "On-Premises LLM Inference Stack",
+      "description": "Production LLM serving for NYU Shanghai: quantized open-weight models on on-premises and HPC GPUs, exposed through a LiteLLM gateway to campus apps and users.",
+      "longDescription": "Serves models such as Qwen3.6-35B-A3B (FP8, tensor parallel across 4x RTX 4090, 256k context) and Qwen3.8-27B (AWQ INT4, TP=2 x DP=4 across 8x RTX 3090) with vLLM, scheduled through Slurm on the university HPC cluster. A LiteLLM gateway with custom hooks issues per-user API keys over separate on-campus and Cloudflare Tunnel paths. The RITS GPU fleet (9 GPUs, ~243 GiB VRAM) also hosts image, video, and music generation models.",
+      "technologies": ["vLLM", "LiteLLM", "Slurm", "Docker", "CUDA", "Cloudflare Tunnel", "zrok"],
+      "image": "/assets/llm-stack.png",
+      "links": {},
+      "tags": ["ai", "infrastructure", "llm", "gpu"],
+      "featured": true
+    },
+    {
+      "id": "ai-companion",
+      "title": "AI Companion - App, Voice & Hardware",
+      "description": "Full-stack AI companion product: a mobile app with personality-driven characters, voice-cloned speech, and a Bluetooth companion device with on-device wake-word recognition.",
+      "longDescription": "Built the React Native app (character chat, personality system, 3D scenes, BLE device control) and started a native SwiftUI port; a NestJS/PostgreSQL backend and admin console on Terraform-provisioned AWS; a voice-cloning TTS service on serverless GPUs, benchmarked from A100 to B200; ESP32-S3 firmware with ESP-SR wake-word and command recognition; and a real-time fur renderer with 14 custom GLSL shaders for the characters.",
+      "technologies": [
+        "React Native",
+        "Expo",
+        "SwiftUI",
+        "NestJS",
+        "PostgreSQL",
+        "Terraform",
+        "FastAPI",
+        "Modal",
+        "ESP32",
+        "Three.js",
+        "GLSL"
+      ],
+      "image": "/assets/ai-companion.png",
+      "links": {},
+      "tags": ["ai", "mobile", "hardware", "graphics"],
+      "featured": false
+    },
+    {
+      "id": "yue2-music",
+      "title": "AI Song Generation Service",
+      "description": "Self-hosted text-to-song service at NYU Shanghai: lyrics and a style prompt become a full song with vocals, generated on a single 12 GB GPU.",
+      "longDescription": "Runs YuE2-3B through a pinned, locally patched audio.cpp engine at roughly real-time speed on an RTX 3060, with an LLM agent that turns rough ideas into model-ready lyrics and style tags, audio-referenced generation through a patched MERT encoder, a web UI, and an Icecast/Liquidsoap radio stream of generated songs.",
+      "technologies": [
+        "audio.cpp",
+        "CUDA",
+        "Python",
+        "Redis",
+        "Docker",
+        "Liquidsoap",
+        "Icecast",
+        "LiteLLM"
+      ],
+      "image": "/assets/yue2-music.png",
+      "links": {},
+      "tags": ["ai", "audio", "infrastructure"],
+      "featured": false
+    },
+    {
+      "id": "fly-brain",
+      "title": "Fly Brain Robot",
+      "description": "A complete fruit-fly connectome, simulated as 165k spiking neurons, sees through a robot arm's cameras and drives its joints through the fly's own front-leg motor neurons.",
+      "longDescription": "Connects the MaleCNS v1.0 connectome, simulated as 165k leaky integrate-and-fire neurons, to a MuJoCo model of a PiPER X arm with an Aero Hand. Camera frames pass through the flyvis visual-system model, and front-leg motor-neuron spikes map to joint commands; a visual stimulus drove 147 front-leg motor spikes against 20 for a blank screen.",
+      "technologies": ["Python", "MuJoCo", "flyvis", "Spiking Neural Networks"],
+      "image": "/assets/fly-brain.png",
+      "links": {},
+      "tags": ["research", "neuroscience", "robotics"],
+      "featured": false
+    },
+    {
+      "id": "minimax-h3",
+      "title": "MiniMax-H3 on Apple Silicon",
+      "description": "Runs MiniMax-H3 text-to-video-with-audio locally on a MacBook by rebuilding its MLX 4-bit pack byte-for-byte from the official BF16 weights.",
+      "longDescription": "HuggingFace downloads were too slow to be usable from Shanghai, so this pulls MiniMax's official BF16 checkpoint from ModelScope at 59 MB/s and rebuilds the published MLX 4-bit pack locally, verified byte-for-byte against it. On an M5 Pro with 48 GB it generates 5.17 s of 832x480 video with synchronised stereo audio in 247 s. Along the way it documents an undocumented qkv weight relayout, stores the second checkpoint as a 3.85x-compressed delta (18.70 GB to 4.86 GB), and adds an audio-only mode that is ~25x faster.",
+      "technologies": ["Python", "MLX", "Apple Silicon", "mlx-serve", "ffmpeg"],
+      "image": "/assets/minimax-h3.png",
+      "links": {},
+      "tags": ["ai", "video", "model-conversion", "research"],
+      "featured": false
+    },
+    {
+      "id": "spiegel",
+      "title": "Spiegel - AI VTuber Platform",
+      "description": "AI VTuber streaming platform: a desktop chat aggregator for YouTube, Twitch, and Kick plus an AI-driven avatar with real-time lip-sync and speech.",
+      "longDescription": "The Chat Helper unifies live chat from YouTube, Twitch, and Kick into one prioritized feed with flood detection, SuperChat highlighting, and an OBS overlay, and has been used for 100+ hours of streaming. The AI Avatar drives a Live2D/VRM character from an LLM with streaming text-to-speech, voice-activity detection, lip-sync, and emotion-driven expressions, rendered on a transparent background for OBS.",
       "technologies": [
         "Electron",
         "React",
         "TypeScript",
-        "OAuth",
-        "WebSocket",
-        "SQLite",
-        "Drizzle ORM"
-      ],
-      "image": "/assets/vtuber-youtube.png",
-      "links": {},
-      "tags": ["streaming", "desktop", "realtime"],
-      "featured": false
-    },
-    {
-      "id": "spiegel-2d",
-      "title": "Spiegel 2D - AI VTuber Avatar",
-      "description": "AI-driven Live2D VTuber avatar application featuring real-time lip-sync, emotion-driven expressions, and 60fps rendering with privacy-first local AI.",
-      "longDescription": "Created an AI-powered Live2D avatar system with MFCC-based lip-sync analysis, AI-driven facial expressions, smooth 60fps rendering, and transparent background for OBS integration. Uses local AI models for privacy, Web Workers for non-blocking processing, and WebGPU acceleration.",
-      "technologies": [
-        "Electron",
-        "React",
+        "Three.js",
+        "VRM",
         "Live2D Cubism SDK",
-        "Transformers.js",
-        "Web Workers",
-        "WebGPU",
-        "MFCC"
+        "WebSocket",
+        "SQLite"
       ],
       "image": "/assets/spiegel-main.png",
       "links": {},
-      "tags": ["ai", "desktop", "streaming", "graphics"],
+      "tags": ["ai", "streaming", "desktop", "graphics"],
       "featured": false
     }
   ],
@@ -94,33 +178,41 @@
     {
       "id": "nyu-shanghai",
       "company": "New York University Shanghai",
-      "role": "Research Engineer (Kiwi) & Senior Emerging Technology Associate",
+      "role": "Research Engineer (Kiwi) & AI and Emerging Technology Manager, Library",
       "period": "August 2023 - Present",
-      "description": "Leading development of AI-powered educational technology platforms and infrastructure.",
+      "description": "Leading the Ask, Create, Train framework of production AI services for teaching, learning, research, and institutional use.",
       "highlights": [
+        "Promoted from Senior Emerging Technology Associate to AI and Emerging Technology Manager",
         "Promoted to dual-role position after successfully deploying MOOC with 100+ weekly users",
-        "Optimized model deployment through AWQ quantization and vLLM tensor parallelization, maximizing GPU utilization",
-        "Spearheaded AI integration into classrooms with Stable Diffusion, RAG, and LLMs across departments",
-        "Developed custom full-stack interfaces using REST, SSE, and WebSocket APIs for cloud and on-premises infrastructure"
+        "Run campus LLM inference with vLLM, FP8/AWQ quantization, and tensor/data parallelism on on-premises and HPC GPUs, behind a LiteLLM gateway",
+        "Built Create, an internal multi-tenant platform where staff and students deploy AI-powered web apps with their own databases, storage, and LLM access",
+        "Shipped Ask-based assistants for faculty support, the library, and RITS, extended with sandboxed MCP tool servers for campus services",
+        "Leading the Mini Course (Open edX) platform upgrade from Maple to Ulmo, spanning 8 releases",
+        "Spearheaded AI integration into classrooms with Stable Diffusion, RAG, and LLMs across departments"
       ]
     }
   ],
   "skills": [
     "Python",
-    "JavaScript",
     "TypeScript",
+    "JavaScript",
     "SQL",
     "React",
+    "React Native",
     "NestJS",
+    "FastAPI",
     "Electron",
     "PostgreSQL",
     "Redis",
     "Docker",
     "Terraform",
-    "LangChain",
+    "Cloudflare Workers",
+    "vLLM",
+    "LiteLLM",
+    "MCP",
+    "LLM Agents",
     "RAG",
-    "Vector Databases",
-    "Real-time Processing"
+    "Vector Databases"
   ],
   "education": [
     {
