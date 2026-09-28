@@ -1,9 +1,11 @@
 import { createParser, type ParseResult } from '@openuidev/lang-core';
-import { contractLibrary, ROOT_COMPONENT } from '../src/genui/schema';
+import { getContractLibrary, ROOT_COMPONENT } from '../src/genui/schema';
 
-const layoutParser = createParser(contractLibrary.toJSONSchema(), ROOT_COMPONENT);
+let layoutParser: ReturnType<typeof createParser> | undefined;
 
 export function parseLayout(lang: string): ParseResult {
+  // Created lazily: the contract library can't be built in Worker global scope.
+  layoutParser ??= createParser(getContractLibrary().toJSONSchema(), ROOT_COMPONENT);
   return layoutParser.parse(lang);
 }
 

@@ -3,7 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { createParser } from '@openuidev/lang-core';
 import App from './App';
 import { encodeEvent, type GenerateEvent, type GenerateMeta } from '@/genui/protocol';
-import { contractLibrary, ROOT_COMPONENT } from '@/genui/schema';
+import { getContractLibrary, ROOT_COMPONENT } from '@/genui/schema';
 
 // Mock child components
 vi.mock('@/components/WelcomeModal', () => ({
@@ -158,7 +158,7 @@ function controlledResponse() {
   };
 }
 
-const parser = createParser(contractLibrary.toJSONSchema(), ROOT_COMPONENT);
+const parser = createParser(getContractLibrary().toJSONSchema(), ROOT_COMPONENT);
 
 function renderedSections(): string[] {
   const root = parser.parse(screen.getByTestId('lang').textContent ?? '').root;
