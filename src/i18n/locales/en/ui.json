@@ -106,7 +106,9 @@
     "projects": "Projects",
     "letsConnect": "Let's Connect",
     "aboutMe": "About Me",
-    "photos": "Photos"
+    "photos": "Photos",
+    "featuredProjects": "Featured Projects",
+    "getInTouch": "Get in Touch"
   },
   "seo": {
     "portfolioFor": "Portfolio for"

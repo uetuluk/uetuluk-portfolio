@@ -21,6 +21,9 @@ export default defineConfig({
           globals: true,
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
           exclude: ['node_modules', 'dist', '.wrangler'],
+          // @openuidev/react-ui ships ESM with extensionless relative imports, which Vite
+          // resolves but Node's ESM loader does not; let Vite transform it in tests.
+          server: { deps: { inline: [/@openuidev\/react-ui/] } },
         },
       },
       // Cloudflare Worker tests (Workers runtime via Miniflare)

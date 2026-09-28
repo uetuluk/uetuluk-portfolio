@@ -9,6 +9,13 @@ import './index.css';
 import { generatePalette, generateRandomColor } from '@/lib/palette';
 import { applyPaletteToRoot } from '@/lib/applyPalette';
 
+// @openuidev/react-lang auto-mounts its inspector in development, which overlays the page with a
+// deploy prompt. Keep it opt-in; production builds never include it. Setting the package's own
+// guard flag before the (lazily loaded) renderer runs suppresses the auto-mount.
+if (import.meta.env.DEV && import.meta.env.VITE_OPENUI_DEVTOOLS !== '1') {
+  (globalThis as Record<symbol, unknown>)[Symbol.for('openui.devtools.autoMount')] = true;
+}
+
 // Generate and apply random color palette before React renders
 // This will be replaced by AI-selected color once the layout is generated
 const initialColor = generateRandomColor();

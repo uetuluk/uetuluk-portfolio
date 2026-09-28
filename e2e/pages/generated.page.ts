@@ -46,6 +46,9 @@ export class GeneratedPage {
 
   async waitForLoad() {
     await this.navbar.waitFor({ state: 'visible', timeout: 15000 });
+    // The navbar appears with the first streamed content; wait for the stream to finish so
+    // assertions (and accessibility scans) see the complete page.
+    await this.page.locator('[aria-busy="false"]').waitFor({ state: 'attached', timeout: 15000 });
   }
 
   getFooterVisitorType(type: string) {

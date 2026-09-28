@@ -1,7 +1,6 @@
 import type {
   Env,
   GenerateRequest,
-  GeneratedLayout,
   AIGatewayResponse,
   CategorizationResult,
   StoredTag,
@@ -21,6 +20,19 @@ import type {
   WeatherMinMaxResponse,
   PortfolioContent,
 } from './types';
+import { buildFallbackLayout } from '../src/genui/fallback';
+import {
+  encodeEvent,
+  EVENT_STREAM_CONTENT_TYPE,
+  type GenerateEvent,
+  type GenerateMeta,
+} from '../src/genui/protocol';
+import {
+  extractLayoutLinks,
+  isRenderableLayout,
+  parseLayout,
+  readCompletionDeltas,
+} from './genui-stream';
 
 // LLM used for both intent categorization and layout generation (via OpenRouter behind AI Gateway)
 export const AI_MODEL = 'qwen/qwen3.8-flash';
@@ -155,9 +167,9 @@ function validateFeedbackRequest(body: unknown): ValidationResult {
     return { valid: false, error: 'Invalid sessionId' };
   }
 
-  // cacheKey is optional
-  if (req.cacheKey !== undefined && typeof req.cacheKey !== 'string') {
-    return { valid: false, error: 'Invalid cacheKey' };
+  // layoutToken is optional
+  if (req.layoutToken !== undefined && typeof req.layoutToken !== 'string') {
+    return { valid: false, error: 'Invalid layoutToken' };
   }
 
   return { valid: true };
@@ -300,23 +312,6 @@ import {
   TAG_GUIDELINES,
 } from './prompts';
 
-// Extract links from generated layout for validation
-export function extractLinks(layout: GeneratedLayout): string[] {
-  const links: string[] = [];
-  for (const section of layout.sections) {
-    // Hero CTA
-    if (
-      section.type === 'Hero' &&
-      section.props.cta &&
-      typeof section.props.cta === 'object' &&
-      'href' in section.props.cta
-    ) {
-      links.push(section.props.cta.href as string);
-    }
-  }
-  return links;
-}
-
 // Security: Check if a URL is safe to fetch (SSRF protection)
 function isSafeUrl(url: string): boolean {
   try {
@@ -415,31 +410,6 @@ export async function validateLink(url: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-// Remove invalid links from layout
-export function sanitizeLayout(
-  layout: GeneratedLayout,
-  invalidLinks: Set<string>,
-): GeneratedLayout {
-  return {
-    ...layout,
-    sections: layout.sections.map((section) => {
-      if (
-        section.type === 'Hero' &&
-        section.props.cta &&
-        typeof section.props.cta === 'object' &&
-        'href' in section.props.cta
-      ) {
-        if (invalidLinks.has(section.props.cta.href as string)) {
-          // Remove invalid CTA
-          const { cta: _cta, ...restProps } = section.props;
-          return { ...section, props: restProps };
-        }
-      }
-      return section;
-    }),
-  };
 }
 
 // Simple hash function for cache keys
@@ -636,7 +606,7 @@ export async function categorizeIntent(
 }
 
 export default {
-  async fetch(request: Request, env: Env, _ctx?: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     // Serve public folder assets from R2
@@ -655,7 +625,7 @@ export default {
 
     // Handle API routes
     if (url.pathname.startsWith('/api/')) {
-      return handleApiRequest(request, env, url);
+      return handleApiRequest(request, env, url, ctx);
     }
 
     // For non-API routes, let the assets handler serve static files
@@ -664,7 +634,12 @@ export default {
   },
 };
 
-async function handleApiRequest(request: Request, env: Env, url: URL): Promise<Response> {
+async function handleApiRequest(
+  request: Request,
+  env: Env,
+  url: URL,
+  ctx?: ExecutionContext,
+): Promise<Response> {
   // CORS headers with origin validation
   const corsHeaders = getCorsHeaders(request);
 
@@ -687,7 +662,7 @@ async function handleApiRequest(request: Request, env: Env, url: URL): Promise<R
   try {
     // POST /api/generate - Generate personalized UI
     if (url.pathname === '/api/generate' && request.method === 'POST') {
-      return handleGenerate(request, env, corsHeaders);
+      return handleGenerate(request, env, corsHeaders, ctx);
     }
 
     // GET /api/health - Health check
@@ -735,6 +710,7 @@ async function handleGenerate(
   request: Request,
   env: Env,
   corsHeaders: Record<string, string>,
+  ctx?: ExecutionContext,
 ): Promise<Response> {
   let body: unknown;
   try {
@@ -771,18 +747,12 @@ async function handleGenerate(
   const rateLimitResult = await checkGenerateRateLimit(clientIP, env);
 
   if (rateLimitResult.limited) {
-    // Return default layout with rateLimited flag (no error, just fallback)
-    const defaultLayout = getDefaultLayout(visitorTag, portfolioContent);
-    return new Response(
-      JSON.stringify({
-        ...defaultLayout,
-        _rateLimited: true,
-        _retryAfter: rateLimitResult.retryAfter,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    );
+    // Serve the default layout with a rateLimited flag (no error, just fallback)
+    return staticLayoutResponse(corsHeaders, buildFallbackLayout(visitorTag, portfolioContent), {
+      source: 'fallback',
+      rateLimited: true,
+      retryAfter: rateLimitResult.retryAfter,
+    });
   }
 
   // Update rate limit counter
@@ -842,60 +812,50 @@ async function handleGenerate(
     }
   }
 
-  // Step 2: Check layout cache (include visitor context in cache key)
+  const meta: Omit<GenerateMeta, 'source'> = {
+    categorization: categorizationInfo,
+    visitorContext: {
+      geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
+      device: { type: visitorContext.device.type },
+      time: { timeOfDay: visitorContext.time.timeOfDay },
+    },
+    uiHints,
+  };
+
+  // Step 2: Check layout cache (include visitor context in cache key). The v2 prefix keeps
+  // JSON layouts cached before the OpenUI migration from being read as OpenUI Lang.
   const contextHash = hashString(
     `${visitorContext.device.type}:${visitorContext.time.timeOfDay}:${visitorContext.geo.country || 'XX'}`,
   );
-  const cacheKey = `layout:${effectiveTag}:${
+  const cacheKey = `${LAYOUT_CACHE_PREFIX}${effectiveTag}:${
     customGuidelines ? hashString(customGuidelines.guidelines) : 'default'
   }:${contextHash}`;
 
   if (env.UI_CACHE) {
-    const cachedLayout = await env.UI_CACHE.get(cacheKey, 'json');
-    if (cachedLayout) {
-      return new Response(
-        JSON.stringify({
-          ...(cachedLayout as GeneratedLayout),
-          _categorization: categorizationInfo,
-          _visitorContext: {
-            geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
-            device: { type: visitorContext.device.type },
-            time: { timeOfDay: visitorContext.time.timeOfDay },
-          },
-          _uiHints: uiHints,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      );
+    const cached = (await env.UI_CACHE.get(cacheKey, 'json')) as CachedLayout | null;
+    if (cached && typeof cached.lang === 'string') {
+      return staticLayoutResponse(corsHeaders, cached.lang, {
+        ...meta,
+        source: 'cache',
+        layoutToken: cached.token,
+      });
     }
   }
 
   // Check if AI Gateway is configured
   if (!env.AI || !env.AI_GATEWAY_ID) {
     console.warn('AI Gateway not configured, returning default layout');
-    return new Response(
-      JSON.stringify({
-        ...getDefaultLayout(effectiveTag, portfolioContent),
-        _categorization: categorizationInfo,
-        _visitorContext: {
-          geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
-          device: { type: visitorContext.device.type },
-          time: { timeOfDay: visitorContext.time.timeOfDay },
-        },
-        _uiHints: uiHints,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    );
+    return staticLayoutResponse(corsHeaders, buildFallbackLayout(effectiveTag, portfolioContent), {
+      ...meta,
+      source: 'fallback',
+    });
   }
 
+  // Step 3: Generate layout with categorized tag and custom guidelines
+  let completion: Response;
   try {
-    // Step 3: Generate layout with categorized tag and custom guidelines
     const gateway = env.AI.gateway(env.AI_GATEWAY_ID);
-
-    const aiResponse = await gateway.run({
+    completion = await gateway.run({
       provider: 'openrouter',
       endpoint: 'chat/completions',
       headers: {
@@ -904,6 +864,7 @@ async function handleGenerate(
       query: {
         model: AI_MODEL,
         reasoning: { enabled: false },
+        stream: true,
         messages: [
           {
             role: 'system',
@@ -921,136 +882,149 @@ async function handleGenerate(
         ],
         temperature: 0.7,
         max_tokens: 2000,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'generated_layout',
-            strict: true,
-            schema: {
-              type: 'object',
-              properties: {
-                layout: {
-                  type: 'string',
-                  enum: ['single-column', 'two-column', 'hero-focused'],
-                },
-                theme: {
-                  type: 'object',
-                  properties: {
-                    accent: { type: 'string' },
-                  },
-                  required: ['accent'],
-                  additionalProperties: false,
-                },
-                sections: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      type: { type: 'string' },
-                      props: { type: 'object' },
-                    },
-                    required: ['type', 'props'],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ['layout', 'theme', 'sections'],
-              additionalProperties: false,
-            },
-          },
-        },
       },
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', aiResponse.status, errorText);
-      throw new Error(`AI Gateway returned ${aiResponse.status}`);
+    if (!completion.ok || !completion.body) {
+      const errorText = await completion.text();
+      console.error('AI Gateway error:', completion.status, errorText);
+      throw new Error(`AI Gateway returned ${completion.status}`);
     }
-
-    const aiData = (await aiResponse.json()) as AIGatewayResponse;
-
-    // Extract the generated layout from the response
-    const content = aiData.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No content in AI response');
-    }
-
-    // Parse the JSON response (structured output guarantees valid JSON)
-    let generatedLayout: GeneratedLayout;
-    try {
-      generatedLayout = JSON.parse(content);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', content);
-      throw new Error('Invalid JSON in AI response', { cause: parseError });
-    }
-
-    // Validate the layout structure
-    if (!generatedLayout.layout || !generatedLayout.sections) {
-      throw new Error('Invalid layout structure');
-    }
-
-    // Validate and sanitize links
-    const links = extractLinks(generatedLayout);
-    if (links.length > 0) {
-      const invalidLinks = new Set<string>();
-
-      await Promise.all(
-        links.map(async (link) => {
-          const isValid = await validateLink(link);
-          if (!isValid) invalidLinks.add(link);
-        }),
-      );
-
-      if (invalidLinks.size > 0) {
-        console.warn('Removed invalid links:', [...invalidLinks]);
-        generatedLayout = sanitizeLayout(generatedLayout, invalidLinks);
-      }
-    }
-
-    // Cache the layout result
-    if (env.UI_CACHE) {
-      await env.UI_CACHE.put(cacheKey, JSON.stringify(generatedLayout), {
-        expirationTtl: 86400, // 24 hours
-      });
-    }
-
-    // Include categorization info, visitor context, and UI hints in response
-    const responsePayload = {
-      ...generatedLayout,
-      _categorization: categorizationInfo,
-      _visitorContext: {
-        geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
-        device: { type: visitorContext.device.type },
-        time: { timeOfDay: visitorContext.time.timeOfDay },
-      },
-      _uiHints: uiHints,
-    };
-
-    return new Response(JSON.stringify(responsePayload), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
+    // Nothing has been sent yet, so the visitor gets a complete default page instead.
     console.error('Generation error:', error);
-
-    // Fall back to default layout on error
-    return new Response(
-      JSON.stringify({
-        ...getDefaultLayout(effectiveTag, portfolioContent),
-        _categorization: categorizationInfo,
-        _visitorContext: {
-          geo: { country: visitorContext.geo.country, city: visitorContext.geo.city },
-          device: { type: visitorContext.device.type },
-          time: { timeOfDay: visitorContext.time.timeOfDay },
-        },
-        _uiHints: uiHints,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    );
+    return staticLayoutResponse(corsHeaders, buildFallbackLayout(effectiveTag, portfolioContent), {
+      ...meta,
+      source: 'fallback',
+    });
   }
+
+  const layoutToken = crypto.randomUUID();
+  const upstream = completion.body;
+
+  return eventStreamResponse(corsHeaders, async (send) => {
+    send({ event: 'meta', data: { ...meta, source: 'ai', layoutToken } });
+
+    let lang = '';
+    try {
+      for await (const text of readCompletionDeltas(upstream)) {
+        lang += text;
+        send({ event: 'delta', data: { text } });
+      }
+    } catch (error) {
+      console.error('Generation stream error:', error);
+      if (!lang) {
+        // Failed before any content: fall back to a complete default page.
+        send({
+          event: 'delta',
+          data: { text: buildFallbackLayout(effectiveTag, portfolioContent) },
+        });
+      } else {
+        send({ event: 'error', data: { message: 'Generation was interrupted' } });
+      }
+      return;
+    }
+
+    // Validate and cache after the visitor has the page; waitUntil keeps the Worker alive.
+    const finalize = cacheGeneratedLayout(env, cacheKey, lang, layoutToken);
+    if (ctx) ctx.waitUntil(finalize);
+    else await finalize;
+  });
+}
+
+const LAYOUT_CACHE_PREFIX = 'layout:v2:';
+const LAYOUT_TOKEN_PREFIX = 'layouttoken:';
+const LAYOUT_TTL_SECONDS = 86400; // 24 hours
+
+interface CachedLayout {
+  lang: string;
+  token: string;
+}
+
+/**
+ * Cache a completed layout, unless it is unusable or links to something unsafe or unreachable.
+ * Skipping the cache means the next visitor regenerates instead of inheriting a bad layout.
+ */
+export async function cacheGeneratedLayout(
+  env: Env,
+  cacheKey: string,
+  lang: string,
+  layoutToken: string,
+): Promise<boolean> {
+  if (!env.UI_CACHE) return false;
+
+  const parsed = parseLayout(lang);
+  if (!isRenderableLayout(parsed)) {
+    console.warn('Not caching unrenderable layout', parsed.meta.errors);
+    return false;
+  }
+
+  // Only absolute URLs can be checked for reachability. Anything else (anchors, relative paths,
+  // mailto) is either allowed or dropped by the renderer's schema validation.
+  const links = extractLayoutLinks(parsed).filter((link) => /^https?:\/\//i.test(link));
+  const results = await Promise.all(links.map((link) => validateLink(link)));
+  const invalid = links.filter((_, i) => !results[i]);
+  if (invalid.length > 0) {
+    console.warn('Not caching layout with invalid links:', invalid);
+    return false;
+  }
+
+  const entry: CachedLayout = { lang, token: layoutToken };
+  await Promise.all([
+    env.UI_CACHE.put(cacheKey, JSON.stringify(entry), { expirationTtl: LAYOUT_TTL_SECONDS }),
+    // Map the opaque token to the cache key so a dislike can invalidate exactly this layout.
+    env.UI_CACHE.put(`${LAYOUT_TOKEN_PREFIX}${layoutToken}`, cacheKey, {
+      expirationTtl: LAYOUT_TTL_SECONDS,
+    }),
+  ]);
+  return true;
+}
+
+/** Resolve a client-supplied layout token to its cache key, or null if unknown or malformed. */
+async function resolveLayoutToken(env: Env, token: string): Promise<string | null> {
+  if (!env.UI_CACHE || !/^[0-9a-f-]{36}$/.test(token)) return null;
+  const cacheKey = await env.UI_CACHE.get(`${LAYOUT_TOKEN_PREFIX}${token}`);
+  return cacheKey?.startsWith(LAYOUT_CACHE_PREFIX) ? cacheKey : null;
+}
+
+function eventStreamResponse(
+  corsHeaders: Record<string, string>,
+  produce: (send: (event: GenerateEvent) => void) => Promise<void>,
+): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: GenerateEvent) => controller.enqueue(encoder.encode(encodeEvent(event)));
+      try {
+        await produce(send);
+      } catch (error) {
+        console.error('Layout stream error:', error);
+        send({ event: 'error', data: { message: 'Generation failed' } });
+      }
+      send({ event: 'done', data: {} });
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': EVENT_STREAM_CONTENT_TYPE,
+      'Cache-Control': 'no-cache, no-transform',
+    },
+  });
+}
+
+/** Stream a layout that is already complete (cache hit or fallback) as a single delta. */
+function staticLayoutResponse(
+  corsHeaders: Record<string, string>,
+  lang: string,
+  meta: GenerateMeta,
+): Response {
+  return eventStreamResponse(corsHeaders, async (send) => {
+    send({ event: 'meta', data: meta });
+    send({ event: 'delta', data: { text: lang } });
+  });
 }
 
 // Rate limit checking helper
@@ -1208,7 +1182,7 @@ async function handleFeedback(
     });
   }
 
-  const { feedbackType, audienceType, cacheKey, sessionId } = body as FeedbackRequest;
+  const { feedbackType, audienceType, layoutToken, sessionId } = body as FeedbackRequest;
 
   // Security: Validate session ID format
   if (!isValidSessionId(sessionId)) {
@@ -1261,9 +1235,11 @@ async function handleFeedback(
       });
     }
 
-    // Clear cache for this layout
-    if (cacheKey && env.UI_CACHE) {
-      await env.UI_CACHE.delete(cacheKey);
+    // Clear the cached layout this token was issued for. The client never sees raw cache keys,
+    // so it can only invalidate a layout it was actually served.
+    const layoutCacheKey = layoutToken ? await resolveLayoutToken(env, layoutToken) : null;
+    if (layoutCacheKey && env.UI_CACHE) {
+      await env.UI_CACHE.delete(layoutCacheKey);
     }
 
     // Update rate limit
@@ -1287,130 +1263,6 @@ async function handleFeedback(
     status: 400,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-}
-
-// Default layout when AI generation fails or is not configured
-export function getDefaultLayout(
-  visitorTag: string,
-  portfolioContent: GenerateRequest['portfolioContent'],
-): GeneratedLayout {
-  const projectIds = portfolioContent.projects.map((p) => p.id);
-  const { personal } = portfolioContent;
-
-  const baseLayout: GeneratedLayout = {
-    layout: 'hero-focused',
-    theme: { accent: 'blue' },
-    sections: [
-      {
-        type: 'Hero',
-        props: {
-          title: personal.name,
-          subtitle: personal.title,
-          image: '/assets/profile.png',
-        },
-      },
-    ],
-  };
-
-  switch (visitorTag) {
-    case 'recruiter':
-      baseLayout.sections[0].props = {
-        ...baseLayout.sections[0].props,
-        cta: personal.resumeUrl ? { text: 'View Resume', href: personal.resumeUrl } : undefined,
-      };
-      baseLayout.sections.push(
-        {
-          type: 'SkillBadges',
-          props: { title: 'Technical Skills', style: 'detailed' },
-        },
-        {
-          type: 'Timeline',
-          props: { title: 'Experience' },
-        },
-        {
-          type: 'CardGrid',
-          props: {
-            title: 'Featured Projects',
-            columns: 2,
-            items: projectIds.slice(0, 4),
-          },
-        },
-      );
-      break;
-
-    case 'developer':
-      baseLayout.layout = 'two-column';
-      baseLayout.sections.push(
-        {
-          type: 'CardGrid',
-          props: { title: 'Projects', columns: 3, items: projectIds },
-        },
-        {
-          type: 'SkillBadges',
-          props: { title: 'Tech Stack', style: 'detailed' },
-        },
-        {
-          type: 'ContactForm',
-          props: { title: 'Connect', showGitHub: true, showEmail: true },
-        },
-      );
-      break;
-
-    case 'collaborator':
-      baseLayout.sections.push(
-        {
-          type: 'TextBlock',
-          props: {
-            title: 'About Me',
-            content: personal.bio,
-            style: 'prose',
-          },
-        },
-        {
-          type: 'CardGrid',
-          props: {
-            title: 'Current Projects',
-            columns: 2,
-            items: projectIds.slice(0, 2),
-          },
-        },
-        {
-          type: 'ContactForm',
-          props: {
-            title: "Let's Collaborate",
-            showEmail: true,
-            showLinkedIn: true,
-            showGitHub: true,
-          },
-        },
-      );
-      break;
-
-    case 'friend':
-    default:
-      baseLayout.layout = 'single-column';
-      baseLayout.sections.push(
-        {
-          type: 'TextBlock',
-          props: {
-            title: 'Hey there!',
-            content: personal.bio,
-            style: 'prose',
-          },
-        },
-        {
-          type: 'ImageGallery',
-          props: { title: 'Photos', images: portfolioContent.photos?.map((p) => p.path) || [] },
-        },
-        {
-          type: 'ContactForm',
-          props: { title: 'Get in Touch', showEmail: true },
-        },
-      );
-      break;
-  }
-
-  return baseLayout;
 }
 
 // ============ Data Pre-fetch Functions for AI Context ============

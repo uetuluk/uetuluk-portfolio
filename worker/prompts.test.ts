@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { ROOT_COMPONENT, SECTION_NAMES } from '../src/genui/schema';
 import {
   TAG_GUIDELINES,
   ALLOWED_VISITOR_TAGS,
@@ -272,6 +273,29 @@ describe('prompts', () => {
     it('handles missing visitor context', () => {
       const prompt = buildSystemPrompt(mockPortfolio);
       expect(prompt).not.toContain('VISITOR CONTEXT');
+    });
+
+    it('is generated from the shared OpenUI component contract', () => {
+      const prompt = buildSystemPrompt(mockPortfolio);
+      expect(prompt).toContain('openui-lang');
+      // Every component in the contract gets a typed signature, including react-ui ones
+      for (const name of [ROOT_COMPONENT, ...SECTION_NAMES]) {
+        expect(prompt).toMatch(new RegExp(`^${name}\\(`, 'm'));
+      }
+      expect(prompt).toContain('Callout(title: string, description: string');
+      expect(prompt).toMatch(/StatsCounter\(.*icon\?: "Calendar" \| "Code"/);
+    });
+
+    it('asks for OpenUI Lang rather than JSON', () => {
+      const prompt = buildSystemPrompt(mockPortfolio);
+      expect(prompt).not.toContain('Output a JSON object');
+      expect(prompt).toContain('root = PortfolioPage(');
+    });
+
+    it('includes a worked example', () => {
+      const prompt = buildSystemPrompt(mockPortfolio);
+      expect(prompt).toContain('## Examples');
+      expect(prompt).toContain('root = PortfolioPage("hero-focused"');
     });
 
     it('includes available component types', () => {

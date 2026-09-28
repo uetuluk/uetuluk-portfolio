@@ -158,3 +158,43 @@
 .animate-marquee:hover {
   animation-play-state: paused;
 }
+
+/*
+ * Bridge @openuidev/react-ui design tokens onto this site's theme, scoped to generated pages.
+ * OpenUI's own defaults switch on prefers-color-scheme; mapping to our variables instead makes
+ * its components follow the .dark toggle and the AI-selected accent palette.
+ */
+.genui {
+  --openui-space-000: 0;
+  --openui-space-3xs: 2px;
+  --openui-space-2xs: 4px;
+  --openui-space-xs: 6px;
+  --openui-space-m: 12px;
+  --openui-space-l: 18px;
+  --openui-radius-2xl: var(--radius);
+
+  --openui-text-body-default: 400 1rem/1.5 inherit;
+  --openui-text-body-default-letter-spacing: 0;
+  --openui-text-body-default-heavy: 600 1rem/1.5 inherit;
+  --openui-text-body-default-heavy-letter-spacing: 0;
+  --openui-text-label-sm: 500 0.875rem/1.25 inherit;
+  --openui-text-label-sm-letter-spacing: 0;
+
+  --openui-text-neutral-primary: hsl(var(--foreground));
+  --openui-text-neutral-secondary: hsl(var(--muted-foreground));
+  --openui-text-info-primary: hsl(var(--primary));
+  --openui-text-success-primary: hsl(var(--primary));
+  --openui-text-alert-primary: hsl(var(--accent-foreground));
+  --openui-text-danger-primary: hsl(var(--destructive));
+
+  --openui-border-default: hsl(var(--border));
+  --openui-border-interactive-selected: hsl(var(--primary));
+  --openui-border-info-emphasis: hsl(var(--primary));
+  --openui-border-success-emphasis: hsl(var(--primary));
+  --openui-border-alert-emphasis: hsl(var(--accent-foreground));
+  --openui-border-danger-emphasis: hsl(var(--destructive));
+
+  --openui-elevated: hsl(var(--secondary));
+  --openui-sunk: hsl(var(--border));
+  --openui-highlight-subtle: hsl(var(--muted));
+}

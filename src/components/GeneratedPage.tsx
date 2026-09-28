@@ -1,20 +1,30 @@
 import { useTranslation } from 'react-i18next';
-import type { VisitorType, GeneratedLayout } from '@/App';
-import { ComponentMapper } from './ComponentMapper';
+import { Renderer, type OpenUIError } from '@openuidev/react-lang';
+import type { VisitorType } from '@/App';
+import { portfolioLibrary } from '@/genui/library';
 import { FeedbackButtons } from './FeedbackButtons';
 import { SEO } from './SEO';
-import { cn } from '@/lib/utils';
 
 interface GeneratedPageProps {
-  layout: GeneratedLayout | null;
+  /** OpenUI Lang for the page; grows while streaming. */
+  lang: string;
+  isStreaming: boolean;
+  layoutToken?: string;
   visitorType: VisitorType;
   onReset: () => void;
   onRegenerate: () => void;
   error: string | null;
 }
 
+// Parser errors are expected mid-stream (e.g. a reference not yet defined); only log once settled.
+function logRenderErrors(errors: OpenUIError[]) {
+  if (errors.length > 0) console.warn('Generated layout issues:', errors);
+}
+
 export function GeneratedPage({
-  layout,
+  lang,
+  isStreaming,
+  layoutToken,
   visitorType,
   onReset,
   onRegenerate,
@@ -22,7 +32,7 @@ export function GeneratedPage({
 }: GeneratedPageProps) {
   const { t } = useTranslation();
 
-  if (!layout) {
+  if (!lang && !isStreaming) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -39,12 +49,6 @@ export function GeneratedPage({
     );
   }
 
-  const layoutClasses = {
-    'single-column': 'max-w-3xl mx-auto',
-    'two-column': 'max-w-6xl mx-auto',
-    'hero-focused': 'max-w-5xl mx-auto',
-  };
-
   // Get translated visitor type label for SEO
   const visitorTypeLabel = visitorType ? t(`visitorTypes.${visitorType}.label`) : undefined;
 
@@ -60,7 +64,7 @@ export function GeneratedPage({
           <div className="flex items-center gap-4">
             <FeedbackButtons
               audienceType={visitorType || 'unknown'}
-              cacheKey={layout?._cacheKey || ''}
+              layoutToken={layoutToken}
               onRegenerate={onRegenerate}
             />
             <button
@@ -80,14 +84,15 @@ export function GeneratedPage({
         </div>
       )}
 
-      {/* Main content */}
-      <main className={cn('px-4 py-8', layoutClasses[layout.layout])}>
-        <div className={cn(layout.layout === 'two-column' && 'grid md:grid-cols-2 gap-8')}>
-          {layout.sections.map((section, index) => (
-            <ComponentMapper key={index} section={section} />
-          ))}
-        </div>
-      </main>
+      {/* Main content: the PortfolioPage root component owns layout and theming */}
+      <div aria-busy={isStreaming}>
+        <Renderer
+          library={portfolioLibrary}
+          response={lang}
+          isStreaming={isStreaming}
+          onError={isStreaming ? undefined : logRenderErrors}
+        />
+      </div>
 
       {/* Footer */}
       <footer className="border-t mt-16">

@@ -9,7 +9,7 @@ type FeedbackState = 'idle' | 'loading' | 'liked' | 'disliked' | 'rate-limited';
 interface FeedbackRequest {
   feedbackType: 'like' | 'dislike';
   audienceType: string;
-  cacheKey: string;
+  layoutToken?: string;
   sessionId: string;
 }
 
@@ -23,11 +23,11 @@ interface FeedbackResponse {
 
 interface FeedbackButtonsProps {
   audienceType: string;
-  cacheKey: string;
+  layoutToken?: string;
   onRegenerate: () => void;
 }
 
-export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: FeedbackButtonsProps) {
+export function FeedbackButtons({ audienceType, layoutToken, onRegenerate }: FeedbackButtonsProps) {
   const { t } = useTranslation();
   const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
   const [showShareOptions, setShowShareOptions] = useState(false);
@@ -60,7 +60,7 @@ export function FeedbackButtons({ audienceType, cacheKey, onRegenerate }: Feedba
         body: JSON.stringify({
           feedbackType: type,
           audienceType,
-          cacheKey,
+          layoutToken,
           sessionId,
         } as FeedbackRequest),
       });

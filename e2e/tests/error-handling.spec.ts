@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { WelcomePage } from '../pages/welcome.page';
 import { GeneratedPage } from '../pages/generated.page';
+import { EVENT_STREAM, generateEventStream } from '../fixtures/mock-data';
+
+const SIMPLE_LAYOUT = 'root = PortfolioPage("hero-focused", "blue", [Hero("Test", "Subtitle")])';
 
 test.describe('Error Handling', () => {
   test('shows fallback layout when API returns error', async ({ page }) => {
@@ -47,13 +50,8 @@ test.describe('Error Handling', () => {
     await page.route('**/api/generate', async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          layout: 'hero-focused',
-          theme: { accent: 'blue' },
-          sections: [{ type: 'Hero', props: { title: 'Test' } }],
-          _cacheKey: 'test-key',
-        }),
+        contentType: EVENT_STREAM,
+        body: generateEventStream(SIMPLE_LAYOUT),
       });
     });
 
@@ -107,13 +105,8 @@ test.describe('Error Handling', () => {
         // First call succeeds
         await route.fulfill({
           status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            layout: 'hero-focused',
-            theme: { accent: 'blue' },
-            sections: [{ type: 'Hero', props: { title: 'Test' } }],
-            _cacheKey: 'test-key',
-          }),
+          contentType: EVENT_STREAM,
+          body: generateEventStream(SIMPLE_LAYOUT),
         });
       } else {
         // Regeneration fails

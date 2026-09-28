@@ -1,6 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import {
-  mockGeneratedLayout,
+  EVENT_STREAM,
+  generateEventStream,
   mockFeedbackResponse,
   mockFeedbackRegenerateResponse,
   mockHealthResponse,
@@ -17,8 +18,8 @@ export const test = base.extend<TestFixtures>({
       await page.route('**/api/generate', async (route) => {
         await route.fulfill({
           status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(mockGeneratedLayout),
+          contentType: EVENT_STREAM,
+          body: generateEventStream(),
         });
       });
 

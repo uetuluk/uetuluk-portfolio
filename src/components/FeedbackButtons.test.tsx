@@ -33,7 +33,7 @@ vi.mock('@/hooks/useSessionId', () => ({
 describe('FeedbackButtons', () => {
   const defaultProps = {
     audienceType: 'developer',
-    cacheKey: 'cache-key-123',
+    layoutToken: 'layout-token-123',
     onRegenerate: vi.fn(),
   };
 
@@ -229,7 +229,7 @@ describe('FeedbackButtons', () => {
         body: JSON.stringify({
           feedbackType: 'like',
           audienceType: 'developer',
-          cacheKey: 'cache-key-123',
+          layoutToken: 'layout-token-123',
           sessionId: 'mock-session-id-123',
         }),
       });
@@ -252,7 +252,7 @@ describe('FeedbackButtons', () => {
         body: JSON.stringify({
           feedbackType: 'dislike',
           audienceType: 'developer',
-          cacheKey: 'cache-key-123',
+          layoutToken: 'layout-token-123',
           sessionId: 'mock-session-id-123',
         }),
       });

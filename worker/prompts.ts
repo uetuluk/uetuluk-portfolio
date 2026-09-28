@@ -1,4 +1,13 @@
+import { generateSystemPrompt } from '@openuidev/lang-core';
+import { contractLibrary } from '../src/genui/schema';
 import type { PortfolioContent, VisitorContext, DataSummaries } from './types';
+
+// A worked example keeps small models on the positional syntax and root-first ordering.
+const LAYOUT_EXAMPLE = `root = PortfolioPage("hero-focused", "blue", [hero, skills, work, contact])
+hero = Hero("Jane Doe", "Platform engineer building developer tools", "/assets/profile.png", {text: "View Resume", href: "https://example.com/resume.pdf"})
+skills = SkillBadges("What I work with", "detailed")
+work = CardGrid("Featured Projects", 2, ["project-a", "project-b"])
+contact = ContactForm("Get in touch", true, true, true)`;
 
 export const ALLOWED_VISITOR_TAGS = ['recruiter', 'developer', 'collaborator', 'friend'];
 const MAX_CUSTOM_INTENT_LENGTH = 200;
@@ -213,31 +222,7 @@ Weather Data: Available at visitor location (fallback: Shanghai)
     dataAvailabilitySection += '=== END AVAILABLE DATA ===\n';
   }
 
-  return `You are a UI architect for a portfolio website. Your job is to create a personalized page layout based on the visitor's intent.
-${visitorContextSection}
-${dataAvailabilitySection}
-Output a JSON object with this exact structure:
-{
-  "layout": "single-column" | "two-column" | "hero-focused",
-  "theme": { "accent": "blue" | "green" | "purple" | "orange" | "pink" },
-  "sections": [
-    { "type": "ComponentName", "props": { ... } }
-  ]
-}
-
-Available components and their props:
-- Hero: { title: string, subtitle: string, image: string, cta?: { text: string, href: string } }
-- CardGrid: { title: string, columns: 2|3|4, items: ["project-id", ...] }
-- SkillBadges: { title: string, skills?: ["skill1", ...], style: "compact" | "detailed" }
-- Timeline: { title: string, items?: ["experience-id", ...] }
-- ContactForm: { title: string, showEmail?: boolean, showLinkedIn?: boolean, showGitHub?: boolean }
-- TextBlock: { title: string, content: string, style: "prose" | "highlight" }
-- ImageGallery: { title: string, images: ["/path/to/img", ...] }
-- StatsCounter: { title: string, stats: [{ label: string, value: number, suffix?: string }], animated?: boolean }
-- DataChart: { title: string, charts: Array<{ source: "github"|"weather", type: "area"|"bar"|"line"|"pie"|"radar"|"radial", aggregation?: "hourly"|"daily"|"weekly"|"monthly"|"byDayOfWeek", githubUsername?: string, githubMetric?: "commits", weatherMetric?: "temperature", weatherLocation?: "visitor"|"CityName", title?: string, height?: number, color?: string }>, layout?: "stack"|"grid" } -- For weather, ONLY temperature min/max is available, use weatherLocation: "visitor" for visitor's location
-- TechLogos: { title: string, technologies?: string[], style: "grid" | "marquee", size?: "sm" | "md" | "lg" }
-
-=== PORTFOLIO CONTENT (Use these exact IDs and values) ===
+  const portfolioSection = `=== PORTFOLIO CONTENT (Use these exact IDs and values) ===
 Personal Information:
 - Name: ${personal.name}
 - Title: ${personal.title}
@@ -266,15 +251,28 @@ Hobbies: ${JSON.stringify(hobbies || [])}
 
 Photos (use these paths in ImageGallery):
 ${photos?.map((p) => `- ${p.path}: ${p.description}`).join('\n') || 'No photos available'}
-=== END PORTFOLIO CONTENT ===
+=== END PORTFOLIO CONTENT ===`;
 
-${personalizationSection}
+  const preamble = `You are a UI architect for a portfolio website. Your job is to create a personalized page layout based on the visitor's intent. You respond using openui-lang, a declarative UI language. Your ENTIRE response must be valid openui-lang code — no markdown, no code fences, no explanations.
+${visitorContextSection}
+${dataAvailabilitySection}
+${portfolioSection}
 
-Rules:
-1. Use ONLY the project IDs and experience IDs from the portfolio content above
-2. Keep the response focused and relevant to the visitor type
-3. Include 3-5 sections maximum for a clean layout
-4. Output ONLY valid JSON - no markdown, no explanations, no code fences`;
+${personalizationSection}`;
+
+  return generateSystemPrompt({
+    library: contractLibrary.toSpec(),
+    promptOptions: {
+      preamble,
+      examples: [LAYOUT_EXAMPLE],
+      additionalRules: [
+        'Use ONLY the project IDs, experience IDs and photo paths from the portfolio content above',
+        'Keep the page focused and relevant to the visitor type',
+        'Include 3-5 sections for a clean layout',
+        `Write all visible text in the visitor's language when one is given`,
+      ],
+    },
+  });
 }
 
 export function buildUserPrompt(

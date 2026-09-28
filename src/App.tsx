@@ -1,263 +1,103 @@
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WelcomeModal } from '@/components/WelcomeModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { GeneratedPage } from '@/components/GeneratedPage';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { SEO } from '@/components/SEO';
 import { StructuredData } from '@/components/StructuredData';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslatedPortfolio } from '@/hooks/useTranslatedPortfolio';
-import { generatePalette, colorNameToHSL } from '@/lib/palette';
-import { applyPaletteToRoot } from '@/lib/applyPalette';
+import { useGeneratedLayout } from '@/genui/useGeneratedLayout';
+import type { GenerateMeta } from '@/genui/protocol';
 
 export type VisitorType = 'recruiter' | 'developer' | 'collaborator' | 'friend' | null;
 
-export interface GeneratedLayout {
-  layout: 'single-column' | 'two-column' | 'hero-focused';
-  theme: { accent: string };
-  sections: Array<{
-    type: string;
-    props: Record<string, unknown>;
-  }>;
-  _cacheKey?: string;
-  _visitorContext?: {
-    geo?: { country?: string; city?: string };
-    device?: { type?: 'mobile' | 'tablet' | 'desktop' };
-    time?: { timeOfDay?: string };
-  };
-  _uiHints?: {
-    suggestedTheme?: 'light' | 'dark' | 'system';
-    preferCompactLayout?: boolean;
-  };
-  _rateLimited?: boolean;
-  _retryAfter?: number;
-}
+// The generated page carries the renderer, component library, charts and schema validation.
+// Load it separately and prefetch while the visitor is still choosing in the welcome modal.
+const loadGeneratedPage = () => import('@/components/GeneratedPage');
+const GeneratedPage = lazy(() => loadGeneratedPage().then((m) => ({ default: m.GeneratedPage })));
+const loadFallback = () => import('@/genui/fallback');
 
 function App() {
   const { t, i18n } = useTranslation();
   const portfolioContent = useTranslatedPortfolio();
   const [visitorType, setVisitorType] = useState<VisitorType>(null);
   const [customIntent, setCustomIntent] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [generatedLayout, setGeneratedLayout] = useState<GeneratedLayout | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const layout = useGeneratedLayout();
 
   // Access theme hook to apply suggested theme based on visitor context
   const { setTheme, preference } = useTheme();
+
+  useEffect(() => {
+    void loadGeneratedPage();
+  }, []);
 
   // Update document language when i18n language changes
   useEffect(() => {
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
-  // Helper to apply suggested theme on first visit
-  const applyThemeSuggestion = (data: GeneratedLayout) => {
-    if (data._uiHints?.suggestedTheme && preference === 'system') {
-      // Only apply suggestion if user hasn't explicitly set a preference
-      // and only on first visit to this site
-      const hasVisited = localStorage.getItem('portfolio-visited');
-      if (!hasVisited && data._uiHints.suggestedTheme !== 'system') {
-        setTheme(data._uiHints.suggestedTheme);
+  // Apply the suggested theme on a visitor's first visit, unless they chose one explicitly
+  const applyThemeSuggestion = (meta: GenerateMeta) => {
+    const suggested = meta.uiHints?.suggestedTheme;
+    if (suggested && suggested !== 'system' && preference === 'system') {
+      if (!localStorage.getItem('portfolio-visited')) {
+        setTheme(suggested);
         localStorage.setItem('portfolio-visited', 'true');
       }
     }
   };
 
-  // Helper to apply AI-selected color palette
-  const applyColorPalette = useCallback((data: GeneratedLayout) => {
-    if (data.theme?.accent) {
-      const baseColor = colorNameToHSL(data.theme.accent);
-      const palette = generatePalette(baseColor);
-      applyPaletteToRoot(palette);
-    }
-  }, []);
+  const generate = (
+    type: VisitorType,
+    custom: string | undefined,
+    failureMessage: string,
+    onMeta?: (meta: GenerateMeta) => void,
+  ) =>
+    layout.generate(
+      { visitorTag: type ?? 'friend', customIntent: custom || undefined, portfolioContent },
+      {
+        failureMessage,
+        onMeta,
+        fallback: async () => {
+          const { buildFallbackLayout, DEFAULT_FALLBACK_TITLES } = await loadFallback();
+          return buildFallbackLayout(type, portfolioContent, {
+            ...DEFAULT_FALLBACK_TITLES,
+            skills: t('fallbackSections.skills'),
+            experience: t('fallbackSections.experience'),
+            projects: t('fallbackSections.projects'),
+            featuredProjects: t('fallbackSections.featuredProjects'),
+            aboutMe: t('fallbackSections.aboutMe'),
+            photos: t('fallbackSections.photos'),
+            letsConnect: t('fallbackSections.letsConnect'),
+            getInTouch: t('fallbackSections.getInTouch'),
+          });
+        },
+      },
+    );
 
   const handleVisitorSelect = async (type: VisitorType, custom?: string) => {
     setVisitorType(type);
     setCustomIntent(custom || '');
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          visitorTag: type,
-          customIntent: custom,
-          portfolioContent,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(t('errors.failedGenerate'));
-      }
-
-      const data = (await response.json()) as GeneratedLayout;
-
-      // Log if rate limited (using default layout)
-      if (data._rateLimited) {
-        console.info('Rate limited - showing default layout');
-      }
-
-      setGeneratedLayout(data);
-
-      // Apply AI-selected color palette
-      applyColorPalette(data);
-
-      // Apply theme suggestion based on visitor's local time
-      applyThemeSuggestion(data);
-    } catch (err) {
-      console.error('Generation error:', err);
-      setError(err instanceof Error ? err.message : t('errors.unexpected'));
-      // Fall back to default layout
-      const fallbackLayout = getDefaultLayout(type);
-      setGeneratedLayout(fallbackLayout);
-      applyColorPalette(fallbackLayout);
-    } finally {
-      setIsLoading(false);
-    }
+    // Apply the theme hint as soon as it arrives so the page doesn't switch theme mid-stream
+    const meta = await generate(type, custom, t('errors.failedGenerate'), applyThemeSuggestion);
+    if (meta?.rateLimited) console.info('Rate limited - showing default layout');
   };
 
   const handleReset = () => {
     setVisitorType(null);
     setCustomIntent('');
-    setGeneratedLayout(null);
-    setError(null);
+    layout.reset();
   };
 
   const handleRegenerate = async () => {
     if (!visitorType) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          visitorTag: visitorType,
-          customIntent: customIntent || undefined,
-          portfolioContent,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(t('errors.failedRegenerate'));
-      }
-
-      const data = (await response.json()) as GeneratedLayout;
-      setGeneratedLayout(data);
-
-      // Apply AI-selected color palette
-      applyColorPalette(data);
-    } catch (err) {
-      console.error('Regeneration error:', err);
-      setError(err instanceof Error ? err.message : t('errors.unexpected'));
-      // Fall back to default layout
-      const fallbackLayout = getDefaultLayout(visitorType);
-      setGeneratedLayout(fallbackLayout);
-      applyColorPalette(fallbackLayout);
-    } finally {
-      setIsLoading(false);
-    }
+    await generate(visitorType, customIntent, t('errors.failedRegenerate'));
   };
 
-  // Fallback layout if AI generation fails
-  function getDefaultLayout(visitorType: VisitorType): GeneratedLayout {
-    const baseLayout: GeneratedLayout = {
-      layout: 'hero-focused',
-      theme: { accent: 'blue' },
-      sections: [
-        {
-          type: 'Hero',
-          props: {
-            title: portfolioContent.personal.name,
-            subtitle: portfolioContent.personal.title,
-            image: '/assets/profile.png',
-          },
-        },
-      ],
-    };
-
-    switch (visitorType) {
-      case 'recruiter':
-        baseLayout.sections.push(
-          {
-            type: 'SkillBadges',
-            props: {
-              title: t('fallbackSections.skills'),
-              skills: portfolioContent.skills,
-            },
-          },
-          {
-            type: 'Timeline',
-            props: {
-              title: t('fallbackSections.experience'),
-              items: portfolioContent.experience,
-            },
-          },
-        );
-        break;
-      case 'developer':
-        baseLayout.sections.push({
-          type: 'CardGrid',
-          props: {
-            title: t('fallbackSections.projects'),
-            columns: 3,
-            items: portfolioContent.projects,
-          },
-        });
-        break;
-      case 'collaborator':
-        baseLayout.sections.push(
-          {
-            type: 'CardGrid',
-            props: {
-              title: t('fallbackSections.projects'),
-              columns: 2,
-              items: portfolioContent.projects,
-            },
-          },
-          {
-            type: 'ContactForm',
-            props: {
-              title: t('fallbackSections.letsConnect'),
-              showEmail: true,
-              showLinkedIn: true,
-            },
-          },
-        );
-        break;
-      case 'friend':
-        baseLayout.sections.push(
-          {
-            type: 'TextBlock',
-            props: {
-              title: t('fallbackSections.aboutMe'),
-              content: portfolioContent.personal.bio,
-            },
-          },
-          {
-            type: 'ImageGallery',
-            props: {
-              title: t('fallbackSections.photos'),
-              images: [
-                '/assets/cat-meowrio-1.png',
-                '/assets/cat-meowrio-2.png',
-                '/assets/cat-meowrio-3.png',
-              ],
-            },
-          },
-        );
-        break;
-    }
-
-    return baseLayout;
-  }
+  // Show the loading screen only until the first part of the page streams in
+  const waitingForFirstContent = layout.isStreaming && !layout.lang;
 
   return (
     <>
@@ -267,16 +107,20 @@ function App() {
       <ThemeToggle />
       {!visitorType ? (
         <WelcomeModal onSelect={handleVisitorSelect} />
-      ) : isLoading ? (
+      ) : waitingForFirstContent ? (
         <LoadingScreen visitorType={visitorType} />
       ) : (
-        <GeneratedPage
-          layout={generatedLayout}
-          visitorType={visitorType}
-          onReset={handleReset}
-          onRegenerate={handleRegenerate}
-          error={error}
-        />
+        <Suspense fallback={<LoadingScreen visitorType={visitorType} />}>
+          <GeneratedPage
+            lang={layout.lang}
+            isStreaming={layout.isStreaming}
+            layoutToken={layout.meta?.layoutToken}
+            visitorType={visitorType}
+            onReset={handleReset}
+            onRegenerate={handleRegenerate}
+            error={layout.error}
+          />
+        </Suspense>
       )}
     </>
   );

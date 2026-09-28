@@ -109,7 +109,8 @@ export interface StoredTag {
 export interface FeedbackRequest {
   feedbackType: 'like' | 'dislike';
   audienceType: string;
-  cacheKey: string;
+  /** Opaque token from the generate stream's meta event; never a raw cache key. */
+  layoutToken?: string;
   sessionId: string;
 }
 
