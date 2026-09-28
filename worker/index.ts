@@ -900,6 +900,8 @@ async function handleGenerate(
     });
   }
 
+  // The token only resolves once the layout is cached after the stream ends, so a dislike sent
+  // mid-stream is a no-op; it can't clear anything that isn't cached yet anyway.
   const layoutToken = crypto.randomUUID();
   const upstream = completion.body;
 

@@ -47,19 +47,19 @@ function contentOf(line: string): string | undefined {
   if (!line.startsWith('data:')) return undefined;
   const payload = line.slice(5).trim();
   if (!payload || payload === '[DONE]') return undefined;
+  let chunk: {
+    choices?: Array<{ delta?: { content?: unknown } }>;
+    error?: { message?: string };
+  };
   try {
-    const chunk = JSON.parse(payload) as {
-      choices?: Array<{ delta?: { content?: unknown } }>;
-      error?: { message?: string };
-    };
-    if (chunk.error) throw new Error(`Upstream stream error: ${chunk.error.message ?? 'unknown'}`);
-    const content = chunk.choices?.[0]?.delta?.content;
-    return typeof content === 'string' ? content : undefined;
-  } catch (error) {
+    chunk = JSON.parse(payload);
+  } catch {
     // A malformed keep-alive or comment line is not fatal; an explicit upstream error is.
-    if (error instanceof Error && error.message.startsWith('Upstream stream error')) throw error;
     return undefined;
   }
+  if (chunk.error) throw new Error(`Upstream stream error: ${chunk.error.message ?? 'unknown'}`);
+  const content = chunk.choices?.[0]?.delta?.content;
+  return typeof content === 'string' ? content : undefined;
 }
 
 /** Every `href` anywhere in the parsed layout, so all links are validated, not just Hero CTAs. */

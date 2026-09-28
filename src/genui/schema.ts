@@ -6,10 +6,10 @@
  * `library.tsx`. It must stay free of React and DOM imports so the Worker can bundle it.
  *
  * Keep these schemas strict: they are rendered verbatim into the prompt's component signatures,
- * so the model sees exact enums and which fields are optional. The OpenUI parser only checks
- * component names and required props, so the React renderers re-validate props with
- * `sanitizeProps` (see `sanitize.ts`), which drops invalid optional fields and array items
- * instead of discarding the whole section.
+ * so the model sees exact enums and which fields are optional. The OpenUI parser checks types
+ * and enums but not string patterns or number ranges, so the React renderers re-validate props
+ * with `sanitizeProps` (see `sanitize.ts`), which drops invalid optional fields and array items
+ * (an unsafe link, an image outside /assets) instead of discarding the whole section.
  */
 import { z } from 'zod';
 import { createLibrary, defineComponent, type Library } from '@openuidev/lang-core';

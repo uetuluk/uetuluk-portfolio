@@ -31,7 +31,8 @@ type Props<N extends SectionName> = z.infer<(typeof componentDefinitions)[N]['pr
 
 /**
  * Wrap a section so the model's props are validated and repaired before React sees them. The
- * OpenUI parser only checks component names and required props; this enforces the full schema.
+ * OpenUI parser checks types and enums but not string patterns or ranges; this enforces the
+ * full schema, including the link and asset-path rules.
  */
 function section<N extends SectionName>(
   name: N,
