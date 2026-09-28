@@ -38,7 +38,7 @@ flowchart LR
 - The **browser** pairs each schema with a React renderer. The 10 portfolio sections (`src/components/sections/*`) keep their own design; `Callout`, `FAQ` and `Steps` come from `@openuidev/react-ui`, themed to the site through the `.genui` token bridge in `src/index.css`.
 - The root `PortfolioPage` component owns the page layout and applies the model's accent colour.
 
-Keep schemas strict: they are rendered verbatim into the prompt. The OpenUI parser only checks component names and required props, so each renderer re-validates with `sanitizeProps` (`src/genui/sanitize.ts`), which drops unsafe links, images outside `/assets`, and invalid optional values rather than the whole section.
+Keep schemas strict: they are rendered verbatim into the prompt. The OpenUI parser checks types and enums (an invalid required root field, such as an unknown accent, drops the whole page, which the Worker replaces with the default layout) but not string patterns or number ranges, so each renderer re-validates with `sanitizeProps` (`src/genui/sanitize.ts`), which drops unsafe links, images outside `/assets`, and invalid optional values rather than the whole section.
 
 To add a component, add its schema and description to `componentDefinitions` in `schema.ts` and its renderer to `library.tsx`. The prompt updates automatically.
 

@@ -283,6 +283,11 @@ describe('AI Gateway Layout Generation', () => {
         'a root whose sections were never defined',
         'root = PortfolioPage("single-column", "orange", [hero, bio, gallery])',
       ],
+      [
+        // The parser rejects the whole root on an enum mismatch, so this would render blank
+        'a root with an accent outside the palette',
+        'root = PortfolioPage("single-column", "teal", [s0])\ns0 = Callout("Available", "Open to new roles")',
+      ],
     ])('replaces %s with the default page', async (_, lang) => {
       stubFetch();
       vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -301,6 +306,20 @@ describe('AI Gateway Layout Generation', () => {
 
       expect(result.events.some((e) => e.event === 'replace')).toBe(false);
     });
+  });
+
+  it('does not cache a layout it replaced', async () => {
+    stubFetch();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await generate(
+      envWith(
+        createMockStreamingLayoutAI(
+          'root = PortfolioPage("single-column", "teal", [s0])\ns0 = Callout("A", "B")',
+        ),
+      ),
+    );
+
+    expect((await env.UI_CACHE.list({ prefix: 'layout:v2:' })).keys).toHaveLength(0);
   });
 
   describe('link validation before caching', () => {
