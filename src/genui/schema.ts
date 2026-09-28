@@ -239,13 +239,21 @@ export function buildLibrary<C>(
   return createLibrary({ components: [root, ...sections], root: ROOT_COMPONENT });
 }
 
-/** Renderer-less library, used for prompt generation, parsing and serialization. */
-export const contractLibrary = buildLibrary<null>(
-  Object.fromEntries([ROOT_COMPONENT, ...SECTION_NAMES].map((name) => [name, null])) as Record<
-    SectionName | typeof ROOT_COMPONENT,
-    null
-  >,
-);
+let contractLibrary: Library<null> | undefined;
+
+/**
+ * Renderer-less library, used for prompt generation, parsing and serialization. Built on first
+ * use: `createLibrary` generates a random id, which Workers forbid in global scope.
+ */
+export function getContractLibrary(): Library<null> {
+  contractLibrary ??= buildLibrary<null>(
+    Object.fromEntries([ROOT_COMPONENT, ...SECTION_NAMES].map((name) => [name, null])) as Record<
+      SectionName | typeof ROOT_COMPONENT,
+      null
+    >,
+  );
+  return contractLibrary;
+}
 
 export const rootProps = z.object({
   layout: z.enum(LAYOUTS).optional(),

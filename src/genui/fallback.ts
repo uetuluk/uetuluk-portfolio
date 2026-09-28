@@ -4,7 +4,7 @@
  * every path renders through the same Renderer.
  */
 import { jsonToOpenUI, type ElementNode } from '@openuidev/lang-core';
-import { contractLibrary, ROOT_COMPONENT, type SectionName } from './schema';
+import { getContractLibrary, ROOT_COMPONENT, type SectionName } from './schema';
 
 export interface FallbackPortfolio {
   personal: { name: string; title: string; bio: string; resumeUrl?: string };
@@ -98,5 +98,5 @@ export function buildFallbackLayout(
     accent: 'blue',
     sections: sections.map((s) => (Array.isArray(s) ? element(s[0], s[1]) : s)),
   });
-  return jsonToOpenUI(root, contractLibrary);
+  return jsonToOpenUI(root, getContractLibrary());
 }

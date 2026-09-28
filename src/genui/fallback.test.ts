@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { createParser, type ElementNode } from '@openuidev/lang-core';
 import { buildFallbackLayout, DEFAULT_FALLBACK_TITLES, type FallbackPortfolio } from './fallback';
-import { contractLibrary, componentDefinitions, ROOT_COMPONENT, type SectionName } from './schema';
+import {
+  getContractLibrary,
+  componentDefinitions,
+  ROOT_COMPONENT,
+  type SectionName,
+} from './schema';
 import { sanitizeProps } from './sanitize';
 
-const parser = createParser(contractLibrary.toJSONSchema(), ROOT_COMPONENT);
+const parser = createParser(getContractLibrary().toJSONSchema(), ROOT_COMPONENT);
 
 const portfolio: FallbackPortfolio = {
   personal: { name: 'Test "Quoted" User', title: 'Engineer', bio: 'Line one.\nLine two.' },

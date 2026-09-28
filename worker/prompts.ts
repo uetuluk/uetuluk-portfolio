@@ -1,5 +1,5 @@
 import { generateSystemPrompt } from '@openuidev/lang-core';
-import { contractLibrary } from '../src/genui/schema';
+import { getContractLibrary } from '../src/genui/schema';
 import type { PortfolioContent, VisitorContext, DataSummaries } from './types';
 
 // A worked example keeps small models on the positional syntax and root-first ordering.
@@ -261,7 +261,7 @@ ${portfolioSection}
 ${personalizationSection}`;
 
   return generateSystemPrompt({
-    library: contractLibrary.toSpec(),
+    library: getContractLibrary().toSpec(),
     promptOptions: {
       preamble,
       examples: [LAYOUT_EXAMPLE],
