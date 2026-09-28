@@ -413,7 +413,10 @@ describe('AI Gateway Layout Generation', () => {
         theme: { accent: 'green' },
         sections: [
           { type: 'Hero', props: { title: 'Investment Portfolio', subtitle: 'ROI-focused' } },
-          { type: 'CardGrid', props: { title: 'Featured Projects', columns: 2, items: ['project-1'] } },
+          {
+            type: 'CardGrid',
+            props: { title: 'Featured Projects', columns: 2, items: ['project-1'] },
+          },
         ],
       };
 
@@ -669,8 +672,7 @@ describe('AI Gateway Layout Generation', () => {
       expect(response.status).toBe(200);
       // The CTA should be removed because the link validation failed
       const heroSection = data.sections?.find((s) => (s as { type: string }).type === 'Hero') as
-        | { type: string; props: { cta?: unknown; title?: string } }
-        | undefined;
+        { type: string; props: { cta?: unknown; title?: string } } | undefined;
       expect(heroSection).toBeDefined();
       expect(heroSection?.props.cta).toBeUndefined();
       // But title should remain
@@ -721,8 +723,7 @@ describe('AI Gateway Layout Generation', () => {
       expect(response.status).toBe(200);
       // mailto: links are preserved (validation returns true immediately)
       const heroSection = data.sections?.find((s) => (s as { type: string }).type === 'Hero') as
-        | { type: string; props: { cta?: { href: string } } }
-        | undefined;
+        { type: string; props: { cta?: { href: string } } } | undefined;
       expect(heroSection?.props.cta).toBeDefined();
       expect(heroSection?.props.cta?.href).toBe('mailto:test@example.com');
     });
@@ -771,8 +772,7 @@ describe('AI Gateway Layout Generation', () => {
       expect(response.status).toBe(200);
       // Relative paths are preserved (validation returns true immediately)
       const heroSection = data.sections?.find((s) => (s as { type: string }).type === 'Hero') as
-        | { type: string; props: { cta?: { href: string } } }
-        | undefined;
+        { type: string; props: { cta?: { href: string } } } | undefined;
       expect(heroSection?.props.cta).toBeDefined();
       expect(heroSection?.props.cta?.href).toBe('/assets/resume.pdf');
     });

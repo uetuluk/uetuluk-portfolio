@@ -4,7 +4,7 @@
   "main": "worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
   },
   // KV namespace for caching intents and layouts
   // Create with: wrangler kv:namespace create UI_CACHE
@@ -12,38 +12,38 @@
   "kv_namespaces": [
     {
       "binding": "UI_CACHE",
-      "id": "bf2c226b1a254f92a7980aa1cb1a1e73"
-    }
+      "id": "bf2c226b1a254f92a7980aa1cb1a1e73",
+    },
   ],
   "r2_buckets": [
     {
       "binding": "ASSETS",
-      "bucket_name": "portfolio-assets"
-    }
+      "bucket_name": "portfolio-assets",
+    },
   ],
   "vars": {
-    "AI_GATEWAY_ID": "personal-website"
+    "AI_GATEWAY_ID": "personal-website",
   },
   "ai": {
-    "binding": "AI"
+    "binding": "AI",
   },
   // Custom domain
   "routes": [
     {
       "pattern": "uetuluk.com",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
   "workers_dev": true,
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   // Analytics Engine for feedback tracking
   "analytics_engine_datasets": [
     {
       "binding": "FEEDBACK",
-      "dataset": "feedback"
-    }
+      "dataset": "feedback",
+    },
   ],
   // Test environment - uses local Miniflare emulation
   // Run tests with: npm run test (uses vitest with miniflare)
@@ -57,31 +57,31 @@
         {
           "binding": "UI_CACHE",
           "id": "bf2c226b1a254f92a7980aa1cb1a1e73",
-          "preview_id": "test-ui-cache-preview"
-        }
+          "preview_id": "test-ui-cache-preview",
+        },
       ],
       "r2_buckets": [
         {
           "binding": "ASSETS",
-          "bucket_name": "portfolio-assets-test"
-        }
+          "bucket_name": "portfolio-assets-test",
+        },
       ],
       "vars": {
         // Create a separate AI Gateway in Cloudflare dashboard for testing
-        "AI_GATEWAY_ID": "personal-website-test"
+        "AI_GATEWAY_ID": "personal-website-test",
       },
       "ai": {
-        "binding": "AI"
+        "binding": "AI",
       },
       // Analytics Engine for feedback tracking (must be in env.test, not inherited)
       "analytics_engine_datasets": [
         {
           "binding": "FEEDBACK",
-          "dataset": "feedback-test"
-        }
+          "dataset": "feedback-test",
+        },
       ],
       // No custom domain routes for test environment
-      "routes": []
-    }
-  }
+      "routes": [],
+    },
+  },
 }

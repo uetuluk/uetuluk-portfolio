@@ -4,3 +4,12 @@ coverage/
 *.min.js
 *.min.css
 package-lock.json
+.wrangler/
+.claude/
+.github/
+playwright-report/
+test-results/
+promptfoo/output/
+public/
+worker-configuration.d.ts
+*.md

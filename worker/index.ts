@@ -30,10 +30,7 @@ export const RATE_LIMIT_KEY_PREFIX = 'ratelimit:';
 export const MAX_BODY_SIZE = 50 * 1024;
 
 // Security: Allowed CORS origins
-const ALLOWED_ORIGINS = [
-  'https://uetuluk.com',
-  'https://www.uetuluk.com',
-];
+const ALLOWED_ORIGINS = ['https://uetuluk.com', 'https://www.uetuluk.com'];
 
 // Check if origin is allowed (supports wildcards for workers.dev and localhost)
 function isOriginAllowed(origin: string | null): boolean {
@@ -60,7 +57,7 @@ function getCorsHeaders(request: Request): Record<string, string> {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Vary': 'Origin',
+    Vary: 'Origin',
   };
 }
 
@@ -721,13 +718,10 @@ async function handleApiRequest(request: Request, env: Env, url: URL): Promise<R
   } catch (error) {
     // Log full error server-side, return generic message to client
     console.error('API error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 }
 
@@ -906,7 +900,12 @@ async function handleGenerate(
         messages: [
           {
             role: 'system',
-            content: buildSystemPrompt(portfolioContent, customGuidelines, visitorContext, dataSummaries),
+            content: buildSystemPrompt(
+              portfolioContent,
+              customGuidelines,
+              visitorContext,
+              dataSummaries,
+            ),
           },
           {
             role: 'user',
@@ -1481,10 +1480,7 @@ function getActivityCountFromEvent(event: GitHubEvent): number {
 }
 
 // Pre-fetch GitHub data and create a summary for AI context
-export async function fetchGitHubSummary(
-  username: string,
-  env: Env,
-): Promise<GitHubDataSummary> {
+export async function fetchGitHubSummary(username: string, env: Env): Promise<GitHubDataSummary> {
   // Security: Validate username format
   if (!isValidGitHubUsername(username)) {
     return { available: false, username, totalCommits: 0, recentActivity: 0 };
@@ -1698,10 +1694,10 @@ async function handleGitHubActivity(
 
   // Security: Validate GitHub username format
   if (!isValidGitHubUsername(username)) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid username format' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Invalid username format' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   console.log('[Worker] GitHub activity request for username:', username);
@@ -1848,10 +1844,10 @@ async function handleWeather(
     longitude = parseFloat(lon);
 
     if (isNaN(latitude) || isNaN(longitude)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid lat/lon values' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'Invalid lat/lon values' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
   }
 
@@ -1963,10 +1959,10 @@ async function handleGeocode(
 
     // Check if we got any results
     if (!geocodeData.results || geocodeData.results.length === 0) {
-      return new Response(
-        JSON.stringify({ error: `City not found: ${city}` }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: `City not found: ${city}` }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const firstResult = geocodeData.results[0];
@@ -1993,9 +1989,9 @@ async function handleGeocode(
   } catch (error) {
     console.error('Geocoding API error:', error);
 
-    return new Response(
-      JSON.stringify({ error: 'Failed to geocode city' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Failed to geocode city' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 }
