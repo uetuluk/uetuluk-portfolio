@@ -22,6 +22,9 @@ import type {
   PortfolioContent,
 } from './types';
 
+// LLM used for both intent categorization and layout generation (via OpenRouter behind AI Gateway)
+export const AI_MODEL = 'qwen/qwen3.8-flash';
+
 // Rate limiting configuration
 export const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 export const RATE_LIMIT_KEY_PREFIX = 'ratelimit:';
@@ -559,7 +562,10 @@ export async function categorizeIntent(
       endpoint: 'chat/completions',
       headers: { 'Content-Type': 'application/json' },
       query: {
-        model: 'qwen/qwen3-coder-flash',
+        model: AI_MODEL,
+        // Only route to providers that honour the strict json_schema below
+        provider: { require_parameters: true },
+        reasoning: { enabled: false },
         messages: [
           { role: 'system', content: buildCategorizationPrompt() },
           { role: 'user', content: buildCategorizationUserPrompt(customIntent) },
@@ -896,7 +902,8 @@ async function handleGenerate(
         'Content-Type': 'application/json',
       },
       query: {
-        model: 'qwen/qwen3-coder-flash',
+        model: AI_MODEL,
+        reasoning: { enabled: false },
         messages: [
           {
             role: 'system',
