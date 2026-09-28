@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
@@ -27,8 +27,8 @@
     "test:prompts:layout": "tsx --tsconfig promptfoo/tsconfig.eval.json promptfoo/eval/layout-eval.ts",
     "test:prompts:view": "promptfoo view",
     "typecheck:promptfoo": "tsc -P promptfoo/tsconfig.eval.json --noEmit",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "sync-assets": "for f in public/assets/*.png; do wrangler r2 object put portfolio-assets/assets/$(basename $f) --file=$f; done && wrangler r2 object put portfolio-assets/favicon.ico --file=public/favicon.ico",
@@ -55,7 +55,7 @@
     "@cloudflare/vite-plugin": "^1.61.0",
     "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@cloudflare/workers-types": "^5.20260928.1",
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
@@ -65,9 +65,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/react-responsive-masonry": "^2.7.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-istanbul": "^4.1.11",
-    "eslint": "^9.39.1",
+    "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -76,10 +77,15 @@
     "promptfoo": "^0.123.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "~5.9.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.70.1",
     "vite": "^8.3.1",
     "vitest": "^4.1.11",
     "wrangler": "^4.142.0"
+  },
+  "overrides": {
+    "eslint-plugin-react": {
+      "eslint": "$eslint"
+    }
   }
 }

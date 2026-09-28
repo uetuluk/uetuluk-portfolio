@@ -433,7 +433,7 @@ export function sanitizeLayout(
       ) {
         if (invalidLinks.has(section.props.cta.href as string)) {
           // Remove invalid CTA
-          const { cta, ...restProps } = section.props;
+          const { cta: _cta, ...restProps } = section.props;
           return { ...section, props: restProps };
         }
       }
@@ -977,7 +977,7 @@ async function handleGenerate(
       generatedLayout = JSON.parse(content);
     } catch (parseError) {
       console.error('Failed to parse AI response:', content);
-      throw new Error('Invalid JSON in AI response');
+      throw new Error('Invalid JSON in AI response', { cause: parseError });
     }
 
     // Validate the layout structure
