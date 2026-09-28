@@ -6,6 +6,10 @@ import type {
   WorkerModule,
 } from '../types/provider';
 import type { Env, GenerateRequest } from '../../worker/types';
+import type { ElementNode } from '@openuidev/lang-core';
+import portfolio from '../../src/content/portfolio.json';
+import { readEvents, type GenerateMeta } from '../../src/genui/protocol';
+import { parseLayout } from '../../worker/genui-stream';
 
 // Declare module for CJS compatibility
 declare const module:
@@ -14,25 +18,49 @@ declare const module:
     }
   | undefined;
 
-// Minimal portfolio content for testing
-// Uses real GitHub user to ensure GitHub data is available for tests
-const DUMMY_PORTFOLIO = {
-  name: 'Test Portfolio',
-  projects: [],
-  experience: [],
-  skills: [],
-  personal: {
-    name: 'Test User',
-    title: 'Software Developer',
-    bio: 'Test bio',
-    contact: {
-      email: 'test@example.com',
-      linkedin: 'https://linkedin.com/in/test',
-      github: 'https://github.com/uetuluk', // Real user with GitHub activity
+// Evaluate against the real portfolio so project and experience ID assertions are meaningful.
+const DEFAULT_PORTFOLIO = portfolio;
+
+function hasContent(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && Object.keys(value).length > 0;
+}
+
+/**
+ * The worker streams OpenUI Lang. Read the event stream, parse the layout, and return the JSON
+ * view the eval assertions are written against: { layout, theme, sections: [{ type, props }] },
+ * plus the raw OpenUI Lang and parser errors for debugging.
+ */
+async function readLayout(response: Response) {
+  let meta: GenerateMeta | undefined;
+  let lang = '';
+  let streamError: string | undefined;
+  for await (const event of readEvents(response.body!)) {
+    if (event.event === 'meta') meta = event.data;
+    else if (event.event === 'delta') lang += event.data.text;
+    // The worker swapped unrenderable model output for the fallback page
+    else if (event.event === 'replace') streamError = `Model output was not renderable:\n${lang}`;
+    else if (event.event === 'error') streamError = event.data.message;
+  }
+
+  const parsed = parseLayout(lang);
+  const root = parsed.root?.props as
+    { layout?: string; accent?: string; sections?: Array<ElementNode | null> } | undefined;
+  return {
+    meta,
+    streamError,
+    view: {
+      layout: root?.layout,
+      theme: { accent: root?.accent },
+      sections: (root?.sections ?? [])
+        .filter((s): s is ElementNode => Boolean(s))
+        .map((s) => ({ type: s.typeName, props: s.props })),
+      _categorization: meta?.categorization,
+      _lang: lang,
+      _parseErrors: parsed.meta.errors.map((e) => e.message),
+      _unresolved: parsed.meta.unresolved,
     },
-  },
-  education: [],
-};
+  };
+}
 
 /**
  * Custom Promptfoo provider for testing via Wrangler Worker
@@ -75,13 +103,17 @@ export default class WranglerWorkerProvider implements IProvider {
       const requestBody: GenerateRequest = {
         visitorTag: (context.vars?.visitorTag as string) || 'friend',
         customIntent: context.vars?.customIntent,
-        portfolioContent: context.vars?.portfolioContent || DUMMY_PORTFOLIO,
+        portfolioContent: hasContent(context.vars?.portfolioContent)
+          ? (context.vars?.portfolioContent as GenerateRequest['portfolioContent'])
+          : (DEFAULT_PORTFOLIO as unknown as GenerateRequest['portfolioContent']),
       };
 
       const request = new Request('http://localhost/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // The worker rate limits per client IP and rejects requests without one
+          'CF-Connecting-IP': `198.51.100.${Math.floor(Math.random() * 250) + 1}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -104,21 +136,19 @@ export default class WranglerWorkerProvider implements IProvider {
         throw new Error(`Worker returned ${response.status}: ${errorText}`);
       }
 
-      const data = (await response.json()) as Record<string, unknown> & {
-        _tokenUsage?: { total?: number; prompt?: number; completion?: number };
-        layout?: unknown;
-      };
+      const { meta, streamError, view } = await readLayout(response);
 
-      // Base provider returns raw worker response
-      // Specialized subclasses will extract what they need
-      return {
-        output: JSON.stringify(data),
-        tokenUsage: {
-          total: data._tokenUsage?.total || 0,
-          prompt: data._tokenUsage?.prompt || 0,
-          completion: data._tokenUsage?.completion || 0,
-        },
-      };
+      // A fallback is a valid layout, so it would pass every assertion without the model ever
+      // running. Only grade layouts the model actually produced.
+      if (meta?.source !== 'ai') {
+        throw new Error(
+          `Expected an AI-generated layout but got source "${meta?.source ?? 'none'}"` +
+            (meta?.rateLimited ? ' (rate limited)' : ''),
+        );
+      }
+      if (streamError) throw new Error(`Generation stream failed: ${streamError}`);
+
+      return { output: JSON.stringify(view) };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {

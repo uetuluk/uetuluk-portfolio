@@ -33,8 +33,12 @@ src/
 │   └── useTranslatedPortfolio.test.ts # i18n hook tests
 ├── i18n/
 │   └── index.test.ts               # i18n setup tests
+├── genui/
+│   ├── sanitize.test.ts            # Render-time prop validation (unsafe links, images)
+│   ├── protocol.test.ts            # /api/generate event stream encoding/decoding
+│   ├── fallback.test.ts            # Default layouts per visitor type
+│   └── library.test.tsx            # Component library, react-ui components, theming
 └── components/
-    ├── ComponentMapper.test.tsx    # Component rendering tests
     ├── WelcomeModal.test.tsx       # Welcome modal tests
     ├── ThemeToggle.test.tsx        # Theme toggle tests
     ├── LanguageSwitcher.test.tsx   # Language switcher tests
@@ -58,8 +62,9 @@ src/
 
 worker/
 ├── index.test.ts                   # Worker function tests
-├── handlers.test.ts                # API handler tests
-├── ai-generation.test.ts           # AI generation tests
+├── handlers.test.ts                # API handler tests (incl. layout token invalidation)
+├── ai-generation.test.ts           # Streaming generation, caching, fallbacks
+├── genui-stream.test.ts            # Model delta parsing, layout link extraction
 ├── ai-categorization.test.ts       # AI categorization tests
 ├── categorization.test.ts          # Categorization logic tests
 ├── rate-limiting.test.ts           # Rate limiting tests
@@ -237,20 +242,24 @@ describe("async tests", () => {
 
 ### vitest.config.ts
 
-The Vitest configuration includes:
+`vitest.config.ts` defines two projects with `test.projects`:
 
-- **Environment**: `jsdom` for DOM APIs
-- **Setup File**: `src/test/setup.ts` for global mocks
-- **Globals**: Test APIs available without imports
-- **Coverage**: Istanbul provider with text/json/html reporters
+- **frontend** - `jsdom`, setup file `src/test/setup.ts`, globals enabled. `@openuidev/react-ui` is inlined (`server.deps.inline`) because its ESM uses extensionless imports that only Vite resolves.
+- **worker** - runs in the Workers runtime through `@cloudflare/vitest-pool-workers`, using the `test` environment from `wrangler.jsonc`. Remote bindings are disabled, so these tests run without Cloudflare credentials; the AI binding is always mocked (`worker/mocks/ai-gateway.ts`, including `createCompletionResponse` for streamed completions).
+
+Run one project with `npm run test:frontend` or `npm run test:worker`.
 
 ### Coverage
 
-Coverage is configured for:
+Coverage (Istanbul provider, text/json/html reporters) is configured for:
 - `src/lib/**/*.ts` - Utility functions
 - `src/hooks/**/*.ts` - React hooks
-- `src/components/ComponentMapper.tsx` - Dynamic component mapper
+- `src/genui/**/*.{ts,tsx}` - Generative UI contract, library and streaming
 - `worker/**/*.ts` - Worker functions
+
+### LLM evals (promptfoo)
+
+`npm run test:prompts` runs the promptfoo suites against the real model through the Worker (credentials required). The layout provider (`promptfoo/providers/wrangler-worker.ts`) reads the event stream, parses the OpenUI Lang, and exposes a JSON view (`{ layout, theme, sections: [{ type, props }] }`) for assertions, plus the raw `_lang` and `_parseErrors` for debugging. It fails any test where the layout did not come from the model (a fallback or rate-limited response), so errors can't pass as valid layouts.
 
 Run `npm run test:coverage` to generate reports in the `coverage/` directory.
 

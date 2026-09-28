@@ -268,7 +268,7 @@ ${personalizationSection}`;
       additionalRules: [
         'Use ONLY the project IDs, experience IDs and photo paths from the portfolio content above',
         'Keep the page focused and relevant to the visitor type',
-        'Include 3-5 sections for a clean layout',
+        'Include 3-5 sections in total, counting the Hero. The visitor guidelines suggest components to choose from, not a list to include in full',
         `Write all visible text in the visitor's language when one is given`,
       ],
     },

@@ -20,6 +20,7 @@ async function collect(stream: ReadableStream<Uint8Array>): Promise<GenerateEven
 const EVENTS: GenerateEvent[] = [
   { event: 'meta', data: { source: 'ai', layoutToken: 't' } },
   { event: 'delta', data: { text: 'root = PortfolioPage("a",\n"b", [])' } },
+  { event: 'replace', data: { text: 'root = PortfolioPage("c", "d", [])' } },
   { event: 'error', data: { message: 'cut' } },
   { event: 'done', data: {} },
 ];

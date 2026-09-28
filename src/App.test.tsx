@@ -333,6 +333,24 @@ describe('App', () => {
       await waitFor(() => expect(renderedSections()).toContain('CardGrid'));
     });
 
+    it('swaps in the layout sent by a replace event', async () => {
+      const REPLACEMENT = 'root = PortfolioPage("single-column", "blue", [Timeline("Work")])';
+      fetchMock.mockResolvedValue(
+        sseResponse([
+          { event: 'meta', data: META },
+          { event: 'delta', data: { text: 'root = PortfolioPage("single-column", "blue", [a])' } },
+          { event: 'replace', data: { text: REPLACEMENT } },
+          { event: 'done', data: {} },
+        ]),
+      );
+      render(<App />);
+
+      await act(async () => screen.getByText('Select Developer').click());
+
+      await waitFor(() => expect(screen.getByTestId('streaming')).toHaveTextContent('false'));
+      expect(screen.getByTestId('lang').textContent).toBe(REPLACEMENT);
+    });
+
     it('keeps partial content when the stream is interrupted', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       fetchMock.mockResolvedValue(

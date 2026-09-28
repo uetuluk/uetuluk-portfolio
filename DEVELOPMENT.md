@@ -4,11 +4,17 @@
 
 ### Node.js
 
-Required version: **v24.11.1**
+Required version: **v24.11.1** (`engines` requires Node 24+)
 
 ```bash
 nvm use  # Uses .nvmrc
 ```
+
+### Toolchain notes
+
+- **TypeScript 7** (the native compiler) provides `tsc`. TypeScript 7 has no programmatic API yet, so `typescript-eslint` uses TypeScript 6 through the `typescript` → `@typescript/typescript6` alias in `package.json` (binary `tsc6`). Keep both until typescript-eslint supports TypeScript 7.
+- **ESLint 10**: `eslint-plugin-react` hasn't declared ESLint 10 support, so an `overrides` entry satisfies its peer range, and `eslint.config.js` sets the React version explicitly instead of `'detect'` (which calls an API ESLint 10 removed).
+- **OpenUI telemetry**: `@openuidev/lang-core` sends anonymous install telemetry from its `postinstall` script. Set `OPENUI_TELEMETRY_DISABLED=1` to opt out. Runtime telemetry is off unless explicitly enabled, so nothing is sent from visitors' browsers or the Worker.
 
 ### Cloudflare Account
 
@@ -34,6 +40,10 @@ npm run dev
 ```
 
 Development server runs at `http://localhost:5173` with hot reload.
+
+The AI binding always calls the real AI Gateway, even in dev. If the default environment's remote session is behind Cloudflare Access, run against the test environment instead: `CLOUDFLARE_ENV=test npm run dev`.
+
+OpenUI's in-page inspector is off by default in dev; start with `VITE_OPENUI_DEVTOOLS=1 npm run dev` to enable it. It is never included in production builds.
 
 ## Scripts
 
@@ -82,8 +92,7 @@ src/
 │   │   ├── StatsCounter    # Animated stats
 │   │   ├── TechLogos       # Tech logos
 │   │   └── DataChart       # Data visualization
-│   ├── ComponentMapper     # Maps AI JSON to components
-│   ├── GeneratedPage       # Renders AI layout
+│   ├── GeneratedPage       # Renders the streamed AI layout
 │   ├── WelcomeModal        # Visitor intent selection
 │   ├── ThemeToggle         # Dark/light mode toggle
 │   ├── LanguageSwitcher    # i18n language selection
@@ -94,6 +103,13 @@ src/
 │   └── MosaicBackground    # Background visual
 ├── content/
 │   └── portfolio.json      # Your portfolio data
+├── genui/                  # Generative UI (OpenUI), shared with the Worker
+│   ├── schema              # Component contract: Zod schemas for every component
+│   ├── library             # React renderers for the contract
+│   ├── sanitize            # Render-time prop validation
+│   ├── protocol            # /api/generate event stream format
+│   ├── useGeneratedLayout  # Streams a layout into React state
+│   └── fallback            # Default layouts
 ├── hooks/
 │   ├── useTheme            # Theme management
 │   ├── useSessionId        # Session tracking
@@ -111,6 +127,7 @@ src/
 
 worker/
 ├── index.ts                # API routes and handlers
+├── genui-stream.ts         # Model stream reading, layout parsing
 ├── prompts.ts              # AI prompts
 └── types.ts                # TypeScript types
 ```
@@ -144,16 +161,17 @@ Add images to `public/assets/`. Reference in portfolio.json as `/assets/filename
 
 ### Add New Components
 
-1. Create component in `src/components/sections/`
-2. Add to `componentMap` in `ComponentMapper.tsx`
-3. Update `SYSTEM_PROMPT` in `worker/prompts.ts`
+1. Create the component (in `src/components/sections/`, or reuse one from `@openuidev/react-ui`)
+2. Add its Zod schema and a description to `componentDefinitions` in `src/genui/schema.ts`. The model sees the schema verbatim, so keep it strict
+3. Add its renderer to `portfolioLibrary` in `src/genui/library.tsx`
+
+The system prompt is generated from the schema, so there is nothing to update in `worker/prompts.ts`.
 
 ### Modify AI Behavior
 
-Edit `worker/prompts.ts`:
-- Visitor personalization guidelines
-- Component schemas
-- Layout options
+- Components, props and allowed values: `src/genui/schema.ts`
+- Visitor personalization guidelines, portfolio context and extra rules: `worker/prompts.ts`
+- Model: `AI_MODEL` in `worker/index.ts`
 
 ### Data Sources
 
