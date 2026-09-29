@@ -373,11 +373,17 @@ function SingleChart({
 
 // Custom hook to fetch data for a chart config
 function useChartData(config: ChartItemConfig) {
-  const [data, setData] = useState<DataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setDataState] = useState<DataPoint[]>([]);
+  const [loading, setLoadingState] = useState(true);
+  const [error, setErrorState] = useState<string | null>(null);
 
   useEffect(() => {
+    // Responses can arrive out of order when the config changes; only the latest may update state.
+    let current = true;
+    const setData = (points: DataPoint[]) => current && setDataState(points);
+    const setError = (message: string | null) => current && setErrorState(message);
+    const setLoading = (value: boolean) => current && setLoadingState(value);
+
     async function fetchData() {
       console.log('[DataChart] useChartData called with config:', config);
       setLoading(true);
@@ -505,6 +511,9 @@ function useChartData(config: ChartItemConfig) {
     }
 
     fetchData();
+    return () => {
+      current = false;
+    };
   }, [config.source, config.githubUsername, config.weatherLocation]);
 
   return { data, loading, error };

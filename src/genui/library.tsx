@@ -1,6 +1,11 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import type { z } from 'zod';
-import type { ComponentRenderer, ComponentRenderProps, Library } from '@openuidev/react-lang';
+import {
+  useIsStreaming,
+  type ComponentRenderer,
+  type ComponentRenderProps,
+  type Library,
+} from '@openuidev/react-lang';
 import { Callout } from '@openuidev/react-ui/Callout';
 import {
   Accordion,
@@ -54,9 +59,14 @@ const LazyDataChart = lazy(() =>
   import('@/components/sections/DataChart').then((m) => ({ default: m.DataChart })),
 );
 
+const chartPlaceholder = <div className="min-h-64" aria-hidden="true" />;
+
 function DataChart(props: Props<'DataChart'>) {
+  // Chart configs stream in a few characters at a time, so a chart mounted mid-stream would fetch
+  // data for every partial value (githubUsername "u", "ue", ...). Wait for the finished props.
+  if (useIsStreaming()) return chartPlaceholder;
   return (
-    <Suspense fallback={<div className="min-h-64" aria-hidden="true" />}>
+    <Suspense fallback={chartPlaceholder}>
       <LazyDataChart {...props} />
     </Suspense>
   );
