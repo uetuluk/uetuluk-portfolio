@@ -316,6 +316,71 @@ describe('AI Gateway Layout Generation', () => {
     });
   });
 
+  describe('output moderation', () => {
+    const cachedLayouts = async () => (await env.UI_CACHE.list({ prefix: 'layout:v2:' })).keys;
+
+    it('checks the visible text of each statement and caches a clean layout', async () => {
+      stubFetch();
+      const checked: string[] = [];
+      const ai = createMockStreamingLayoutAI(LAYOUT, {
+        guard: (text) => {
+          checked.push(text);
+          return 'safe';
+        },
+      });
+      const result = await generate(envWith(ai));
+
+      expect(result.events.some((e) => e.event === 'replace')).toBe(false);
+      expect(checked).toContain('Welcome\nAI Generated');
+      expect(checked.join('\n')).not.toContain('/assets/');
+      expect(await cachedLayouts()).toHaveLength(1);
+    });
+
+    it('replaces a flagged layout with the default page and does not cache it', async () => {
+      stubFetch();
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const ai = createMockStreamingLayoutAI(LAYOUT, {
+        guard: (text) => (text.includes('Projects') ? 'unsafe' : 'safe'),
+      });
+      const result = await generate(envWith(ai));
+
+      const replace = result.events.find((e) => e.event === 'replace');
+      expect(replace).toBeDefined();
+      expect(result.events.at(-1)?.event).toBe('done');
+      const text = (replace as Extract<GenerateEvent, { event: 'replace' }>).data.text;
+      expect(sectionNames(text)).toEqual(['Hero', 'CardGrid', 'SkillBadges', 'ContactForm']);
+      expect(await cachedLayouts()).toHaveLength(0);
+    });
+
+    it('stops streaming once a finished statement is flagged', async () => {
+      stubFetch();
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const tail = Array.from({ length: 40 }, (_, i) => `t${i} = TextBlock("Later ${i}")`);
+      const lang = [LAYOUT, ...tail].join('\n');
+      const ai = createMockStreamingLayoutAI(lang, {
+        guard: (text) => (text === 'Welcome\nAI Generated' ? 'unsafe' : 'safe'),
+        chunkDelayMs: 2,
+      });
+      const result = await generate(envWith(ai));
+
+      expect(result.lang.length).toBeLessThan(lang.length);
+      expect(result.events.some((e) => e.event === 'replace')).toBe(true);
+    });
+
+    it('keeps the page but skips the cache when the guard is unavailable', async () => {
+      stubFetch();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const result = await generate(
+        envWith(createMockStreamingLayoutAI(LAYOUT, { guard: 'error' })),
+      );
+
+      expect(result.lang).toBe(LAYOUT);
+      expect(result.events.some((e) => e.event === 'replace')).toBe(false);
+      expect(result.events.at(-1)?.event).toBe('done');
+      expect(await cachedLayouts()).toHaveLength(0);
+    });
+  });
+
   describe('unrenderable model output', () => {
     it.each([
       ['prose instead of OpenUI Lang', 'Sorry, I cannot help with that.'],

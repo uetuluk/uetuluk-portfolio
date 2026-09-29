@@ -108,6 +108,8 @@ sequenceDiagram
 
 Only `delta.content` from the model is forwarded, so reasoning or other metadata can never reach the page. If the model fails before sending anything, the Worker streams the fallback layout instead.
 
+**Output moderation:** the Worker moderates the model's output itself (`worker/moderation.ts`) instead of relying on AI Gateway's response Guardrails, which buffer the whole completion and so stop it streaming. Each statement is checked by Llama Guard 4 (`meta-llama/llama-guard-4-12b` through the same gateway) as soon as its line is complete, while later sections keep streaming. If any statement is flagged, the Worker stops forwarding deltas, sends a `replace` event with the default layout, and doesn't cache. If the guard can't be reached, the visitor keeps the page but it isn't cached, so only checked layouts are ever replayed from KV. Prompt-side Guardrails on the gateway don't affect streaming and can stay on; response-side Guardrails and response DLP must be off on the production gateway or streaming is lost.
+
 Link validation gates caching only: the visitor who triggered a generation sees the page as streamed (the renderer still drops unsafe links), and a layout with an unreachable link is simply not cached, so later visitors get a fresh generation.
 
 **Language:** the client sends its i18n language. The Worker checks it against the supported locales (`src/genui/language.ts`, anything else becomes English), tells the model to write in it, uses it in the cache key, and builds the fallback layout with the translated `fallbackSections` headings.

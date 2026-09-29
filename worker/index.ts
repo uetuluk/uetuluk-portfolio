@@ -23,6 +23,7 @@ import type {
 import type { ParseResult } from '@openuidev/lang-core';
 import { buildFallbackLayout } from '../src/genui/fallback';
 import { fallbackTitlesFor, resolveLanguage } from '../src/genui/language';
+import { moderateText, StreamModerator } from './moderation';
 import {
   encodeEvent,
   EVENT_STREAM_CONTENT_TYPE,
@@ -923,23 +924,34 @@ async function handleGenerate(
   return eventStreamResponse(corsHeaders, async (send) => {
     send({ event: 'meta', data: { ...meta, source: 'ai', layoutToken } });
 
+    const fallback = () => buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles);
+    const moderator = new StreamModerator((text) => moderateText(env, text));
+
     let lang = '';
     try {
       for await (const text of readCompletionDeltas(upstream)) {
+        // Stop forwarding as soon as a finished statement is flagged; the page is replaced below.
+        if (moderator.flagged) break;
         lang += text;
         send({ event: 'delta', data: { text } });
+        moderator.push(lang);
       }
     } catch (error) {
       console.error('Generation stream error:', error);
       if (!lang) {
         // Failed before any content: fall back to a complete default page.
-        send({
-          event: 'delta',
-          data: { text: buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles) },
-        });
+        send({ event: 'delta', data: { text: fallback() } });
+      } else if ((await moderator.finish(lang)) === 'unsafe') {
+        send({ event: 'replace', data: { text: fallback() } });
       } else {
         send({ event: 'error', data: { message: 'Generation was interrupted' } });
       }
+      return;
+    }
+
+    const moderation = await moderator.finish(lang);
+    if (moderation === 'unsafe') {
+      send({ event: 'replace', data: { text: fallback() } });
       return;
     }
 
@@ -948,12 +960,13 @@ async function handleGenerate(
     const parsed = parseLayout(lang);
     if (!isRenderableLayout(parsed)) {
       console.warn('Model output was not renderable; sending fallback layout');
-      send({
-        event: 'replace',
-        data: { text: buildFallbackLayout(effectiveTag, portfolioContent, fallbackTitles) },
-      });
+      send({ event: 'replace', data: { text: fallback() } });
       return;
     }
+
+    // A layout the guard couldn't check stays on this visitor's screen but isn't cached, so the
+    // next visitor gets a fresh, checked generation.
+    if (moderation === 'unchecked') return;
 
     // Validate and cache after the visitor has the page; waitUntil keeps the Worker alive.
     const finalize = cacheGeneratedLayout(env, cacheKey, lang, parsed, layoutToken);
