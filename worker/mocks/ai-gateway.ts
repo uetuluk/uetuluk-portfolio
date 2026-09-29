@@ -6,6 +6,26 @@
  */
 
 import type { AIGatewayResponse, CategorizationResult } from '../types';
+import { GUARD_MODEL } from '../moderation';
+
+/**
+ * How the mocked Llama Guard answers layout moderation calls: a fixed verdict, 'error' for a
+ * failed call, or a function of the text being checked.
+ */
+export type GuardMock = 'safe' | 'unsafe' | 'error' | ((text: string) => 'safe' | 'unsafe');
+
+function isGuardCall(options: unknown): boolean {
+  return (options as { query?: { model?: string } })?.query?.model === GUARD_MODEL;
+}
+
+/** Answer a moderation call the way Llama Guard does ("safe", or "unsafe" plus categories). */
+function guardResponse(options: unknown, guard: GuardMock = 'safe'): Response {
+  if (guard === 'error') return new Response('upstream error', { status: 502 });
+  const { messages } = (options as { query: { messages: Array<{ content: string }> } }).query;
+  const verdict = typeof guard === 'function' ? guard(messages.at(-1)!.content) : guard;
+  const content = verdict === 'safe' ? '\n\nsafe' : '\n\nunsafe\nS1';
+  return Response.json({ choices: [{ message: { content } }] });
+}
 
 /**
  * Configuration for creating a mock AI Gateway
@@ -198,12 +218,15 @@ export function createEnvWithMockAI<T extends object>(
 export function createSequentialMockAI(
   responses: Array<AIGatewayResponse | { stream: CompletionChunk[] }>,
   onRun?: (options: unknown) => void,
+  guard?: GuardMock,
 ): Ai {
   let callIndex = 0;
 
   return {
     gateway: (_gatewayId: string) => ({
       run: async (options: unknown) => {
+        // Moderation calls are answered separately so they don't consume the sequence.
+        if (isGuardCall(options)) return guardResponse(options, guard);
         onRun?.(options);
         const response = responses[callIndex] ?? responses[responses.length - 1];
         callIndex++;
@@ -226,20 +249,24 @@ export function createSequentialMockAI(
  */
 export type CompletionChunk = string | Record<string, unknown>;
 
-/** Encode chunks as an OpenAI-compatible chat completion SSE stream, ending with [DONE]. */
-export function createCompletionResponse(chunks: CompletionChunk[]): Response {
+/**
+ * Encode chunks as an OpenAI-compatible chat completion SSE stream, ending with [DONE]. With
+ * `delayMs`, chunks arrive over time like a real model's instead of all at once.
+ */
+export function createCompletionResponse(chunks: CompletionChunk[], delayMs = 0): Response {
   const encoder = new TextEncoder();
+  const frames = chunks.map((chunk) => {
+    const payload =
+      typeof chunk === 'string' ? { choices: [{ index: 0, delta: { content: chunk } }] } : chunk;
+    return `data: ${JSON.stringify(payload)}\n\n`;
+  });
+  frames.push('data: [DONE]\n\n');
+  let index = 0;
   const body = new ReadableStream<Uint8Array>({
-    start(controller) {
-      for (const chunk of chunks) {
-        const payload =
-          typeof chunk === 'string'
-            ? { choices: [{ index: 0, delta: { content: chunk } }] }
-            : chunk;
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-      }
-      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      controller.close();
+    async pull(controller) {
+      if (delayMs && index > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
+      if (index < frames.length) controller.enqueue(encoder.encode(frames[index++]));
+      else controller.close();
     },
   });
   return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
@@ -262,13 +289,23 @@ export function chunkText(text: string, size = 12): string[] {
  */
 export function createMockStreamingLayoutAI(
   lang: string,
-  options: { extraChunks?: CompletionChunk[]; onRun?: (options: unknown) => void } = {},
+  options: {
+    extraChunks?: CompletionChunk[];
+    onRun?: (options: unknown) => void;
+    guard?: GuardMock;
+    /** Delay between streamed chunks, for tests that depend on timing. */
+    chunkDelayMs?: number;
+  } = {},
 ): Ai {
   return {
     gateway: (_gatewayId: string) => ({
       run: async (runOptions: unknown) => {
+        if (isGuardCall(runOptions)) return guardResponse(runOptions, options.guard);
         options.onRun?.(runOptions);
-        return createCompletionResponse([...(options.extraChunks ?? []), ...chunkText(lang)]);
+        return createCompletionResponse(
+          [...(options.extraChunks ?? []), ...chunkText(lang)],
+          options.chunkDelayMs,
+        );
       },
     }),
   } as Ai;

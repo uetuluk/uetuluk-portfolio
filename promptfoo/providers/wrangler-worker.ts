@@ -180,6 +180,7 @@ class WranglerWorkerProviderLayout extends WranglerWorkerProvider {
 
   async callApi(prompt: string, context: ProviderContext): Promise<ProviderResponse> {
     const response = await super.callApi(prompt, context);
+    if (response.error) return response;
 
     // Parse and ensure we return the full layout object
     const data = JSON.parse(response.output);
