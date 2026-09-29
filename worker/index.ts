@@ -426,6 +426,14 @@ export function hashString(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
+/** First 16 hex characters of the SHA-256 digest: collision-resistant, unlike hashString. */
+async function sha256Hex(str: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(digest).slice(0, 8)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // Get default categorization result (fallback to friend)
 export function getDefaultCategorizationResult(): CategorizationResult {
   return {
@@ -836,9 +844,12 @@ async function handleGenerate(
   const contextHash = hashString(
     `${visitorContext.device.type}:${visitorContext.time.timeOfDay}:${visitorContext.geo.country || 'XX'}`,
   );
+  // The portfolio content is part of the key, so a content update never serves a stale layout
+  // and a request with made-up content can't write a layout that real visitors are served.
+  const contentHash = await sha256Hex(JSON.stringify(portfolioContent));
   const cacheKey = `${LAYOUT_CACHE_PREFIX}${effectiveTag}:${language}:${
     customGuidelines ? hashString(customGuidelines.guidelines) : 'default'
-  }:${contextHash}`;
+  }:${contextHash}:${contentHash}`;
 
   if (env.UI_CACHE) {
     const cached = (await env.UI_CACHE.get(cacheKey, 'json')) as CachedLayout | null;
