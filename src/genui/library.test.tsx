@@ -46,6 +46,23 @@ describe('portfolioLibrary', () => {
     expect(applyPaletteToRoot).not.toHaveBeenCalled();
   });
 
+  it('does not load a chart until the page has finished streaming', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+    const lang = page('blue', [
+      'DataChart("GitHub Activity", [{source: "github", type: "area", githubUsername: "uetuluk"}])',
+    ]);
+    const { rerender } = render(
+      <Renderer library={portfolioLibrary} response={lang} isStreaming />,
+    );
+    expect(screen.queryByText('GitHub Activity')).not.toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    rerender(<Renderer library={portfolioLibrary} response={lang} isStreaming={false} />);
+
+    expect(await screen.findByText('GitHub Activity')).toBeInTheDocument();
+    fetchSpy.mockRestore();
+  });
+
   it('scopes react-ui theme tokens to the generated page', () => {
     const { container } = renderLang(page('blue', ['Callout("Hi", "There")']));
 

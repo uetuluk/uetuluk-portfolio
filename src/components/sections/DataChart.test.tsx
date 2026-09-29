@@ -140,6 +140,42 @@ describe('DataChart', () => {
     });
   });
 
+  it('ignores a response for a config that has since changed', async () => {
+    // The request for the old username resolves last and must not overwrite the current data.
+    let resolveStale!: (value: unknown) => void;
+    mockFetch.mockImplementation((url: string) =>
+      url.endsWith('username=uetul')
+        ? new Promise((resolve) => (resolveStale = resolve))
+        : Promise.resolve({
+            ok: true,
+            json: async () => ({
+              contributions: [{ date: '2024-01-01', count: 5 }],
+              totalCommits: 5,
+              recentActivity: 5,
+            }),
+          }),
+    );
+
+    const chart = (githubUsername: string) => (
+      <DataChart
+        title="GitHub Activity"
+        charts={[{ source: 'github', type: 'area', githubUsername }]}
+      />
+    );
+    const { rerender } = render(chart('uetul'));
+    rerender(chart('uetuluk'));
+    await waitFor(() => expect(screen.getByTestId('area-chart')).toBeInTheDocument());
+
+    resolveStale({
+      ok: true,
+      json: async () => ({ contributions: [], totalCommits: 0, recentActivity: 0 }),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+    expect(screen.queryByText('No data available')).not.toBeInTheDocument();
+  });
+
   it('fetches weather data with visitor location by default', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
