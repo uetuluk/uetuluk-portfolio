@@ -257,6 +257,23 @@ describe('AI Gateway Layout Generation', () => {
       expect((await env.UI_CACHE.list({ prefix: 'layout:v2:' })).keys).toHaveLength(2);
     });
 
+    it('does not serve a layout cached for different portfolio content', async () => {
+      stubFetch();
+      const original = createMockPortfolioContent();
+      await generate(
+        envWith(createMockStreamingLayoutAI(LAYOUT)),
+        createGenerateRequest({ portfolioContent: original }),
+      );
+      const edited = { ...original, personal: { ...original.personal, title: 'Updated title' } };
+      const second = await generate(
+        envWith(createMockStreamingLayoutAI(LAYOUT)),
+        createGenerateRequest({ portfolioContent: edited }),
+      );
+
+      expect(second.meta?.source).toBe('ai');
+      expect((await env.UI_CACHE.list({ prefix: 'layout:v2:' })).keys).toHaveLength(2);
+    });
+
     it('localizes the default layout headings', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       const result = await generate(envWith(undefined), createGenerateRequest({ language: 'ja' }));
