@@ -56,10 +56,10 @@
     "nyu-shanghai": {
       "company": "New York University Shanghai",
       "role": "Research Engineer (Kiwi) & AI and Emerging Technology Manager, Library",
-      "period": "August 2023 - Present",
+      "period": "August 2023 - Present (Manager since September 2026)",
       "description": "Leading the Ask, Create, Train framework of production AI services for teaching, learning, research, and institutional use.",
       "highlights": [
-        "Promoted from Senior Emerging Technology Associate to AI and Emerging Technology Manager",
+        "Promoted from Senior Emerging Technology Associate to AI and Emerging Technology Manager in September 2026",
         "Promoted to dual-role position after successfully deploying MOOC with 100+ weekly users",
         "Run campus LLM inference with vLLM, FP8/AWQ quantization, and tensor/data parallelism on on-premises and HPC GPUs, behind a LiteLLM gateway",
         "Built Create, an internal multi-tenant platform where staff and students deploy AI-powered web apps with their own databases, storage, and LLM access",
